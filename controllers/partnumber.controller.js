@@ -37,18 +37,35 @@ exports.create = (req, res) => {
 
 //Get All PartNumbers
 exports.getAll = (req,res) =>{
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  console.log("Line 51", req.query);
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
   PartNumber.findAll({
-    where:req.query
+    where:req.query,
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
   })
   .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving PartNumbers."
-      });
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving PartNumbers."
     });
+  });
 };
 
 //Update PartNumber by Id
@@ -90,3 +107,136 @@ exports.getById = (req,res) => {
       });
     });
 }
+
+//search query
+exports.findPartNumbersBySearchQuery = (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+
+  var partNumber ='';
+  var UOM ='';
+  var description ='';
+
+  if(req.query.partNumber != undefined){
+    partNumber = req.query.partNumber;
+  }
+  if(req.query.description != undefined){
+    description = req.query.description;
+  }
+  if(req.query.UOM != undefined){
+    UOM = req.query.UOM;
+  }
+
+  PartNumber.findAll({ 
+    where: {
+      status:1,
+      partNumber: {
+        [Op.or]: {
+          [Op.like]: ''+partNumber+'%',
+          [Op.eq]: ''+partNumber+''
+        }
+      },
+      description: {
+        [Op.or]: {
+          [Op.like]: ''+description+'%',
+          [Op.eq]: ''+description+''
+        }
+      },
+      UOM: {
+        [Op.or]: {
+          [Op.like]: ''+UOM+'%',
+          [Op.eq]: ''+UOM+''
+        }
+      }
+    },
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  })
+  .then(async data => {
+    var countArray =[];
+    var responseData =[];
+    responseData.push(data);
+
+    var total = 0;
+    await PartNumber.count({ 
+      where: {
+        status:1,
+        partNumber: {
+          [Op.or]: {
+            [Op.like]: ''+partNumber+'%',
+            [Op.eq]: ''+partNumber+''
+          }
+        },
+        description: {
+          [Op.or]: {
+            [Op.like]: ''+description+'%',
+            [Op.eq]: ''+description+''
+          }
+        },
+        UOM: {
+          [Op.or]: {
+            [Op.like]: ''+UOM+'%',
+            [Op.eq]: ''+UOM+''
+          }
+        }
+      },
+    })
+    .then(data => {
+      total = data;
+    })
+    .catch(err => {
+      res.status(500).send({
+        message:
+        err.message || "Some error occurred while retrieving PartNumbers."
+      });
+    });
+    var totalParts = {
+      totalCount : total
+    }
+    countArray.push(totalParts);
+    responseData.push(countArray);
+    res.send(responseData);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving PartNumbers."
+    });
+  });
+};
+
+// get count of all part numbers whose status =1 
+exports.countOfPartNumbers = (req, res) => {
+  var total = 0
+  PartNumber.count({
+    where :
+    {
+      status :1
+    }
+  })
+  .then(data => {
+    total = data;
+    var totalCount = {
+      totalParts : total 
+    }
+     res.send(totalCount);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving Parts count."
+    });
+  });
+};

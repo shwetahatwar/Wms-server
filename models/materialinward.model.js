@@ -60,9 +60,10 @@ module.exports = (sequelize, DataTypes) => {
   }),
 
   PartNumber = sequelize.define("partnumber", {
-    partNumber: {
+   partNumber: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: false,
+      unique: true
     },
     description: {
       type: DataTypes.STRING,

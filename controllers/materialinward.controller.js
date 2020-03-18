@@ -134,7 +134,9 @@ exports.findAll = (req, res) => {
   MaterialInward.findAll({ 
     where: queryString,
     include: [{
-      model: PartNumber,
+      model: PartNumber
+    },
+    {
       model: Location
     }],
     order: [
@@ -276,3 +278,70 @@ exports.updateQcStatus = (req, res) => {
     });
   });
 }; 
+
+// get count by QC
+exports.countByQcStatus = async (req, res) => {
+    var countTable=[];
+
+    await MaterialInward.count({
+      where:{
+        status:1,
+        materialStatus:0
+      }
+    })
+    .then(data => {
+      console.log(data);
+      
+      let singleData = {
+        'total':data
+      };
+      countTable.push(singleData);
+    })
+    await MaterialInward.count({
+      where:{
+        status:1,
+        materialStatus:0,
+        QCStatus:1
+      }
+    })
+    .then(data => {
+      let singleData = {
+        'ok':data
+      };
+      countTable.push(singleData);
+    })
+    await MaterialInward.count({
+      where:{
+        status:1,
+        materialStatus:0,
+        QCStatus:0
+      }
+    })
+    .then(data => {
+      let singleData = {
+        'pending':data
+      };
+      countTable.push(singleData);
+    })
+    await MaterialInward.count({
+      where:{
+        status:1,
+        materialStatus:0,
+        QCStatus:2
+      }
+    })
+    .then(data => {
+      let singleData = {
+        'rejected':data
+      };
+      countTable.push(singleData);
+      res.status(200).send({
+        countTable
+      });
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500);
+      res.send(err);
+    });
+  }

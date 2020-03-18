@@ -36,18 +36,35 @@ exports.create = (req, res) => {
 
 //Get All Locations
 exports.getAll = (req,res) =>{
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  console.log("Line 51", req.query);
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
   Location.findAll({
-    where:req.query
+    where:req.query,
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
   })
   .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving Locations."
-      });
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving Locations."
     });
+  });
 };
 
 //Update Locations by Id
@@ -89,3 +106,120 @@ exports.getById = (req,res) => {
       });
     });
 }
+
+//search query
+exports.findLocationsBySearchQuery = (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+
+  var name ='';
+  var description ='';
+
+  if(req.query.name != undefined){
+    name = req.query.name;
+  }
+  if(req.query.description != undefined){
+    description = req.query.description;
+  }
+
+  Location.findAll({ 
+    where: {
+      status:1,
+      name: {
+        [Op.or]: {
+          [Op.like]: ''+name+'%',
+          [Op.eq]: ''+name+''
+        }
+      },
+      description: {
+        [Op.or]: {
+          [Op.like]: ''+description+'%',
+          [Op.eq]: ''+description+''
+        }
+      }
+    },
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  })
+  .then(async data => {
+    var countArray =[];
+    var responseData =[];
+    responseData.push(data);
+
+    var total = 0;
+    await Location.count({ 
+      where: {
+        status:1,
+        name: {
+          [Op.or]: {
+            [Op.like]: ''+name+'%',
+            [Op.eq]: ''+name+''
+          }
+        },
+        description: {
+          [Op.or]: {
+            [Op.like]: ''+description+'%',
+            [Op.eq]: ''+description+''
+          }
+        }
+      },
+    })
+    .then(data => {
+      total = data;
+    })
+    .catch(err => {
+      res.status(500).send({
+        message:
+        err.message || "Some error occurred while retrieving Locations."
+      });
+    });
+    var totalLocations = {
+      totalCount : total
+    }
+    countArray.push(totalLocations);
+    responseData.push(countArray);
+    res.send(responseData);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving Locations."
+    });
+  });
+};
+
+// get count of all locations whose status =1 
+exports.countOfLocations = (req, res) => {
+  var total = 0
+  Location.count({
+    where :
+    {
+      status :1
+    }
+  })
+  .then(data => {
+    total = data;
+    var totalCount = {
+      totalLocations : total 
+    }
+     res.send(totalCount);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving Location count."
+    });
+  });
+};
