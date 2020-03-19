@@ -141,19 +141,19 @@ exports.findPartNumbersBySearchQuery = (req, res) => {
       status:1,
       partNumber: {
         [Op.or]: {
-          [Op.like]: ''+partNumber+'%',
+          [Op.like]: '%'+partNumber+'%',
           [Op.eq]: ''+partNumber+''
         }
       },
       description: {
         [Op.or]: {
-          [Op.like]: ''+description+'%',
+          [Op.like]: '%'+description+'%',
           [Op.eq]: ''+description+''
         }
       },
       UOM: {
         [Op.or]: {
-          [Op.like]: ''+UOM+'%',
+          [Op.like]: '%'+UOM+'%',
           [Op.eq]: ''+UOM+''
         }
       }
@@ -175,19 +175,19 @@ exports.findPartNumbersBySearchQuery = (req, res) => {
         status:1,
         partNumber: {
           [Op.or]: {
-            [Op.like]: ''+partNumber+'%',
+            [Op.like]: '%'+partNumber+'%',
             [Op.eq]: ''+partNumber+''
           }
         },
         description: {
           [Op.or]: {
-            [Op.like]: ''+description+'%',
+            [Op.like]: '%'+description+'%',
             [Op.eq]: ''+description+''
           }
         },
         UOM: {
           [Op.or]: {
-            [Op.like]: ''+UOM+'%',
+            [Op.like]: '%'+UOM+'%',
             [Op.eq]: ''+UOM+''
           }
         }

@@ -7,7 +7,9 @@ router.post("/", users.loginRequired,materialinwards.create);
 router.get("/", users.loginRequired,materialinwards.findAll);
 router.get("/:id", users.loginRequired,materialinwards.findOne);
 router.put("/:id", users.loginRequired,materialinwards.update);
-router.put("/update/updateQcStatus", users.loginRequired,materialinwards.updateQcStatus);
+router.put("/update/:id/updateQcStatus", users.loginRequired,materialinwards.updateQcStatus);
 router.get("/get/getCountByQcStatus", users.loginRequired,materialinwards.countByQcStatus);
+router.get('/get/findMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findMaterialInwardsBySearchQuery);
+
 
 module.exports = router;

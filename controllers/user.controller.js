@@ -58,7 +58,7 @@ exports.create = async (req, res) => {
 exports.sign_in = (req, res) => {
   User.scope('withPassword').findOne({
     where: {
-      username: req.body.username
+      username: req.body.username,
     },
     include: [{
       model: Role

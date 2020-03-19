@@ -26,7 +26,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     employeeId:{
       type:DataTypes.STRING,
-      allowNull:false
+      allowNull:false,
+      unique: true
     },
     createdBy:{
       type:DataTypes.STRING,
@@ -99,7 +100,6 @@ module.exports = (sequelize, DataTypes) => {
   User.belongsTo(Role, {foreignKey: 'roleId',onDelete: 'CASCADE'});
 
   User.associate = function(models) {
-    // associations can be defined here
   };
 
   User.prototype.comparePassword = function(password) {

@@ -136,8 +136,8 @@ exports.findLocationsBySearchQuery = (req, res) => {
       status:1,
       name: {
         [Op.or]: {
-          [Op.like]: ''+name+'%',
-          [Op.eq]: ''+name+''
+          [Op.like]: '%'+name+'%',
+          [Op.eq]: '%'+name+''
         }
       },
       description: {
@@ -164,13 +164,13 @@ exports.findLocationsBySearchQuery = (req, res) => {
         status:1,
         name: {
           [Op.or]: {
-            [Op.like]: ''+name+'%',
+            [Op.like]: '%'+name+'%',
             [Op.eq]: ''+name+''
           }
         },
         description: {
           [Op.or]: {
-            [Op.like]: ''+description+'%',
+            [Op.like]: '%'+description+'%',
             [Op.eq]: ''+description+''
           }
         }
