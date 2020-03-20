@@ -26,5 +26,6 @@ db.locations = require("./location.model.js")(sequelize, Sequelize);
 db.materialinwards = require("./materialinward.model.js")(sequelize, Sequelize);
 db.inventorytransactions = require("./inventorytransaction.model.js")(sequelize, Sequelize);
 db.qctransactions = require("./qctransaction.model.js")(sequelize, Sequelize);
+db.sites = require("./site.model.js")(sequelize, Sequelize);
 
 module.exports = db;

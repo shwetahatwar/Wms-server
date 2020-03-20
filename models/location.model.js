@@ -10,6 +10,39 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
+    siteId:{
+      type: DataTypes.INTEGER,
+      references: {
+          model: 'sites', 
+          key: 'id',
+       }
+    },
+    barcodeSerial:{
+      type: DataTypes.STRING,
+      allowNull:false,
+      unique: true
+    },
+    status:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false
+    },
+    createdBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    },
+    updatedBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    }
+    
+  }),
+
+  Site = sequelize.define("site", {
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
     status:{
       type:DataTypes.BOOLEAN,
       allowNull:false
@@ -24,5 +57,7 @@ module.exports = (sequelize, DataTypes) => {
     }
     
   });
+
+  Location.belongsTo(Site, {foreignKey: 'siteId',onDelete: 'CASCADE'});
   return Location;
 };

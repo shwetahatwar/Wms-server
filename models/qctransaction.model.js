@@ -45,7 +45,8 @@ module.exports = (sequelize, DataTypes) => {
       references: {
         model: 'locations', 
         key: 'id',
-      }
+      },
+      allowNull:true,
     },
     barcodeSerial:{
       type: DataTypes.STRING,

@@ -427,3 +427,29 @@ exports.countByQcStatus = async (req, res) => {
     });
   });
 };
+
+
+// Update a MaterialInward by the Barcode Serial in the request
+exports.updateWithBarcode = (req, res) => {
+  const barcodeSerial = req.params.barcodeSerial;
+
+  MaterialInward.update(req.body, {
+    where: req.params
+  })
+  .then(num => {
+    if (num == 1) {
+      res.send({
+        message: "MaterialInward was updated successfully."
+      });
+    } else {
+      res.send({
+        message: `Cannot update MaterialInward with Barcode=${barcodeSerial}. Maybe MaterialInward was not found or req.body is empty!`
+      });
+    }
+  })
+  .catch(err => {
+    res.status(500).send({
+      message: "Error updating MaterialInward with Barcode=" + barcodeSerial
+    });
+  });
+};

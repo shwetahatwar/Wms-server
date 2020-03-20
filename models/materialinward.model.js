@@ -13,7 +13,8 @@ module.exports = (sequelize, DataTypes) => {
       references: {
         model: 'locations', 
         key: 'id',
-      }
+      },
+      allowNull:true,
     },
     barcodeSerial:{
       type: DataTypes.STRING,
@@ -94,7 +95,18 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true
     },
-    description:{
+    description: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    siteId:{
+      type: DataTypes.INTEGER,
+      references: {
+          model: 'sites', 
+          key: 'id',
+       }
+    },
+    barcodeSerial: {
       type: DataTypes.STRING,
       allowNull: false
     },
@@ -109,7 +121,7 @@ module.exports = (sequelize, DataTypes) => {
     updatedBy:{
       type:DataTypes.STRING,
       allowNull:true
-    }
+    }    
   });
 
   MaterialInward.belongsTo(PartNumber, {foreignKey: 'partNumberId',onDelete: 'CASCADE'});

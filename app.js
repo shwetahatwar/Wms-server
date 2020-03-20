@@ -15,6 +15,7 @@ var locationsRouter = require('./routes/location.routes');
 var materialInwardsRouter = require('./routes/materialinward.routes');
 var inventoryTransactionRouter = require('./routes/inventorytransaction.routes');
 var qcTransactionRouter = require('./routes/qctransaction.routes');
+var siteRouter = require('./routes/site.routes');
 
 const app = express();
 
@@ -71,6 +72,7 @@ app.use('/locations', locationsRouter);
 app.use('/materialinwards', materialInwardsRouter);
 app.use('/inventorytransactions', inventoryTransactionRouter);
 app.use('/qctransactions', qcTransactionRouter);
+app.use('/sites', siteRouter);
 
 const db = require("./models");
 db.sequelize.sync();
