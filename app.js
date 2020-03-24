@@ -16,6 +16,7 @@ var materialInwardsRouter = require('./routes/materialinward.routes');
 var inventoryTransactionRouter = require('./routes/inventorytransaction.routes');
 var qcTransactionRouter = require('./routes/qctransaction.routes');
 var siteRouter = require('./routes/site.routes');
+var setupDataRouter = require('./routes/setupdataupload.routes');
 
 const app = express();
 
@@ -73,6 +74,7 @@ app.use('/materialinwards', materialInwardsRouter);
 app.use('/inventorytransactions', inventoryTransactionRouter);
 app.use('/qctransactions', qcTransactionRouter);
 app.use('/sites', siteRouter);
+app.use('/setupData', setupDataRouter);
 
 const db = require("./models");
 db.sequelize.sync();
