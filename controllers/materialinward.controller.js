@@ -18,6 +18,7 @@ exports.create = async (req, res) => {
   }
   var dataArray = [];
   var partsBarcode;
+  let netWeightOfPacks;
   const partNumbersId = req.body.partNumberId;
 
   await PartNumber.findAll({
@@ -25,8 +26,10 @@ exports.create = async (req, res) => {
   })
   .then(data => {
     partsBarcode = data[0]["dataValues"]["partNumber"];
+    netWeightOfPacks = data[0]["dataValues"]["netWeight"];
   });
-  console.log("Part number:",partsBarcode);
+  netWeightOfPacks = netWeightOfPacks * parseInt(req.body.eachPackQuantity);
+  console.log("Part number:",partsBarcode,netWeightOfPacks);
   for(var i=0; i < req.body.quantity; i++){
 
     if(partsBarcode != null && partsBarcode !=undefined){
@@ -35,6 +38,8 @@ exports.create = async (req, res) => {
         where: { 
           partNumberId: req.body.partNumberId
         },
+        limit:1,
+        offset:0,
         order: [
         ['id', 'DESC'],
         ],
@@ -79,6 +84,32 @@ exports.create = async (req, res) => {
     .then(async data => {
       dataArray.push(data);
 
+    if(req.body.locationId != null && req.body.locationId != undefined){
+      let prevCapacityOfLocation = 0;
+      await Location.findAll({
+        where: {id : req.body.locationId}
+      })
+      .then(data => {
+        prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
+      });
+      let netWeightOfPacksInTons = netWeightOfPacks/1000;
+      netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
+      let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
+      updateCapacity = updateCapacity;
+      var updatedData = {
+        'loadedCapacity': updateCapacity
+      };
+      await Location.update(updatedData, {
+        where:{
+          id:req.body.locationId
+        }
+      })
+      .then(data => {
+      })
+      .catch(err => {
+        console.log(err);
+      });
+    }
     // MaterialInward transaction entry in the database
     const inventoryTransact = {
       transactionTimestamp: Date.now(),
@@ -516,26 +547,87 @@ else{
 
 
 // Update a MaterialInward by the Barcode Serial in the request
-exports.updateWithBarcode = (req, res) => {
+exports.updateWithBarcode = async (req, res) => {
   const barcodeSerial = req.params.barcodeSerial;
+  var netWeightOfPacks;
+  var eachPackQty;
+  await MaterialInward.findAll({
+    where: { 
+      barcodeSerial: barcodeSerial
+    },
+    include:{
+      model: PartNumber
+    },
+  })
+  .then(async data => {
+    eachPackQty = data[0]["dataValues"]["eachPackQuantity"];
+    await PartNumber.findAll({
+      where: { 
+        id: data[0]["dataValues"]["partNumberId"]
+      }
+    })
+    .then(data => {
+      netWeightOfPacks = data[0]["dataValues"]["netWeight"];
+      netWeightOfPacks = netWeightOfPacks * eachPackQty;
+    })
+    .catch(err => {
 
-  MaterialInward.update(req.body, {
-    where: req.params
-  })
-  .then(num => {
-    if (num == 1) {
-      res.send({
-        message: "MaterialInward was updated successfully."
-      });
-    } else {
-      res.send({
-        message: `Cannot update MaterialInward with Barcode=${barcodeSerial}. Maybe MaterialInward was not found or req.body is empty!`
-      });
-    }
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error updating MaterialInward with Barcode=" + barcodeSerial
     });
   });
+
+  if(req.body.locationId != null && req.body.locationId != undefined){
+    let prevCapacityOfLocation = 0;
+    await Location.findAll({
+      where: {id : req.body.locationId}
+    })
+    .then(data => {
+      prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
+    });
+    let netWeightOfPacksInTons = netWeightOfPacks/1000;
+    netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
+    let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
+    console.log("updateCapacity",updateCapacity,netWeightOfPacks,netWeightOfPacksInTons);
+    if(updateCapacity <= prevCapacityOfLocation){
+    var updatedData = {
+      'loadedCapacity': updateCapacity
+    };
+    await Location.update(updatedData, {
+      where:{
+        id:req.body.locationId
+      }
+    })
+    .then(async data => {
+      await MaterialInward.update(req.body, {
+        where: req.params
+      })
+      .then(num => {
+        if (num == 1) {
+          res.send({
+            message: "MaterialInward was updated successfully."
+          });
+        } 
+        else {
+          res.send({
+            message: `Cannot update MaterialInward with Barcode=${barcodeSerial}. Maybe MaterialInward was not found or req.body is empty!`
+          });
+        }
+      })
+      .catch(err => {
+        res.status(500).send({
+          message: "Error updating MaterialInward with Barcode=" + barcodeSerial
+        });
+      });
+    })
+    .catch(err => {
+      console.log(err);
+    });
+  }
+  else{
+    res.status(500).send({
+      message: "Material connot put to this location due to capacity is exceeding"
+    });
+
+  }
+}
+
 };

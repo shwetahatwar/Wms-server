@@ -22,6 +22,14 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:false,
       unique: true
     },
+    capacity: {
+      type: DataTypes.FLOAT,
+      allowNull: false
+    },
+    loadedCapacity: {
+      type: DataTypes.FLOAT,
+      allowNull: false
+    },
     status:{
       type:DataTypes.BOOLEAN,
       allowNull:false

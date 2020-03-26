@@ -17,6 +17,7 @@ exports.create = (req, res) => {
     partNumber: req.body.partNumber,
     description: req.body.description,
     UOM: req.body.UOM,
+    netWeight: req.body.netWeight,
     status:true,
     createdBy:req.user.username,
     updatedBy:req.user.username

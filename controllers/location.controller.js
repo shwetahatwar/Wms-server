@@ -59,6 +59,8 @@ exports.create = async (req, res) => {
     barcodeSerial: serialNumberId, 
     siteId:siteId,
     status:true,
+    capacity: req.body.capacity,
+    loadedCapacity: 0,
     createdBy:req.user.username,
     updatedBy:req.user.username
   };

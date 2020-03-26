@@ -74,6 +74,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
+    netWeight: {
+      type: DataTypes.FLOAT,
+      allowNull: false
+    },
     status:{
       type:DataTypes.BOOLEAN,
       allowNull:false
@@ -108,6 +112,14 @@ module.exports = (sequelize, DataTypes) => {
     },
     barcodeSerial: {
       type: DataTypes.STRING,
+      allowNull: false
+    },
+    capacity: {
+      type: DataTypes.FLOAT,
+      allowNull: false
+    },
+    loadedCapacity: {
+      type: DataTypes.FLOAT,
       allowNull: false
     },
     status:{
