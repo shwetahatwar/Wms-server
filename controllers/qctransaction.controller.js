@@ -160,18 +160,24 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
           },
           include: [{model: MaterialInward}]
         }).then(data => {
-          if(data.length != 0){
-            responseData.push(data);
+          for(var a=0;a<data.length;a++){
+            if(data.length != 0){
+              responseData.push(data[a]["dataValues"]);
+            }
           }
         });
       }
+
       let count = {
         'totalCount':responseData.length
       };
       let dataCount = [];
+      let dataList = [];
+      dataList.push(responseData);
       dataCount.push(count);
-      responseData.push(dataCount);
-      res.send(responseData);
+      dataList.push(dataCount);
+      console.log("IN part Search");
+      res.send(dataList);
     });
   }
   };
