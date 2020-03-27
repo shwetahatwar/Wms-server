@@ -98,6 +98,39 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
       res.send(responseData);
     });
   }
+   if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
+   await MaterialInward.findAll({
+      where: {
+        barcodeSerial: {
+          [Op.or]: {
+            [Op.eq]: ''+req.query.barcodeSerial+'',
+            [Op.like]: '%'+req.query.barcodeSerial+'%'
+          }
+        },
+        status : 1 
+      }
+    }).then(async data => {
+      for(var i=0;i<data.length;i++){
+        await QCTransaction.findAll({
+          where: {
+            materialInwardId: data[i]["dataValues"]["id"]
+          },
+          include: [{model: MaterialInward}],
+        }).then(data => {
+          if(data.length != 0){
+            responseData.push(data);
+          }
+        });
+      }
+      let count = {
+        'totalCount':responseData.length
+      };
+      let dataCount = [];
+      dataCount.push(count);
+      responseData.push(dataCount);
+      res.send(responseData);
+    });
+  }
   if(req.query.partNumber != undefined && req.query.partNumber != null){
     var partNumberId;
     await PartNumber.findAll({
