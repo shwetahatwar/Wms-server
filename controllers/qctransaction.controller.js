@@ -98,7 +98,7 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
       res.send(responseData);
     });
   }
-   if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
+   else if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
    await MaterialInward.findAll({
       where: {
         barcodeSerial: {
@@ -131,7 +131,7 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
       res.send(responseData);
     });
   }
-  if(req.query.partNumber != undefined && req.query.partNumber != null){
+  else if(req.query.partNumber != undefined && req.query.partNumber != null){
     var partNumberId;
     await PartNumber.findAll({
       where: {
