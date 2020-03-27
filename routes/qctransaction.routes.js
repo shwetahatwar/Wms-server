@@ -5,5 +5,6 @@ var users = require('../controllers/user.controller');
 
 router.get("/", users.loginRequired,qctransactions.getAll);
 router.get("/:id", users.loginRequired,qctransactions.findOne);
+router.get("/get/getQCtransactionsBySearchQuery",users.loginRequired,qctransactions.findQCTransactionsBySearchQuery)
 
 module.exports = router;
