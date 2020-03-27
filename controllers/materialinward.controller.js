@@ -574,20 +574,21 @@ exports.updateWithBarcode = async (req, res) => {
 
     });
   });
-
+  let totalCapacity;
   if(req.body.locationId != null && req.body.locationId != undefined){
     let prevCapacityOfLocation = 0;
     await Location.findAll({
       where: {id : req.body.locationId}
     })
     .then(data => {
+      totalCapacity = data[0]["dataValues"]["capacity"];
       prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
     });
     let netWeightOfPacksInTons = netWeightOfPacks/1000;
     netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
     let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
-    console.log("updateCapacity",updateCapacity,netWeightOfPacks,netWeightOfPacksInTons);
-    if(updateCapacity <= prevCapacityOfLocation){
+    console.log("updateCapacity",updateCapacity,totalCapacity,netWeightOfPacksInTons);
+    if(updateCapacity <= totalCapacity){
     var updatedData = {
       'loadedCapacity': updateCapacity
     };
