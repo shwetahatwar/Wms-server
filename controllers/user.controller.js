@@ -3,6 +3,8 @@ const User = db.users;
 const Op = db.Sequelize.Op;
 var jwt = require('jsonwebtoken');
 const Role = db.roles;
+const Site = db.sites;
+const UserSiteRelation = db.usersiterelations;
 var bcrypt = require('bcrypt-nodejs');
 var bbPromise = require('bluebird');
 
@@ -30,12 +32,27 @@ exports.create = async (req, res) => {
     return res.status(401).json({ message: 'Invalid Role' });
   })
 
+  var siteId;
+  console.log("SIte",req.body.site);
+  await Site.findAll({
+    where: {
+      name:req.body.site
+    }
+  })
+  .then(data => {
+    siteId = data[0]["dataValues"]["id"];
+  })
+  .catch(err => {
+    return res.status(401).json({ message: 'Invalid Site' });
+  })
+
   // Create a User
   const user = {
     username: req.body.username,
     password: req.body.password,
     status: "1",
     roleId: roleId,
+    siteId: siteId,
     employeeId:req.body.employeeId,
     createdBy:req.user.username,
     updatedBy:req.user.username
@@ -43,11 +60,30 @@ exports.create = async (req, res) => {
 
   // Save User in the database
   await User.create(user)
-    .then(data => {
+    .then(async data => {
+      console.log("Data",data["id"])
+      var userSite = {
+        userId : data["id"],
+        siteId : siteId,
+        createdBy:req.user.username,
+        updatedBy:req.user.username
+
+      }
+      await UserSiteRelation.create(userSite)
+      .then(data => {
+
+      })
+      .catch(err => {
+        console.log("Error",err);
+        res.status(500).send({
+          message:
+          err["errors"][0]["message"] || "Some error occurred while creating the UserSite Relation."
+        });
+      });
       res.send(data);
     })
     .catch(err => {
-      console.log("Error",err["errors"][0]["message"]);
+      console.log("Error",err["errors"]);
       res.status(500).send({
         message:
           err["errors"][0]["message"] || "Some error occurred while creating the User."
@@ -94,9 +130,14 @@ exports.findAll = (req, res) => {
 
   User.findAll({ 
     where: req.query,
-    include: [{
+    include: [
+    {
       model: Role
-    }],
+    },
+    {
+      model: Site
+    },
+    ],
      order: [
         ['id', 'DESC'],
         ],

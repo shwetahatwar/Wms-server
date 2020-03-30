@@ -1,6 +1,6 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const InventoryTransaction = sequelize.define("inventorytransaction", {
+  const PutawayTransaction = sequelize.define("putawaytransaction", {
     transactionTimestamp: {
       type: DataTypes.STRING,
       allowNull: false
@@ -9,16 +9,16 @@ module.exports = (sequelize, DataTypes) => {
       type:DataTypes.STRING,
       allowNull:true
     },
-    transactionType:{
-      type: DataTypes.STRING,
-      allowNull: false
-    },
     materialInwardId:{
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    batchNumber:{
-      type: DataTypes.STRING,
+     prevLocationId:{
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+     currentLocationId:{
+      type: DataTypes.INTEGER,
       allowNull: false
     },
     createdBy:{
@@ -30,6 +30,49 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:true
     }
     
+  }),
+
+   Location = sequelize.define("location", {
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    description: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    siteId:{
+      type: DataTypes.INTEGER,
+      references: {
+          model: 'sites', 
+          key: 'id',
+       }
+    },
+    barcodeSerial: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    capacity: {
+      type: DataTypes.FLOAT,
+      allowNull: false
+    },
+    loadedCapacity: {
+      type: DataTypes.FLOAT,
+      allowNull: false
+    },
+    status:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false
+    },
+    createdBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    },
+    updatedBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    }    
   }),
 
   MaterialInward = sequelize.define("materialinward", {
@@ -96,9 +139,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull:true
     }
-        
+
   });
 
-  InventoryTransaction.belongsTo(MaterialInward, {foreignKey: 'materialInwardId',onDelete: 'CASCADE'})
-  return InventoryTransaction;
+  PutawayTransaction.belongsTo(MaterialInward, {foreignKey: 'materialInwardId',onDelete: 'CASCADE'});
+  PutawayTransaction.belongsTo(Location, {foreignKey: 'prevLocationId',onDelete: 'CASCADE'});
+  PutawayTransaction.belongsTo(Location, {foreignKey: 'currentLocationId',onDelete: 'CASCADE'});
+  return PutawayTransaction;
 };

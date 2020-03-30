@@ -2,6 +2,7 @@ const db = require("../models");
 const Material = db.materials;
 const User = db.users;
 const Role = db.roles;
+const Site = db.sites;
 
 exports.uploadUserMaster = async (req,res) =>{
   const role = {
@@ -10,6 +11,19 @@ exports.uploadUserMaster = async (req,res) =>{
       createdBy:"admin",
       updatedBy:"admin"
     };
+
+   var siteData;
+    const site = {
+      name: "Pune",
+      status:true,
+      createdBy:"admin",
+      updatedBy:"admin"
+    };
+
+    await  Site.create(site)
+    .then(data => {
+      siteData = data["dataValues"]["id"];
+    });
 
     var roleData;
     Role.create(role)
@@ -21,6 +35,7 @@ exports.uploadUserMaster = async (req,res) =>{
         password: "briot",
         status: "1",
         roleId: roleData,
+        siteId: siteData,
         employeeId:1004,
         createdBy:"admin",
         updatedBy:"admin"

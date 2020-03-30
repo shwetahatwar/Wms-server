@@ -24,6 +24,13 @@ module.exports = (sequelize, DataTypes) => {
           key: 'id',
        }
     },
+     siteId:{
+      type: DataTypes.INTEGER,
+      references: {
+          model: 'sites', 
+          key: 'id',
+       }
+    },
     employeeId:{
       type:DataTypes.STRING,
       allowNull:false,
@@ -95,9 +102,31 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:true
     }
     
+  }),
+
+  Site = sequelize.define("site", {
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    status:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false
+    },
+    createdBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    },
+    updatedBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    }
+    
   });
 
   User.belongsTo(Role, {foreignKey: 'roleId',onDelete: 'CASCADE'});
+  User.belongsTo(Site, {foreignKey: 'siteId',onDelete: 'CASCADE'});
 
   User.associate = function(models) {
   };
