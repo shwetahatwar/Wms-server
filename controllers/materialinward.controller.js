@@ -333,7 +333,7 @@ exports.countByQcStatus = async (req, res) => {
   await MaterialInward.count({
     where:{
       status:1,
-      materialStatus : "Available"
+      // materialStatus : "Available"
     }
   })
   .then(data => {
@@ -347,7 +347,7 @@ exports.countByQcStatus = async (req, res) => {
   await MaterialInward.count({
     where:{
       status:1,
-      materialStatus : "Available",
+      // materialStatus : "Available",
       QCStatus:1
     }
   })
@@ -360,7 +360,7 @@ exports.countByQcStatus = async (req, res) => {
   await MaterialInward.count({
     where:{
       status:1,
-      materialStatus : "Available",
+      // materialStatus : "Available",
       QCStatus:0
     }
   })
@@ -373,7 +373,7 @@ exports.countByQcStatus = async (req, res) => {
   await MaterialInward.count({
     where:{
       status:1,
-      materialStatus : "Available",
+      // materialStatus : "Available",
       QCStatus:2
     }
   })

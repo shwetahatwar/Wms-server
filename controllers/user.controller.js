@@ -112,6 +112,7 @@ exports.sign_in = (req, res) => {
       { token: jwt.sign({ username: user.username }, 'THISISLONGSTRINGKEY'),
       username: user.username,
       userId:user.id,
+      siteId:user.siteId,
       employeeId: user.employeeId,
       roleId:user["role"]["id"],
       role:user["role"]["name"]
