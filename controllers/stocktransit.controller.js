@@ -1,7 +1,7 @@
 const db = require("../models");
 const MaterialInward = db.materialinwards;
 const StockTransaction = db.stocktransactions;
-const StockTransit =  db.stocktransit
+const StockTransit =  db.stocktransits;
 const User = db.users;
 const Site = db.sites;
 const Op = db.Sequelize.Op;
@@ -28,7 +28,7 @@ exports.findAll = (req, res) => {
     include: [
     {model: MaterialInward},
     {model: Site},
-    {model: User},
+    // {model: User},
     ],
     offset:offset,
     limit:limit 
