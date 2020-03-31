@@ -78,8 +78,15 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:false
     },
     materialStatus:{
-      type: DataTypes.BOOLEAN,
+      type: DataTypes.STRING,
       allowNull:false
+    },
+    siteId:{
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'sites', 
+        key: 'id',
+      }
     },
     createdBy:{
       type: DataTypes.STRING,

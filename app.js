@@ -17,6 +17,11 @@ var inventoryTransactionRouter = require('./routes/inventorytransaction.routes')
 var qcTransactionRouter = require('./routes/qctransaction.routes');
 var siteRouter = require('./routes/site.routes');
 var setupDataRouter = require('./routes/setupdataupload.routes');
+var stockTransitRouter = require('./routes/stocktransit.routes');
+var stockTransactionRouter = require('./routes/stocktransaction.routes');
+var userSiteRelationRouter = require('./routes/usersiterelation.routes');
+var putawayTransactionRouter = require('./routes/putawaytransaction.routes');
+
 
 const app = express();
 
@@ -75,6 +80,10 @@ app.use('/inventorytransactions', inventoryTransactionRouter);
 app.use('/qctransactions', qcTransactionRouter);
 app.use('/sites', siteRouter);
 app.use('/setupData', setupDataRouter);
+app.use('/stocktransits',stockTransitRouter);
+app.use('/stocktransactions',stockTransactionRouter);
+app.use('/usersiterelations',userSiteRelationRouter);
+app.use('/putawaytransactions',putawayTransactionRouter);
 
 const db = require("./models");
 db.sequelize.sync();

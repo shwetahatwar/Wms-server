@@ -46,8 +46,15 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:false
     },
     materialStatus:{
-      type: DataTypes.BOOLEAN,
+      type: DataTypes.STRING,
       allowNull:false
+    },
+    siteId:{
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'sites', 
+        key: 'id',
+      }
     },
     createdBy:{
       type: DataTypes.STRING,
@@ -134,9 +141,31 @@ module.exports = (sequelize, DataTypes) => {
       type:DataTypes.STRING,
       allowNull:true
     }    
+  }),
+
+  Site = sequelize.define("site", {
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    status:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false
+    },
+    createdBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    },
+    updatedBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    }
+    
   });
 
   MaterialInward.belongsTo(PartNumber, {foreignKey: 'partNumberId',onDelete: 'CASCADE'});
-  MaterialInward.belongsTo(Location, {foreignKey: 'locationId',onDelete: 'CASCADE'})
+  MaterialInward.belongsTo(Location, {foreignKey: 'locationId',onDelete: 'CASCADE'});
+  MaterialInward.belongsTo(Site, {foreignKey: 'siteId',onDelete: 'CASCADE'});
   return MaterialInward;
 };

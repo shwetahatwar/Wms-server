@@ -4,6 +4,7 @@ const Op = db.Sequelize.Op;
 const PartNumber = db.partnumbers;
 const Location = db.locations;
 const InventoryTransaction = db.inventorytransactions;
+const PutawayTransaction = db.putawaytransactions;
 const QCTransaction = db.qctransactions;
 
 // Create and Save a new MaterialInward
@@ -20,7 +21,7 @@ exports.create = async (req, res) => {
   var partsBarcode;
   let netWeightOfPacks;
   const partNumbersId = req.body.partNumberId;
-
+  var materialInwardIds;  
   await PartNumber.findAll({
     where: {id: partNumbersId}
   })
@@ -74,7 +75,8 @@ exports.create = async (req, res) => {
         inwardDate: req.body.inwardDate,
         QCStatus: 0,
         status:true,
-        materialStatus:false,
+        siteId : req.body.siteId,
+        materialStatus : "Available",
         createdBy:req.user.username,
         updatedBy:req.user.username
       };
@@ -83,7 +85,21 @@ exports.create = async (req, res) => {
     await MaterialInward.create(materialinward)
     .then(async data => {
       dataArray.push(data);
-
+      materialInwardIds = data["id"];
+      const putwayTransaction = {
+        transactionTimestamp: Date.now(),
+        performedBy:req.user.username,
+        materialInwardId:materialInwardIds,
+        currentLocationId :req.body.locationId, 
+        createdBy:req.user.username,
+        updatedBy:req.user.username
+      }
+      await PutawayTransaction.create(putwayTransaction)
+      .then(data => {
+      })
+      .catch(err => {
+        console.log(err);
+      });
     if(req.body.locationId != null && req.body.locationId != undefined){
       let prevCapacityOfLocation = 0;
       await Location.findAll({
@@ -115,7 +131,7 @@ exports.create = async (req, res) => {
       transactionTimestamp: Date.now(),
       performedBy:req.user.username,
       transactionType:"Inward",
-      materialInwardId:data["id"],
+      materialInwardId:materialInwardIds,
       batchNumber: req.body.batchNumber,
       createdBy:req.user.username,
       updatedBy:req.user.username
@@ -128,8 +144,7 @@ exports.create = async (req, res) => {
       console.log(err);
     });
     
-  })
-    .catch(err => {
+  }).catch(err => {
       res.status(500).send({
         message:
         err.message || "Some error occurred while creating the MaterialInward."
@@ -318,7 +333,7 @@ exports.countByQcStatus = async (req, res) => {
   await MaterialInward.count({
     where:{
       status:1,
-      materialStatus:0
+      materialStatus : "Available"
     }
   })
   .then(data => {
@@ -332,7 +347,7 @@ exports.countByQcStatus = async (req, res) => {
   await MaterialInward.count({
     where:{
       status:1,
-      materialStatus:0,
+      materialStatus : "Available",
       QCStatus:1
     }
   })
@@ -345,7 +360,7 @@ exports.countByQcStatus = async (req, res) => {
   await MaterialInward.count({
     where:{
       status:1,
-      materialStatus:0,
+      materialStatus : "Available",
       QCStatus:0
     }
   })
@@ -358,7 +373,7 @@ exports.countByQcStatus = async (req, res) => {
   await MaterialInward.count({
     where:{
       status:1,
-      materialStatus:0,
+      materialStatus : "Available",
       QCStatus:2
     }
   })
@@ -550,6 +565,8 @@ else{
 exports.updateWithBarcode = async (req, res) => {
   const barcodeSerial = req.params.barcodeSerial;
   var netWeightOfPacks;
+  var materialInwardId;
+  var locationIds;
   var eachPackQty;
   await MaterialInward.findAll({
     where: { 
@@ -561,6 +578,8 @@ exports.updateWithBarcode = async (req, res) => {
   })
   .then(async data => {
     eachPackQty = data[0]["dataValues"]["eachPackQuantity"];
+    materialInwardId = data[0]["dataValues"]["id"];
+    locationIds = data[0]["dataValues"]["locationId"];
     await PartNumber.findAll({
       where: { 
         id: data[0]["dataValues"]["partNumberId"]
@@ -574,20 +593,21 @@ exports.updateWithBarcode = async (req, res) => {
 
     });
   });
-
+  let totalCapacity;
   if(req.body.locationId != null && req.body.locationId != undefined){
     let prevCapacityOfLocation = 0;
     await Location.findAll({
       where: {id : req.body.locationId}
     })
     .then(data => {
+      totalCapacity = data[0]["dataValues"]["capacity"];
       prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
     });
     let netWeightOfPacksInTons = netWeightOfPacks/1000;
     netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
     let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
-    console.log("updateCapacity",updateCapacity,netWeightOfPacks,netWeightOfPacksInTons);
-    if(updateCapacity <= prevCapacityOfLocation){
+    console.log("updateCapacity",updateCapacity,totalCapacity,netWeightOfPacksInTons);
+    if(updateCapacity <= totalCapacity){
     var updatedData = {
       'loadedCapacity': updateCapacity
     };
@@ -600,8 +620,23 @@ exports.updateWithBarcode = async (req, res) => {
       await MaterialInward.update(req.body, {
         where: req.params
       })
-      .then(num => {
+      .then(async num => {
         if (num == 1) {
+          const putwayTransaction = {
+            transactionTimestamp: Date.now(),
+            performedBy:req.user.username,
+            materialInwardId:materialInwardId,
+            prevLocationId :locationIds,
+            currentLocationId :req.body.locationId, 
+            createdBy:req.user.username,
+            updatedBy:req.user.username
+          }
+          await PutawayTransaction.create(putwayTransaction)
+          .then(data => {
+          })
+          .catch(err => {
+            console.log(err);
+          });
           res.send({
             message: "MaterialInward was updated successfully."
           });
