@@ -92,7 +92,6 @@ exports.transferIn = async (req, res) => {
   await StockTransit.findAll({
     where: { 
       materialInwardId : req.body.materialInwardId,
-      fromSiteId : 1,
     },
     limit:10,
     offset:0,
