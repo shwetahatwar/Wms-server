@@ -7,5 +7,7 @@ router.get("/", users.loginRequired,stocktransactions.findAll);
 router.get("/:id", users.loginRequired,stocktransactions.findOne);
 router.post("/stocktransfer/out", users.loginRequired,stocktransactions.transferOut);
 router.post("/stocktransfer/in", users.loginRequired,stocktransactions.transferIn);
+router.get("/get/stocktransactionsdatewise", users.loginRequired,stocktransactions.findAllDatewise);
+router.get("/get/findbysearchquery", users.loginRequired,stocktransactions.findBySearchQuery);
 
 module.exports = router;
