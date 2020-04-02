@@ -21,6 +21,10 @@ var stockTransitRouter = require('./routes/stocktransit.routes');
 var stockTransactionRouter = require('./routes/stocktransaction.routes');
 var userSiteRelationRouter = require('./routes/usersiterelation.routes');
 var putawayTransactionRouter = require('./routes/putawaytransaction.routes');
+var picklistRouter = require('./routes/picklist.routes');
+var picklistPickerRelationRouter = require('./routes/picklistpickerrelation.routes');
+var picklistMaterialListRouter = require('./routes/picklistmateriallist.routes');
+var picklistPickingMaterialListRouter = require('./routes/picklistpickingmateriallist.routes');
 
 
 const app = express();
@@ -84,6 +88,10 @@ app.use('/stocktransits',stockTransitRouter);
 app.use('/stocktransactions',stockTransactionRouter);
 app.use('/usersiterelations',userSiteRelationRouter);
 app.use('/putawaytransactions',putawayTransactionRouter);
+app.use('/picklists',picklistRouter);
+app.use('/picklistpickerrelations',picklistPickerRelationRouter);
+app.use('/picklistmateriallists',picklistMaterialListRouter);
+app.use('/picklistpickingmateriallists',picklistPickingMaterialListRouter);
 
 const db = require("./models");
 db.sequelize.sync();

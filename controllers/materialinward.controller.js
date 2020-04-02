@@ -70,6 +70,7 @@ exports.create = async (req, res) => {
         locationId: req.body.locationId,
         batchNumber: req.body.batchNumber,
         barcodeSerial: serialNumberId,
+        partNumber:partsBarcode,
         eachPackQuantity: req.body.eachPackQuantity,
         invoiceReferenceNumber: req.body.invoiceReferenceNumber,
         inwardDate: req.body.inwardDate,
@@ -409,19 +410,19 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
 
   if(req.query.partNumber != undefined && req.query.partNumber != null){
     var partNumberId;
-    await PartNumber.findAll({
-      where: {
-        partNumber: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.partNumber+'',
-            [Op.like]: '%'+req.query.partNumber+'%'
-          }
-        },
-        status:1
-      }
-    }).then(data => {
-      partNumberId = data[0]["dataValues"]["id"];
-    });
+    // await PartNumber.findAll({
+    //   where: {
+    //     partNumber: {
+    //       [Op.or]: {
+    //         [Op.eq]: ''+req.query.partNumber+'',
+    //         [Op.like]: '%'+req.query.partNumber+'%'
+    //       }
+    //     },
+    //     status:1
+    //   }
+    // }).then(data => {
+    //   partNumberId = data[0]["dataValues"]["id"];
+    // });
 
     if(req.query.barcodeSerial == undefined){
       req.query.barcodeSerial="";
@@ -431,7 +432,12 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
         where: {
           status:1,
           QCStatus:req.query.QCStatus,
-          partNumberId:partNumberId,
+          partNumber: {
+            [Op.or]: {
+              [Op.eq]: ''+req.query.partNumber+'',
+              [Op.like]: '%'+req.query.partNumber+'%'
+            }
+          },
           barcodeSerial: {
             [Op.or]: {
           // [Op.like]: ''+req.query.barcodeSerial+'%',
@@ -461,7 +467,12 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
       where: {
         status:1,
         QCStatus:req.query.QCStatus,
-        partNumberId:partNumberId,
+        partNumber: {
+          [Op.or]: {
+            [Op.eq]: ''+req.query.partNumber+'',
+            [Op.like]: '%'+req.query.partNumber+'%'
+          }
+        },
         barcodeSerial: {
           [Op.or]: {
           // [Op.like]: ''+req.query.barcodeSerial+'%',

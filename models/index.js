@@ -31,5 +31,9 @@ db.putawaytransactions = require("./putawaytransaction.model.js")(sequelize, Seq
 db.stocktransits = require("./stocktransit.model.js")(sequelize, Sequelize);
 db.stocktransactions = require("./stocktransaction.model.js")(sequelize, Sequelize);
 db.usersiterelations = require("./usersiterelation.model.js")(sequelize, Sequelize);
+db.picklists = require("./picklist.model.js")(sequelize, Sequelize);
+db.picklistmateriallists = require("./picklistmateriallist.model.js")(sequelize, Sequelize);
+db.picklistpickingmateriallists = require("./picklistpickingmateriallist.model.js")(sequelize, Sequelize);
+db.picklistpickerrelations = require("./picklistpickerrelation.model.js")(sequelize, Sequelize);
 
 module.exports = db;

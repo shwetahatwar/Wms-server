@@ -96,6 +96,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:false,
       unique: true
     },
+    partNumber: {
+      type: DataTypes.STRING,
+      allowNull:false
+    },
     eachPackQuantity:{
       type: DataTypes.INTEGER,
       allowNull:false
