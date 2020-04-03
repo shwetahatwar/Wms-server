@@ -24,11 +24,19 @@ module.exports = (sequelize, DataTypes) => {
     },
     capacity: {
       type: DataTypes.FLOAT,
-      allowNull: false
+      allowNull: true
     },
     loadedCapacity: {
       type: DataTypes.FLOAT,
-      allowNull: false
+      allowNull: true
+    },
+     volume: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
+    loadedVolume: {
+      type: DataTypes.FLOAT,
+      allowNull: true
     },
     status:{
       type:DataTypes.BOOLEAN,

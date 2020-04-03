@@ -618,7 +618,7 @@ exports.updateWithBarcode = async (req, res) => {
     netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
     let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
     console.log("updateCapacity",updateCapacity,totalCapacity,netWeightOfPacksInTons);
-    if(updateCapacity <= totalCapacity){
+    // if(updateCapacity <= totalCapacity){
     var updatedData = {
       'loadedCapacity': updateCapacity
     };
@@ -667,13 +667,13 @@ exports.updateWithBarcode = async (req, res) => {
     .catch(err => {
       console.log(err);
     });
-  }
-  else{
-    res.status(500).send({
-      message: "Material connot put to this location due to capacity is exceeding"
-    });
+  // }
+  // else{
+  //   res.status(500).send({
+  //     message: "Material connot put to this location due to capacity is exceeding"
+  //   });
 
-  }
+  // }
 }
 
 };
