@@ -26,6 +26,8 @@ var picklistPickerRelationRouter = require('./routes/picklistpickerrelation.rout
 var picklistMaterialListRouter = require('./routes/picklistmateriallist.routes');
 var picklistPickingMaterialListRouter = require('./routes/picklistpickingmateriallist.routes');
 var uomRouter = require('./routes/uom.routes');
+var accessRouter = require('./routes/access.routes');
+var roleAccessRelationRouter = require('./routes/roleaccessrelation.routes');
 
 
 const app = express();
@@ -94,6 +96,8 @@ app.use('/picklistpickerrelations',picklistPickerRelationRouter);
 app.use('/picklistmateriallists',picklistMaterialListRouter);
 app.use('/picklistpickingmateriallists',picklistPickingMaterialListRouter);
 app.use('/uoms', uomRouter);
+app.use('/access', accessRouter);
+app.use('/roleaccessrelations', roleAccessRelationRouter);
 
 const db = require("./models");
 db.sequelize.sync();

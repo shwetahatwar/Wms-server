@@ -36,5 +36,7 @@ db.picklistmateriallists = require("./picklistmateriallist.model.js")(sequelize,
 db.picklistpickingmateriallists = require("./picklistpickingmateriallist.model.js")(sequelize, Sequelize);
 db.picklistpickerrelations = require("./picklistpickerrelation.model.js")(sequelize, Sequelize);
 db.uoms = require("./uom.model.js")(sequelize, Sequelize);
+db.access = require("./access.model.js")(sequelize, Sequelize);
+db.roleaccessrelations = require("./roleaccessrelation.model.js")(sequelize, Sequelize);
 
 module.exports = db;
