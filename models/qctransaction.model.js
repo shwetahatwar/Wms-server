@@ -40,12 +40,12 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id',
       }
     },
-    locationId: {
+    shelfId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: 'locations', 
-        key: 'id',
-      },
+      // references: {
+      //   model: 'locations', 
+      //   key: 'id',
+      // },
       allowNull:true,
     },
     barcodeSerial:{

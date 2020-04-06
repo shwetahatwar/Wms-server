@@ -22,7 +22,7 @@ db.sequelize = sequelize;
 db.roles = require("./role.model.js")(sequelize, Sequelize);
 db.users = require("./user.model.js")(sequelize, Sequelize);
 db.partnumbers = require("./partnumber.model.js")(sequelize, Sequelize);
-db.locations = require("./location.model.js")(sequelize, Sequelize);
+// db.locations = require("./location.model.js")(sequelize, Sequelize);
 db.materialinwards = require("./materialinward.model.js")(sequelize, Sequelize);
 db.inventorytransactions = require("./inventorytransaction.model.js")(sequelize, Sequelize);
 db.qctransactions = require("./qctransaction.model.js")(sequelize, Sequelize);
@@ -38,5 +38,8 @@ db.picklistpickerrelations = require("./picklistpickerrelation.model.js")(sequel
 db.uoms = require("./uom.model.js")(sequelize, Sequelize);
 db.access = require("./access.model.js")(sequelize, Sequelize);
 db.roleaccessrelations = require("./roleaccessrelation.model.js")(sequelize, Sequelize);
+db.zones = require("./zone.model.js")(sequelize, Sequelize);
+db.racks = require("./rack.model.js")(sequelize, Sequelize);
+db.shelfs = require("./shelf.model.js")(sequelize, Sequelize);
 
 module.exports = db;

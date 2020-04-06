@@ -14,7 +14,7 @@ exports.uploadUserMaster = async (req,res) =>{
 
    var siteData;
     const site = {
-      name: "Pune",
+      name: "BRiOT",
       status:true,
       createdBy:"admin",
       updatedBy:"admin"

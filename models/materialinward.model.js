@@ -3,17 +3,17 @@ module.exports = (sequelize, DataTypes) => {
   const MaterialInward = sequelize.define("materialinward", {
     partNumberId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: 'partnumbers', 
-        key: 'id',
-      }
+      // references: {
+      //   model: 'partnumbers', 
+      //   key: 'id',
+      // }
     },
-    locationId: {
+    shelfId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: 'locations', 
-        key: 'id',
-      },
+      // references: {
+      //   model: 'locations', 
+      //   key: 'id',
+      // },
       allowNull:true,
     },
     barcodeSerial:{
@@ -104,28 +104,26 @@ module.exports = (sequelize, DataTypes) => {
     
   }),
 
-  Location = sequelize.define("location", {
+  Shelf = sequelize.define("shelf", {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true
     },
+    rackId:{
+      type: DataTypes.INTEGER,
+      allowNull:false
+    },
     description: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    siteId:{
-      type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
-    },
-    barcodeSerial: {
+    barcodeSerial:{
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull:false,
+      unique: true
     },
-     capacity: {
+    capacity: {
       type: DataTypes.FLOAT,
       allowNull: true
     },
@@ -152,7 +150,7 @@ module.exports = (sequelize, DataTypes) => {
     updatedBy:{
       type:DataTypes.STRING,
       allowNull:true
-    }    
+    }   
   }),
 
   Site = sequelize.define("site", {
@@ -177,7 +175,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   MaterialInward.belongsTo(PartNumber, {foreignKey: 'partNumberId',onDelete: 'CASCADE'});
-  MaterialInward.belongsTo(Location, {foreignKey: 'locationId',onDelete: 'CASCADE'});
+  MaterialInward.belongsTo(Shelf, {foreignKey: 'shelfId',onDelete: 'CASCADE'});
   MaterialInward.belongsTo(Site, {foreignKey: 'siteId',onDelete: 'CASCADE'});
   return MaterialInward;
 };

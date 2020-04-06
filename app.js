@@ -11,7 +11,7 @@ var encodeUrl = require('encodeurl');
 var roleRouter = require('./routes/role.routes');
 var usersRouter = require('./routes/user.routes');
 var partNumbersRouter = require('./routes/partnumber.routes');
-var locationsRouter = require('./routes/location.routes');
+// var locationsRouter = require('./routes/location.routes');
 var materialInwardsRouter = require('./routes/materialinward.routes');
 var inventoryTransactionRouter = require('./routes/inventorytransaction.routes');
 var qcTransactionRouter = require('./routes/qctransaction.routes');
@@ -28,6 +28,9 @@ var picklistPickingMaterialListRouter = require('./routes/picklistpickingmateria
 var uomRouter = require('./routes/uom.routes');
 var accessRouter = require('./routes/access.routes');
 var roleAccessRelationRouter = require('./routes/roleaccessrelation.routes');
+var zoneRouter = require('./routes/zone.routes');
+var rackRouter = require('./routes/rack.routes');
+var shelfRouter = require('./routes/shelf.routes');
 
 
 const app = express();
@@ -81,7 +84,7 @@ app.use(function(req, res, next) {
 app.use('/roles', roleRouter);
 app.use('/users', usersRouter);
 app.use('/partnumbers', partNumbersRouter);
-app.use('/locations', locationsRouter);
+// app.use('/locations', locationsRouter);
 app.use('/materialinwards', materialInwardsRouter);
 app.use('/inventorytransactions', inventoryTransactionRouter);
 app.use('/qctransactions', qcTransactionRouter);
@@ -98,6 +101,9 @@ app.use('/picklistpickingmateriallists',picklistPickingMaterialListRouter);
 app.use('/uoms', uomRouter);
 app.use('/access', accessRouter);
 app.use('/roleaccessrelations', roleAccessRelationRouter);
+app.use('/zones', zoneRouter);
+app.use('/racks', rackRouter);
+app.use('/shelfs', shelfRouter);
 
 const db = require("./models");
 db.sequelize.sync();
