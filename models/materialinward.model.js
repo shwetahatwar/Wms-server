@@ -87,7 +87,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     netWeight: {
       type: DataTypes.FLOAT,
-      allowNull: false
+      allowNull: true
+    },
+    netVolume: {
+      type: DataTypes.FLOAT,
+      allowNull: true
     },
     status:{
       type:DataTypes.BOOLEAN,
