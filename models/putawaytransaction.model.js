@@ -154,7 +154,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   PutawayTransaction.belongsTo(MaterialInward, {foreignKey: 'materialInwardId',onDelete: 'CASCADE'});
-  PutawayTransaction.belongsTo(Shelf, {foreignKey: 'prevLocationId',onDelete: 'CASCADE'});
-  PutawayTransaction.belongsTo(Shelf, {foreignKey: 'currentLocationId',onDelete: 'CASCADE'});
+  PutawayTransaction.belongsTo(Shelf, {as: 'prevLocation',foreignKey: 'prevLocationId',onDelete: 'CASCADE'});
+  PutawayTransaction.belongsTo(Shelf, {as: 'currentLocation',foreignKey: 'currentLocationId',onDelete: 'CASCADE'});
   return PutawayTransaction;
 };

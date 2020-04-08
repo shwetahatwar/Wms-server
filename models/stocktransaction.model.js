@@ -52,23 +52,21 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       unique: true
     },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
     status:{
       type:DataTypes.BOOLEAN,
       allowNull:true
     },
     roleId:{
       type: DataTypes.INTEGER,
-      references: {
-        model: 'roles', 
-        key: 'id',
-      }
+      allowNull:true
     },
-    siteId:{
+     siteId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
+      allowNull:true
     },
     employeeId:{
       type:DataTypes.STRING,
@@ -177,10 +175,10 @@ module.exports = (sequelize, DataTypes) => {
     
   });
 
-  StockTransaction.belongsTo(Site, {foreignKey: 'fromSiteId',onDelete: 'CASCADE'});
-  StockTransaction.belongsTo(Site, {foreignKey: 'toSiteId',onDelete: 'CASCADE'});
-  StockTransaction.belongsTo(User, {foreignKey: 'transferOutUserId',onDelete: 'CASCADE'});
-  StockTransaction.belongsTo(User, {foreignKey: 'transferInUserId',onDelete: 'CASCADE'});
+  StockTransaction.belongsTo(Site, {as: 'fromSite',foreignKey: 'fromSiteId',onDelete: 'CASCADE'});
+  StockTransaction.belongsTo(Site, {as: 'toSite',foreignKey: 'toSiteId',onDelete: 'CASCADE'});
+  StockTransaction.belongsTo(User, {as: 'transferOutUser',foreignKey: 'transferOutUserId',onDelete: 'CASCADE'});
+  StockTransaction.belongsTo(User, {as: 'transferInUser',foreignKey: 'transferInUserId',onDelete: 'CASCADE'});
   StockTransaction.belongsTo(MaterialInward, {foreignKey: 'materialInwardId',onDelete: 'CASCADE'})
   return StockTransaction;
 };

@@ -60,17 +60,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     roleId:{
       type: DataTypes.INTEGER,
-      references: {
-        model: 'roles', 
-        key: 'id',
-      }
+      allowNull:true
     },
-    siteId:{
+     siteId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
+      allowNull:true
     },
     employeeId:{
       type:DataTypes.STRING,
@@ -179,10 +173,10 @@ module.exports = (sequelize, DataTypes) => {
     
   });
 
-  StockTransit.belongsTo(Site, {foreignKey: 'fromSiteId',onDelete: 'CASCADE'});
-  StockTransit.belongsTo(Site, {foreignKey: 'toSiteId',onDelete: 'CASCADE'});
-  StockTransit.belongsTo(User, {foreignKey: 'transferOutUserId',onDelete: 'CASCADE'});
-  StockTransit.belongsTo(User, {foreignKey: 'transferInUserId',onDelete: 'CASCADE'});
+  StockTransit.belongsTo(Site, {as: 'fromSite',foreignKey: 'fromSiteId',onDelete: 'CASCADE'});
+  StockTransit.belongsTo(Site, {as: 'toSite',foreignKey: 'toSiteId',onDelete: 'CASCADE'});
+  StockTransit.belongsTo(User, {as: 'transferOutUser',foreignKey: 'transferOutUserId',onDelete: 'CASCADE'});
+  StockTransit.belongsTo(User, {as: 'transferInUser',foreignKey: 'transferInUserId',onDelete: 'CASCADE'});
   StockTransit.belongsTo(MaterialInward, {foreignKey: 'materialInwardId',onDelete: 'CASCADE'});
   return StockTransit;
 };

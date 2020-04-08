@@ -19,6 +19,7 @@ const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
 
+db.sites = require("./site.model.js")(sequelize, Sequelize);
 db.roles = require("./role.model.js")(sequelize, Sequelize);
 db.users = require("./user.model.js")(sequelize, Sequelize);
 db.partnumbers = require("./partnumber.model.js")(sequelize, Sequelize);
@@ -26,7 +27,6 @@ db.partnumbers = require("./partnumber.model.js")(sequelize, Sequelize);
 db.materialinwards = require("./materialinward.model.js")(sequelize, Sequelize);
 db.inventorytransactions = require("./inventorytransaction.model.js")(sequelize, Sequelize);
 db.qctransactions = require("./qctransaction.model.js")(sequelize, Sequelize);
-db.sites = require("./site.model.js")(sequelize, Sequelize);
 db.putawaytransactions = require("./putawaytransaction.model.js")(sequelize, Sequelize);
 db.stocktransits = require("./stocktransit.model.js")(sequelize, Sequelize);
 db.stocktransactions = require("./stocktransaction.model.js")(sequelize, Sequelize);

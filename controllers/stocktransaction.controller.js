@@ -82,7 +82,7 @@ exports.transferIn = async (req, res) => {
   const stock = {
     transactionTimestamp: Date.now(),
     materialInwardId:req.body.materialInwardId,
-    toSiteId: req.body.locationId,
+    toSiteId: req.body.siteId,
     transferInUserId:req.body.userId,
     transactionType :"Transfer In",
     createdBy:req.user.username,
@@ -192,9 +192,14 @@ exports.findAll = (req, res) => {
     where: req.query,
     include: [
     {model: MaterialInward},
-    {model: Site},
-    // {model: User},
-    ],
+    {model: Site,
+      as: 'fromSite'},
+      {model: Site,
+        as: 'toSite'},
+        {model: User,
+      as: 'transferOutUser'},
+      {model: User,
+        as: 'transferInUser'}],
     offset:offset,
     limit:limit 
   })
