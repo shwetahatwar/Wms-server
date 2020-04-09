@@ -1,42 +1,14 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const Location = sequelize.define("location", {
+  const Zone = sequelize.define("zone", {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true
     },
-    description: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
     siteId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
-    },
-    barcodeSerial:{
-      type: DataTypes.STRING,
-      allowNull:false,
-      unique: true
-    },
-    capacity: {
-      type: DataTypes.FLOAT,
-      allowNull: true
-    },
-    loadedCapacity: {
-      type: DataTypes.FLOAT,
-      allowNull: true
-    },
-     volume: {
-      type: DataTypes.FLOAT,
-      allowNull: true
-    },
-    loadedVolume: {
-      type: DataTypes.FLOAT,
-      allowNull: true
+      allowNull:false
     },
     status:{
       type:DataTypes.BOOLEAN,
@@ -74,6 +46,6 @@ module.exports = (sequelize, DataTypes) => {
     
   });
 
-  Location.belongsTo(Site, {foreignKey: 'siteId',onDelete: 'CASCADE'});
-  return Location;
+  Zone.belongsTo(Site, {foreignKey: 'siteId',onDelete: 'CASCADE'});
+  return Zone;
 };

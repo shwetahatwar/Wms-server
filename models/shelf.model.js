@@ -1,21 +1,18 @@
 'use strict';
 module.exports = (sequelize, DataTypes) => {
-  const Location = sequelize.define("location", {
+  const Shelf = sequelize.define("shelf", {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true
     },
+    rackId:{
+      type: DataTypes.INTEGER,
+      allowNull:false
+    },
     description: {
       type: DataTypes.STRING,
       allowNull: false
-    },
-    siteId:{
-      type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
     },
     barcodeSerial:{
       type: DataTypes.STRING,
@@ -53,11 +50,15 @@ module.exports = (sequelize, DataTypes) => {
     
   }),
 
-  Site = sequelize.define("site", {
+  Rack = sequelize.define("rack", {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true
+    },
+    zoneId:{
+      type: DataTypes.INTEGER,
+      allowNull:true
     },
     status:{
       type:DataTypes.BOOLEAN,
@@ -74,6 +75,6 @@ module.exports = (sequelize, DataTypes) => {
     
   });
 
-  Location.belongsTo(Site, {foreignKey: 'siteId',onDelete: 'CASCADE'});
-  return Location;
+  Shelf.belongsTo(Rack, {foreignKey: 'rackId',onDelete: 'CASCADE'});
+  return Shelf;
 };

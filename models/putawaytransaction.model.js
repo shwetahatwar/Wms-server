@@ -32,34 +32,40 @@ module.exports = (sequelize, DataTypes) => {
     
   }),
 
-   Location = sequelize.define("location", {
+   Shelf = sequelize.define("shelf", {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true
     },
+    rackId:{
+      type: DataTypes.INTEGER,
+      allowNull:false
+    },
     description: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    siteId:{
-      type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
-    },
-    barcodeSerial: {
+    barcodeSerial:{
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull:false,
+      unique: true
     },
     capacity: {
       type: DataTypes.FLOAT,
-      allowNull: false
+      allowNull: true
     },
     loadedCapacity: {
       type: DataTypes.FLOAT,
-      allowNull: false
+      allowNull: true
+    },
+     volume: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
+    loadedVolume: {
+      type: DataTypes.FLOAT,
+      allowNull: true
     },
     status:{
       type:DataTypes.BOOLEAN,
@@ -72,7 +78,8 @@ module.exports = (sequelize, DataTypes) => {
     updatedBy:{
       type:DataTypes.STRING,
       allowNull:true
-    }    
+    }
+    
   }),
 
   MaterialInward = sequelize.define("materialinward", {
@@ -83,12 +90,12 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id',
       }
     },
-    locationId: {
+    shelfId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: 'locations', 
-        key: 'id',
-      },
+      // references: {
+      //   model: 'locations', 
+      //   key: 'id',
+      // },
       allowNull:true,
     },
     barcodeSerial:{
@@ -147,7 +154,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   PutawayTransaction.belongsTo(MaterialInward, {foreignKey: 'materialInwardId',onDelete: 'CASCADE'});
-  PutawayTransaction.belongsTo(Location, {foreignKey: 'prevLocationId',onDelete: 'CASCADE'});
-  PutawayTransaction.belongsTo(Location, {foreignKey: 'currentLocationId',onDelete: 'CASCADE'});
+  PutawayTransaction.belongsTo(Shelf, {foreignKey: 'prevLocationId',onDelete: 'CASCADE'});
+  PutawayTransaction.belongsTo(Shelf, {foreignKey: 'currentLocationId',onDelete: 'CASCADE'});
   return PutawayTransaction;
 };

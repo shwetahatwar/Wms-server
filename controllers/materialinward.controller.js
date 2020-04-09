@@ -2,7 +2,7 @@ const db = require("../models");
 const MaterialInward = db.materialinwards;
 const Op = db.Sequelize.Op;
 const PartNumber = db.partnumbers;
-const Location = db.locations;
+const Shelf = db.shelfs;
 const InventoryTransaction = db.inventorytransactions;
 const PutawayTransaction = db.putawaytransactions;
 const QCTransaction = db.qctransactions;
@@ -67,7 +67,7 @@ exports.create = async (req, res) => {
       });
       const materialinward = {
         partNumberId: req.body.partNumberId,
-        locationId: req.body.locationId,
+        shelfId: req.body.shelfId,
         batchNumber: req.body.batchNumber,
         barcodeSerial: serialNumberId,
         partNumber:partsBarcode,
@@ -77,7 +77,7 @@ exports.create = async (req, res) => {
         QCStatus: 0,
         status:true,
         siteId : req.body.siteId,
-        materialStatus : "Available",
+        materialStatus : "NA",
         createdBy:req.user.username,
         updatedBy:req.user.username
       };
@@ -91,7 +91,7 @@ exports.create = async (req, res) => {
         transactionTimestamp: Date.now(),
         performedBy:req.user.username,
         materialInwardId:materialInwardIds,
-        currentLocationId :req.body.locationId, 
+        currentLocationId :req.body.shelfId, 
         createdBy:req.user.username,
         updatedBy:req.user.username
       }
@@ -101,10 +101,10 @@ exports.create = async (req, res) => {
       .catch(err => {
         console.log(err);
       });
-    if(req.body.locationId != null && req.body.locationId != undefined){
+    if(req.body.shelfId != null && req.body.shelfId != undefined){
       let prevCapacityOfLocation = 0;
-      await Location.findAll({
-        where: {id : req.body.locationId}
+      await Shelf.findAll({
+        where: {id : req.body.shelfId}
       })
       .then(data => {
         prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
@@ -116,9 +116,9 @@ exports.create = async (req, res) => {
       var updatedData = {
         'loadedCapacity': updateCapacity
       };
-      await Location.update(updatedData, {
+      await Shelf.update(updatedData, {
         where:{
-          id:req.body.locationId
+          id:req.body.shelfId
         }
       })
       .then(data => {
@@ -184,7 +184,7 @@ exports.findAll = (req, res) => {
       model: PartNumber
     },
     {
-      model: Location
+      model: Shelf
     }],
     order: [
     ['id', 'DESC'],
@@ -450,7 +450,7 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
       model: PartNumber
     },
     {
-      model: Location
+      model: Shelf
     }],
     order: [
     ['id', 'DESC'],
@@ -521,7 +521,7 @@ else{
       model: PartNumber
     },
     {
-      model: Location
+      model: Shelf
     }],
     order: [
     ['id', 'DESC'],
@@ -590,7 +590,7 @@ exports.updateWithBarcode = async (req, res) => {
   .then(async data => {
     eachPackQty = data[0]["dataValues"]["eachPackQuantity"];
     materialInwardId = data[0]["dataValues"]["id"];
-    locationIds = data[0]["dataValues"]["locationId"];
+    locationIds = data[0]["dataValues"]["shelfId"];
     await PartNumber.findAll({
       where: { 
         id: data[0]["dataValues"]["partNumberId"]
@@ -605,10 +605,10 @@ exports.updateWithBarcode = async (req, res) => {
     });
   });
   let totalCapacity;
-  if(req.body.locationId != null && req.body.locationId != undefined){
+  if(req.body.shelfId != null && req.body.shelfId != undefined){
     let prevCapacityOfLocation = 0;
-    await Location.findAll({
-      where: {id : req.body.locationId}
+    await Shelf.findAll({
+      where: {id : req.body.shelfId}
     })
     .then(data => {
       totalCapacity = data[0]["dataValues"]["capacity"];
@@ -618,13 +618,13 @@ exports.updateWithBarcode = async (req, res) => {
     netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
     let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
     console.log("updateCapacity",updateCapacity,totalCapacity,netWeightOfPacksInTons);
-    if(updateCapacity <= totalCapacity){
+    // if(updateCapacity <= totalCapacity){
     var updatedData = {
       'loadedCapacity': updateCapacity
     };
-    await Location.update(updatedData, {
+    await Shelf.update(updatedData, {
       where:{
-        id:req.body.locationId
+        id:req.body.shelfId
       }
     })
     .then(async data => {
@@ -638,7 +638,7 @@ exports.updateWithBarcode = async (req, res) => {
             performedBy:req.user.username,
             materialInwardId:materialInwardId,
             prevLocationId :locationIds,
-            currentLocationId :req.body.locationId, 
+            currentLocationId :req.body.shelfId, 
             createdBy:req.user.username,
             updatedBy:req.user.username
           }
@@ -667,13 +667,13 @@ exports.updateWithBarcode = async (req, res) => {
     .catch(err => {
       console.log(err);
     });
-  }
-  else{
-    res.status(500).send({
-      message: "Material connot put to this location due to capacity is exceeding"
-    });
+  // }
+  // else{
+  //   res.status(500).send({
+  //     message: "Material connot put to this location due to capacity is exceeding"
+  //   });
 
-  }
+  // }
 }
 
 };

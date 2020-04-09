@@ -18,6 +18,7 @@ exports.create = (req, res) => {
     description: req.body.description,
     UOM: req.body.UOM,
     netWeight: req.body.netWeight,
+    netVolume: req.body.netVolume,
     status:true,
     createdBy:req.user.username,
     updatedBy:req.user.username

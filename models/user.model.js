@@ -3,7 +3,7 @@ var bcrypt = require('bcrypt-nodejs');
 var bbPromise = require('bluebird');
 
 module.exports = (sequelize, DataTypes) => {
-  const User = sequelize.define('User', {
+  const User = sequelize.define('user', {
     username: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -19,17 +19,17 @@ module.exports = (sequelize, DataTypes) => {
     },
     roleId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'roles', 
-          key: 'id',
-       }
+      // references: {
+      //     model: 'roles', 
+      //     key: 'id',
+      //  }
     },
      siteId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
+      // references: {
+      //     model: 'sites', 
+      //     key: 'id',
+      //  }
     },
     employeeId:{
       type:DataTypes.STRING,
