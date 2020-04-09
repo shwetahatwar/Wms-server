@@ -3,17 +3,9 @@ module.exports = (sequelize, DataTypes) => {
   const RoleAccessRelation = sequelize.define("roleaccessrelation", {
     roleId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'roles', 
-          key: 'id',
-       }
     },
     accessId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
     },
     status:{
       type:DataTypes.BOOLEAN,

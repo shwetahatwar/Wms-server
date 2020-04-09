@@ -115,7 +115,61 @@ exports.getPicklistMaterialListByPicklistId = (req, res) => {
  .catch(err => {
     res.status(500).send({
       message:
-      err.message || "Some error occurred while retrieving Picklist Material List ."
+      err.message || "Some error occurred while retrieving Picklist Material List."
     });
   });
 };
+
+//get data by search query
+exports.findPicklistItemsBySearchQuery = async (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+  if(req.query.partNumber == undefined || req.query.partNumber == null){
+    req.query.partNumber="";
+  }
+  if(req.query.partDescription == undefined || req.query.partDescription == null){
+    req.query.partDescription="";
+  }
+  PicklistMaterialList.findAll({ 
+    where: {
+      picklistId:req.query.picklistId,
+      partNumber: {
+        [Op.or]: {
+          [Op.eq]: ''+req.query.partNumber+'',
+          [Op.like]: '%'+req.query.partNumber+'%'
+        }
+      },
+      partDescription: {
+        [Op.or]: {
+          [Op.eq]: ''+req.query.partDescription+'',
+          [Op.like]: '%'+req.query.partDescription+'%'
+        }
+      }
+    },
+    include: [{
+      model: Picklist
+    }], 
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  }).then(async data => {
+    res.send(data);
+  }).catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving PicklistMaterialList."
+    });
+  });
+};
+

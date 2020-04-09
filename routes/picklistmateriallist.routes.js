@@ -7,5 +7,5 @@ router.post("/", users.loginRequired,picklistmateriallists.create);
 router.get("/", users.loginRequired,picklistmateriallists.findAll);
 router.get("/:id", users.loginRequired,picklistmateriallists.findOne);
 router.get("/get/findByPicklist", users.loginRequired,picklistmateriallists.getPicklistMaterialListByPicklistId);
-
+router.get("/get/findPicklistItemsBySearchQuery",users.loginRequired,picklistmateriallists.findPicklistItemsBySearchQuery);
 module.exports = router;

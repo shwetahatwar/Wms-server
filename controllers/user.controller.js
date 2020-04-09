@@ -109,7 +109,7 @@ exports.sign_in = (req, res) => {
     }
 
     return res.json(
-      { token: jwt.sign({ username: user.username }, 'THISISLONGSTRINGKEY'),
+      { token: jwt.sign({ username: user.username }, 'WMSSTRINGKEY'),
       username: user.username,
       userId:user.id,
       siteId:user.siteId,

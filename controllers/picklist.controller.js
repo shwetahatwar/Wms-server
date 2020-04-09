@@ -527,13 +527,13 @@ exports.getPicklistCountDashboard = async (req, res) => {
   .then(function(picklists) {
     console.log(picklists);
     var pending = 0;
-    var active = 0;
+    var inProgress = 0;
     var completed = 0;
     var total = picklists.length;
     for(var i = 0; i < picklists.length; i++){
       console.log("Line 660",picklists[i]["picklistStatus"]);
-      if(picklists[i]["picklistStatus"] == "Active"){
-        active++;
+      if(picklists[i]["picklistStatus"] == "In Progress"){
+        inProgress++;
       }
       else if(picklists[i]["picklistStatus"] == "Pending"){
         pending++;
@@ -543,7 +543,7 @@ exports.getPicklistCountDashboard = async (req, res) => {
       }
     }
     var picklistCount = {
-      active: active,
+      inProgress: inProgress,
       pending: pending,
       completed:completed,
       total:total
@@ -596,3 +596,40 @@ exports.getPicklistByDate = (req, res) => {
       });
     });
 };
+
+//get by picklist name
+exports.findPicklistByName = async (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+  Picklist.findAll({ 
+    where: {
+      picklistName: {
+        [Op.or]: {
+          [Op.eq]: ''+req.query.picklistName+'',
+          [Op.like]: '%'+req.query.picklistName+'%'
+        }
+      }
+    },
+    order: [
+    ['id', 'ASC'],
+    ],
+    offset:offset,
+    limit:limit
+  }).then(async data => {
+    res.send(data);
+  }).catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving Picklists."
+    });
+  });
+}
