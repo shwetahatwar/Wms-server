@@ -7,7 +7,7 @@ var bodyParser = require('body-parser');
 var jwt = require("jsonwebtoken");
 const cors = require("cors");
 var encodeUrl = require('encodeurl');
-
+var siteRouter = require('./routes/site.routes');
 var roleRouter = require('./routes/role.routes');
 var usersRouter = require('./routes/user.routes');
 var partNumbersRouter = require('./routes/partnumber.routes');
@@ -15,7 +15,6 @@ var partNumbersRouter = require('./routes/partnumber.routes');
 var materialInwardsRouter = require('./routes/materialinward.routes');
 var inventoryTransactionRouter = require('./routes/inventorytransaction.routes');
 var qcTransactionRouter = require('./routes/qctransaction.routes');
-var siteRouter = require('./routes/site.routes');
 var setupDataRouter = require('./routes/setupdataupload.routes');
 var stockTransitRouter = require('./routes/stocktransit.routes');
 var stockTransactionRouter = require('./routes/stocktransaction.routes');
@@ -81,6 +80,7 @@ app.use(function(req, res, next) {
   }
 });
 
+app.use('/sites', siteRouter);
 app.use('/roles', roleRouter);
 app.use('/users', usersRouter);
 app.use('/partnumbers', partNumbersRouter);
@@ -88,7 +88,6 @@ app.use('/partnumbers', partNumbersRouter);
 app.use('/materialinwards', materialInwardsRouter);
 app.use('/inventorytransactions', inventoryTransactionRouter);
 app.use('/qctransactions', qcTransactionRouter);
-app.use('/sites', siteRouter);
 app.use('/setupData', setupDataRouter);
 app.use('/stocktransits',stockTransitRouter);
 app.use('/stocktransactions',stockTransactionRouter);

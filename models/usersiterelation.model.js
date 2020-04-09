@@ -42,10 +42,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     roleId:{
       type: DataTypes.INTEGER,
-      references: {
-        model: 'roles', 
-        key: 'id',
-      }
+      allowNull:true
+    },
+     siteId:{
+      type: DataTypes.INTEGER,
+      allowNull:true
     },
     employeeId:{
       type:DataTypes.STRING,

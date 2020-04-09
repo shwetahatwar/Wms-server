@@ -423,11 +423,12 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
     // }).then(data => {
     //   partNumberId = data[0]["dataValues"]["id"];
     // });
+    console.log("In Part Search");
 
     if(req.query.barcodeSerial == undefined){
       req.query.barcodeSerial="";
     }
-    if(partNumberId != null && partNumberId != undefined){
+    if(req.query.partNumber != null && req.query.partNumber != undefined){
       MaterialInward.findAll({ 
         where: {
           status:1,
@@ -461,7 +462,7 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
     var countArray =[];
     var responseData =[];
     responseData.push(data);
-
+    console.log("responseData",responseData);
     var total = 0;
     await MaterialInward.count({ 
       where: {

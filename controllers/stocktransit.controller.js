@@ -28,9 +28,15 @@ exports.findAll = (req, res) => {
     where: req.query,
     include: [
     {model: MaterialInward},
-    {model: Site},
-    // {model: User},
-    ],
+    {model: Site,
+      as: 'fromSite'},
+      {model: Site,
+        as: 'toSite'},
+        {model: User,
+          as: 'transferOutUser'},
+          {model: User,
+            as: 'transferInUser'}
+            ],
     offset:offset,
     limit:limit 
   })
