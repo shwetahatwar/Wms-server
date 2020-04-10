@@ -69,7 +69,7 @@ exports.update = (req, res) => {
     })
     .catch(err => {
       res.status(500).send({
-        message: "Error updating Role with id=" + id
+        message: "Error updating Project with id=" + id
       });
     });
 };

@@ -41,5 +41,7 @@ db.roleaccessrelations = require("./roleaccessrelation.model.js")(sequelize, Seq
 db.zones = require("./zone.model.js")(sequelize, Sequelize);
 db.racks = require("./rack.model.js")(sequelize, Sequelize);
 db.shelfs = require("./shelf.model.js")(sequelize, Sequelize);
+db.projects = require("./project.model.js")(sequelize, Sequelize);
+db.issuetoproductiontransactions = require("./issuetoproductiontransaction.model.js")(sequelize, Sequelize);
 
 module.exports = db;

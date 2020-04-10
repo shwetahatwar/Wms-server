@@ -165,7 +165,7 @@ exports.getPicklistbyUser = async (req,res) =>{
           picklistArray.push(picklistData[0]["dataValues"]);  
           console.log("Line 182",picklistArray);
         }
-        else if(picklistData[0]["dataValues"]["picklistStatus"] == "Picked" && updatedAt.toString().includes(newDateTimeNow)){
+        else if(picklistData[0]["dataValues"]["picklistStatus"] == "Completed" && updatedAt.toString().includes(newDateTimeNow)){
           picklistArray.push(picklistData[0]["dataValues"]);  
           console.log("Line 185",picklistArray);
         }

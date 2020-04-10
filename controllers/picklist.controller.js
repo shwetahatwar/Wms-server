@@ -440,7 +440,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
   }
   //updated picklist
   var updatedPicklist = {
-    picklistStatus: "Picked"
+    picklistStatus: "Completed"
   }
   await Picklist.update(updatedPicklist, {
     where: {

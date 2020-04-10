@@ -30,6 +30,8 @@ var roleAccessRelationRouter = require('./routes/roleaccessrelation.routes');
 var zoneRouter = require('./routes/zone.routes');
 var rackRouter = require('./routes/rack.routes');
 var shelfRouter = require('./routes/shelf.routes');
+var projectRouter = require('./routes/project.routes');
+var issueToProductionTransactionRouter = require('./routes/issuetoproductiontransaction.routes');
 
 
 const app = express();
@@ -103,6 +105,8 @@ app.use('/roleaccessrelations', roleAccessRelationRouter);
 app.use('/zones', zoneRouter);
 app.use('/racks', rackRouter);
 app.use('/shelfs', shelfRouter);
+app.use('/projects', projectRouter);
+app.use('/issuetoproductiontransactions', issueToProductionTransactionRouter);
 
 const db = require("./models");
 db.sequelize.sync();
