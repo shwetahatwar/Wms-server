@@ -4,7 +4,7 @@ const Project = db.projects;
 const IssueToProductionTransaction = db.issuetoproductiontransactions;
 const User = db.users;
 
-// Retrieve all Stock transfer Transaction from the database.
+// Retrieve all Issue To ProductionTransaction from the database.
 exports.findAll = (req, res) => {
   var queryString = req.query;
   var offset = 0;
@@ -156,4 +156,50 @@ exports.returnFromProduction = async (req, res) => {
 		});
 	}
 	res.send(returnFromProductionData);
+};
+
+
+// Retrieve all Issue To Production Transaction by date from the database.
+exports.findByDate = (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+  
+  console.log(offset);
+  console.log(limit);
+
+  IssueToProductionTransaction.findAll({ 
+  	where: {
+  		transactionTimestamp: {
+  			[Op.gte]: parseInt(req.query.createdAtStart),
+  			[Op.lt]: parseInt(req.query.createdAtEnd),
+  		}
+  	},
+    include: [
+    {model: MaterialInward},
+    {model: Project},
+    {model: User,
+      as: 'doneBy'},
+     ],
+    offset:offset,
+    limit:limit 
+  })
+  .then(data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving IssueToProductionTransaction."
+    });
+  });
 };
