@@ -256,9 +256,14 @@ exports.findAllDatewise = (req, res) => {
     },
     include: [
     {model: MaterialInward},
-    {model: Site},
-    // {model: User},
-    ],
+    {model: Site,
+      as: 'fromSite'},
+      {model: Site,
+        as: 'toSite'},
+        {model: User,
+      as: 'transferOutUser'},
+      {model: User,
+        as: 'transferInUser'}],
     offset:offset,
     limit:limit 
   })
@@ -306,8 +311,14 @@ exports.findBySearchQuery = async (req, res) => {
           },
           include: [
           {model: MaterialInward},
-          {model: Site},
-          ],
+          {model: Site,
+            as: 'fromSite'},
+            {model: Site,
+              as: 'toSite'},
+              {model: User,
+                as: 'transferOutUser'},
+                {model: User,
+                  as: 'transferInUser'}],
         }).then(data => {
           if(data.length != 0){
             for(var a=0;a<data.length;a++){
@@ -347,8 +358,14 @@ exports.findBySearchQuery = async (req, res) => {
           },
           include: [
           {model: MaterialInward},
-          {model: Site},
-          ],
+          {model: Site,
+            as: 'fromSite'},
+            {model: Site,
+              as: 'toSite'},
+              {model: User,
+                as: 'transferOutUser'},
+                {model: User,
+                  as: 'transferInUser'}],
         }).then(data => {
           if(data.length != 0){
             if(data.length != 0){
@@ -399,7 +416,16 @@ exports.findBySearchQuery = async (req, res) => {
           where: {
             materialInwardId: data[i]["dataValues"]["id"]
           },
-          include: [{model: MaterialInward}]
+          include: [
+          {model: MaterialInward},
+          {model: Site,
+            as: 'fromSite'},
+            {model: Site,
+              as: 'toSite'},
+              {model: User,
+                as: 'transferOutUser'},
+                {model: User,
+                  as: 'transferInUser'}],
         }).then(data => {
           if(data.length != 0){
             for(var a=0;a<data.length;a++){

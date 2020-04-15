@@ -55,10 +55,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     siteId:{
       type: DataTypes.INTEGER,
-      references: {
-        model: 'sites', 
-        key: 'id',
-      }
+      // references: {
+      //   model: 'sites', 
+      //   key: 'id',
+      // }
     },
     createdBy:{
       type: DataTypes.STRING,

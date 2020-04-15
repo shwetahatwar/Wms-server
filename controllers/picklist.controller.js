@@ -63,7 +63,10 @@ exports.create = async (req, res) => {
       }
     })
     .then(async data=>{
-      checkMaterialQty = data;
+      if(data != null && data !=undefined){
+        checkMaterialQty = data;
+      }
+      if(checkMaterialQty !=0 && checkMaterialQty !=undefined){
       if(checkMaterialQty >= req.body.material[i].numberOfPacks){
         var getBatchCode = await MaterialInward.findAll({
           where: {
@@ -102,7 +105,9 @@ exports.create = async (req, res) => {
                 partNumber:req.body.material[i]["partNumber"]
               }
             }).then(data => {
-              partDescription = data[0]["dataValues"]["description"];
+              if(data.length !=0){
+                partDescription = data[0]["dataValues"]["description"];
+              }
             })
             .catch(err => {
               res.status(500).send({
@@ -158,6 +163,7 @@ exports.create = async (req, res) => {
           }
         }
       }
+    }
     })
     .catch(err=>{
 
@@ -334,9 +340,10 @@ exports.postPicklistMaterialLists = async (req, res) => {
 
     await PicklistMaterialList.create(picklistpickingmateriallist)
     .then(data => {
-
+      console.log("Picklist created",data);
     })
     .catch(err => {
+      console.log("Erro while picklistpickingmateriallist",err);
     });
   }
   res.status(200).send({
@@ -429,7 +436,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
     // Save materials of picklist in the database
     await PicklistPickingMaterialList.create(picklistpickingmateriallist)
     .then(data => {
-
+      console.log("PicklistPickingMaterialList",data);
     })
     .catch(err => {
       res.status(500).send({
@@ -449,7 +456,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
   })
   .then(num => {
     if (num == 1) {
-      
+      console.log("Picklist updated",req.params.picklistId);
     } 
     else {
     }

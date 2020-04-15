@@ -35,10 +35,10 @@ module.exports = (sequelize, DataTypes) => {
   MaterialInward = sequelize.define("materialinward", {
     partNumberId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: 'partnumbers', 
-        key: 'id',
-      }
+      // references: {
+      //   model: 'partnumbers', 
+      //   key: 'id',
+      // }
     },
     shelfId: {
       type: DataTypes.INTEGER,

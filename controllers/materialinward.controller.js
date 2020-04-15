@@ -26,8 +26,15 @@ exports.create = async (req, res) => {
     where: {id: partNumbersId}
   })
   .then(data => {
-    partsBarcode = data[0]["dataValues"]["partNumber"];
-    netWeightOfPacks = data[0]["dataValues"]["netWeight"];
+    if(data.length != 0){
+      partsBarcode = data[0]["dataValues"]["partNumber"];
+      netWeightOfPacks = data[0]["dataValues"]["netWeight"];
+    }
+    else{
+      res.status(400).send({
+        message: "Part Number not found in database!"
+      });
+    }
   });
   netWeightOfPacks = netWeightOfPacks * parseInt(req.body.eachPackQuantity);
   console.log("Part number:",partsBarcode,netWeightOfPacks);

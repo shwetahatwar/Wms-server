@@ -24,7 +24,7 @@ exports.create = async (req, res) => {
     siteId = data[0]["dataValues"]["id"];
   })
   .catch(err => {
-    return res.status(401).json({ message: 'Invalid Site' });
+    return res.status(401).json({ message: 'Site Not found' });
   })
 
   var serialNumberId;
