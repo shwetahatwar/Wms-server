@@ -5,56 +5,100 @@ const Role = db.roles;
 const Access = db.access;
 
 // Create and Save a new RoleAccessRelation
-exports.create = (req, res) => {
+exports.create =async (req, res) => {
   console.log(req.body);
+ 
   // Validate request
-  if (!req.body.url) {
+  if (!req.body.roleId) {
     res.status(400).send({
       message: "Content can not be empty!"
     });
     return;
   }
 
-Access.findAll({ 
-    where: {
-      url: {
-        [Op.or]: {
-          [Op.like]: '%'+req.body.url+'%',
-          [Op.eq]: '%'+req.body.url+''
-        }
+  let responseData=[];
+  for(var i=0;i<req.body.accessData.length;i++){
+    await Access.findAll({ 
+      where: {
+        url: req.body.accessData[i]["url"] 
       }
-    }
-  })
-  .then(async data => {
-    var responseData;
-    for(var i=0;i<=data.length;i++){
-      const accessData = {
-        roleId: req.body.roleId,
-        accessId:data[i]["dataValues"]["id"],
-        status:true,
-        createdBy:req.user.username,
-        updatedBy:req.user.username
-      };
+    })
+    .then(async data => {
+      let accessId =data[0]["dataValues"]["id"]; 
+      await RoleAccessRelation.findAll({
+        where:{
+          roleId: req.body.roleId,
+          accessId: data[0]["dataValues"]["id"],
+        }
+      })
+      .then(async data => {
+        if(data.length == 0){
+          const accessData = {
+            roleId: req.body.roleId,
+            accessId: accessId,
+            status: true,
+            createdBy:req.user.username,
+            updatedBy:req.user.username
+          };
 
-      await RoleAccessRelation.create(accessData)
-      .then(data => {
-        responseData.push(data);
+          await RoleAccessRelation.create(accessData)
+          .then(data => {
+            console.log("Data on 44",data);
+            responseData.push(data);
+          })
+          .catch(err => {
+            console.log("error on 48",err)
+            res.status(500).send({
+              message:
+              err["errors"][0]["message"] || "Some error occurred while creating the RoleAccessRelation."
+            });
+          });
+        }
+        else{
+          let updateData;
+          if(data[0]["dataValues"]["status"]==false){
+            updateData={
+              status:true
+            };
+          }
+          else{
+            updateData={
+              status:false
+            };
+          }
+          RoleAccessRelation.update(updateData, {
+            where: {
+              id:data[0]["dataValues"]["id"]
+            }
+          })
+          .then(num => {
+            if (num == 1) {
+              console.log("Updated")
+            } 
+            else {
+              console.log("Cannot update RoleAccessRelation with id=",data[0]["dataValues"]["id"])
+            }
+          })
+          .catch(err => {
+            console.log("Error updating RoleAccessRelation with id=", data[0]["dataValues"]["id"],err)
+          });
+        }
       })
       .catch(err => {
         res.status(500).send({
           message:
           err["errors"][0]["message"] || "Some error occurred while creating the RoleAccessRelation."
         });
+      })
+    })
+      .catch(err => {
+        res.status(500).send({
+          message:
+          err.message || "Some error occurred while creating RoleAccessRelation."
+        });
       });
-    }
-    res.send(responseData);
-  })
-  .catch(err => {
-      res.status(500).send({
-        message:
-        err.message || "Some error occurred while creating RoleAccessRelation."
-      });
-    }); 
+  }
+  res.send(responseData)
 };
 
 //Get All RoleAccessRelation
@@ -121,3 +165,46 @@ exports.getById = (req,res) => {
       });
     });
 }
+
+exports.validateAccessUrl = async (req,res) =>{
+  console.log("req",req.query)
+  await Access.findAll({ 
+    where: {
+      url: req.query.accessUrl 
+    }
+  })
+  .then(async data => {
+    if(data.length !=0){
+      let accessId =data[0]["dataValues"]["id"];
+
+      await RoleAccessRelation.findAll({
+        where:{
+          roleId: req.query.roleId,
+          accessId: data[0]["dataValues"]["id"],
+          status:true
+        }
+      })
+      .then(async data => {
+        if(data.length !=0){
+          res.send(data);
+        }
+      })
+      .catch(err => {
+        console.log("Error on 192",err)
+        res.status(500).send({
+          message: "Error retrieving RoleAccessRelation"
+        });
+      })
+    }
+    else{
+      let data = [];
+       res.send(data);
+    }
+  })
+  .catch(err => {
+    console.log("Error on 199",err)
+    res.status(500).send({
+      message: "Error retrieving RoleAccessRelation"
+    });
+  });
+};
