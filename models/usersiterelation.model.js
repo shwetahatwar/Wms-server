@@ -3,17 +3,9 @@ module.exports = (sequelize, DataTypes) => {
   const UserSiteRelation = sequelize.define("usersiterelation", {
     userId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'users', 
-          key: 'id',
-       }
     },
     siteId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
     },
     createdBy:{
       type:DataTypes.STRING,

@@ -30,6 +30,8 @@ var roleAccessRelationRouter = require('./routes/roleaccessrelation.routes');
 var zoneRouter = require('./routes/zone.routes');
 var rackRouter = require('./routes/rack.routes');
 var shelfRouter = require('./routes/shelf.routes');
+var projectRouter = require('./routes/project.routes');
+var issueToProductionTransactionRouter = require('./routes/issuetoproductiontransaction.routes');
 
 
 const app = express();
@@ -58,7 +60,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(function(req, res, next) {
   if (req.headers && req.headers.authorization && req.headers.authorization.split(' ')[0] === 'JWT') {
-    jwt.verify(req.headers.authorization.split(' ')[1], 'THISISLONGSTRINGKEY', async function(err, decode) {
+    jwt.verify(req.headers.authorization.split(' ')[1], 'WMSSTRINGKEY', async function(err, decode) {
       if (err) req.user = undefined;
       // console.log("Line 57 Decode: ", decode);
       // req.user = decode;
@@ -103,6 +105,8 @@ app.use('/roleaccessrelations', roleAccessRelationRouter);
 app.use('/zones', zoneRouter);
 app.use('/racks', rackRouter);
 app.use('/shelfs', shelfRouter);
+app.use('/projects', projectRouter);
+app.use('/issuetoproductiontransactions', issueToProductionTransactionRouter);
 
 const db = require("./models");
 db.sequelize.sync();

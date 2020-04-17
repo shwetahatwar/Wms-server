@@ -14,22 +14,11 @@ exports.create = async (req, res) => {
     });
     return;
   }
-
-  var userId;
-  await User.findAll({ 
-    where: {username:req.body.userId} 
-  })
-  .then(data => {
-    userId = data[0]["dataValues"]["id"]
-  })
-  .catch(err => {
-    console.log(err);
-  });
-
+  
   // Create a Picklist Picker Relations
   const picklistpickerrelation = {
     picklistId: req.body.picklistId,
-    userId:userId,
+    userId:req.body.userId,
     createdBy:req.user.username,
     updatedBy:req.user.username
   };
@@ -172,11 +161,11 @@ exports.getPicklistbyUser = async (req,res) =>{
       })
       .then(picklistData => {
         var updatedAt = picklistData[0]["dataValues"]["updatedAt"];
-        if(picklistData[0]["dataValues"]["picklistStatus"] == "Active"){
+        if(picklistData[0]["dataValues"]["picklistStatus"] == "In Progress"){
           picklistArray.push(picklistData[0]["dataValues"]);  
           console.log("Line 182",picklistArray);
         }
-        else if(picklistData[0]["dataValues"]["picklistStatus"] == "Picked" && updatedAt.toString().includes(newDateTimeNow)){
+        else if(picklistData[0]["dataValues"]["picklistStatus"] == "Completed" && updatedAt.toString().includes(newDateTimeNow)){
           picklistArray.push(picklistData[0]["dataValues"]);  
           console.log("Line 185",picklistArray);
         }

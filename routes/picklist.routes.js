@@ -20,5 +20,6 @@ router.put("/:picklistId/picklistpickedmaterials/:id", users.loginRequired,pickl
 
 router.get("/dashboard/count", users.loginRequired,picklists.getPicklistCountDashboard);
 router.get("/get/getbydate", users.loginRequired,picklists.getPicklistByDate);
+router.get("/get/picklistbyname", users.loginRequired,picklists.findPicklistByName);
 
 module.exports = router;

@@ -3,31 +3,17 @@ module.exports = (sequelize, DataTypes) => {
   const StockTransit = sequelize.define("stocktransit", {
     fromSiteId:{
       type: DataTypes.INTEGER,
-      references: {
-        model: 'sites', 
-        key: 'id',
-      }
     },
     toSiteId:{
       type: DataTypes.INTEGER,
-      references: {
-        model: 'sites', 
-        key: 'id',
-      }
+
     },
     transferOutUserId:{
       type: DataTypes.INTEGER,
-      references: {
-        model: 'users', 
-        key: 'id',
-      }
     },
     transferInUserId:{
       type: DataTypes.INTEGER,
-      references: {
-        model: 'users', 
-        key: 'id',
-      }
+      
     },
     materialInwardId:{
       type: DataTypes.INTEGER,
@@ -84,10 +70,6 @@ module.exports = (sequelize, DataTypes) => {
   MaterialInward = sequelize.define("materialinward", {
     partNumberId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: 'partnumbers', 
-        key: 'id',
-      }
     },
    shelfId: {
       type: DataTypes.INTEGER,
@@ -136,10 +118,6 @@ module.exports = (sequelize, DataTypes) => {
     },
     siteId:{
       type: DataTypes.INTEGER,
-      references: {
-        model: 'sites', 
-        key: 'id',
-      }
     },
     createdBy:{
       type: DataTypes.STRING,

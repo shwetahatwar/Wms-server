@@ -63,7 +63,10 @@ exports.create = async (req, res) => {
       }
     })
     .then(async data=>{
-      checkMaterialQty = data;
+      if(data != null && data !=undefined){
+        checkMaterialQty = data;
+      }
+      if(checkMaterialQty !=0 && checkMaterialQty !=undefined){
       if(checkMaterialQty >= req.body.material[i].numberOfPacks){
         var getBatchCode = await MaterialInward.findAll({
           where: {
@@ -102,7 +105,9 @@ exports.create = async (req, res) => {
                 partNumber:req.body.material[i]["partNumber"]
               }
             }).then(data => {
-              partDescription = data[0]["dataValues"]["description"];
+              if(data.length !=0){
+                partDescription = data[0]["dataValues"]["description"];
+              }
             })
             .catch(err => {
               res.status(500).send({
@@ -158,6 +163,7 @@ exports.create = async (req, res) => {
           }
         }
       }
+    }
     })
     .catch(err=>{
 
@@ -334,9 +340,10 @@ exports.postPicklistMaterialLists = async (req, res) => {
 
     await PicklistMaterialList.create(picklistpickingmateriallist)
     .then(data => {
-
+      console.log("Picklist created",data);
     })
     .catch(err => {
+      console.log("Erro while picklistpickingmateriallist",err);
     });
   }
   res.status(200).send({
@@ -429,7 +436,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
     // Save materials of picklist in the database
     await PicklistPickingMaterialList.create(picklistpickingmateriallist)
     .then(data => {
-
+      console.log("PicklistPickingMaterialList",data);
     })
     .catch(err => {
       res.status(500).send({
@@ -440,7 +447,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
   }
   //updated picklist
   var updatedPicklist = {
-    picklistStatus: "Picked"
+    picklistStatus: "Completed"
   }
   await Picklist.update(updatedPicklist, {
     where: {
@@ -449,7 +456,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
   })
   .then(num => {
     if (num == 1) {
-      
+      console.log("Picklist updated",req.params.picklistId);
     } 
     else {
     }
@@ -527,13 +534,13 @@ exports.getPicklistCountDashboard = async (req, res) => {
   .then(function(picklists) {
     console.log(picklists);
     var pending = 0;
-    var active = 0;
+    var inProgress = 0;
     var completed = 0;
     var total = picklists.length;
     for(var i = 0; i < picklists.length; i++){
       console.log("Line 660",picklists[i]["picklistStatus"]);
-      if(picklists[i]["picklistStatus"] == "Active"){
-        active++;
+      if(picklists[i]["picklistStatus"] == "In Progress"){
+        inProgress++;
       }
       else if(picklists[i]["picklistStatus"] == "Pending"){
         pending++;
@@ -543,7 +550,7 @@ exports.getPicklistCountDashboard = async (req, res) => {
       }
     }
     var picklistCount = {
-      active: active,
+      inProgress: inProgress,
       pending: pending,
       completed:completed,
       total:total
@@ -596,3 +603,40 @@ exports.getPicklistByDate = (req, res) => {
       });
     });
 };
+
+//get by picklist name
+exports.findPicklistByName = async (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+  Picklist.findAll({ 
+    where: {
+      picklistName: {
+        [Op.or]: {
+          [Op.eq]: ''+req.query.picklistName+'',
+          [Op.like]: '%'+req.query.picklistName+'%'
+        }
+      }
+    },
+    order: [
+    ['id', 'ASC'],
+    ],
+    offset:offset,
+    limit:limit
+  }).then(async data => {
+    res.send(data);
+  }).catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving Picklists."
+    });
+  });
+}

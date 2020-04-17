@@ -7,5 +7,6 @@ router.post("/", users.loginRequired,roleaccessrelations.create);
 router.get("/", users.loginRequired,roleaccessrelations.getAll);
 router.get("/:id", users.loginRequired,roleaccessrelations.getById);
 router.put('/:id', users.loginRequired,roleaccessrelations.update);
+router.get("/get/validateaccessurl", users.loginRequired,roleaccessrelations.validateAccessUrl);
 
 module.exports = router;

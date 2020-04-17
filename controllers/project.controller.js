@@ -1,10 +1,9 @@
 const db = require("../models");
-const Location = db.locations;
-const Site = db.sites;
+const Project = db.projects;
 const Op = db.Sequelize.Op;
 
-// Create and Save a new Location
-exports.create = async (req, res) => {
+// Create and Save a new Project
+exports.create = (req, res) => {
   console.log(req.body);
   // Validate request
   if (!req.body.name) {
@@ -14,71 +13,28 @@ exports.create = async (req, res) => {
     return;
   }
 
-  var siteId;
-  await Site.findAll({
-    where: {
-      name:req.body.site
-    }
-  })
-  .then(data => {
-    siteId = data[0]["dataValues"]["id"];
-  })
-  .catch(err => {
-    return res.status(401).json({ message: 'Site Not found' });
-  })
-
-  var serialNumberId;
-  await Location.findAll({
-    order: [
-    ['id', 'DESC'],
-    ],
-  })
-  .then(data => {
-    if(data[0] != null || data[0] != undefined){
-      serialNumberId = data[0]["dataValues"]["barcodeSerial"];
-      serialNumberId = serialNumberId.substring(serialNumberId.length -6, serialNumberId.length);
-      serialNumberId = (parseInt(serialNumberId) + 1).toString();
-      var str = '' + serialNumberId;
-      while (str.length < 6) {
-        str = '0' + str;
-      }
-      serialNumberId = "LOC" + str;
-      console.log("Line 46 Serial Number", str);
-    }
-    else{
-      serialNumberId = "LOC" + "000001";
-    }
-  })
-  .catch(err=>{
-    serialNumberId = "LOC" + "000001";
-  });
-
-  const location = {
+  const projectData = {
     name: req.body.name,
     description: req.body.description,
-    barcodeSerial: serialNumberId, 
-    siteId:siteId,
     status:true,
-    capacity: req.body.capacity,
-    loadedCapacity: 0,
     createdBy:req.user.username,
     updatedBy:req.user.username
   };
 
   
-  Location.create(location)
+  Project.create(projectData)
     .then(data => {
       res.send(data);
     })
     .catch(err => {
       res.status(500).send({
         message:
-          err["errors"][0]["message"] || "Some error occurred while creating the location."
+          err["errors"][0]["message"] || "Some error occurred while creating the project."
       });
     });
 };
 
-//Get All Locations
+//Get All Project
 exports.getAll = (req,res) =>{
   var queryString = req.query;
   var offset = 0;
@@ -92,68 +48,68 @@ exports.getAll = (req,res) =>{
   }
   delete queryString['offset'];
   delete queryString['limit'];
-  Location.findAll({
+
+  Project.findAll({
     where:req.query,
     order: [
     ['id', 'DESC'],
     ],
-    include: [{model: Site}],
     offset:offset,
     limit:limit
   })
   .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Locations."
+      res.send(data);
+    })
+    .catch(err => {
+      res.status(500).send({
+        message:
+          err.message || "Some error occurred while retrieving Project."
+      });
     });
-  });
 };
 
-//Update Locations by Id
+//Update Project by Id
 exports.update = (req, res) => {
   const id = req.params.id;
 
-  Location.update(req.body, {
+  Project.update(req.body, {
     where: req.params
   })
     .then(num => {
       if (num == 1) {
         res.send({
-          message: "Location was updated successfully."
+          message: "Project was updated successfully."
         });
       } else {
         res.send({
-          message: `Cannot update Location with id=${id}. Maybe Location was not found or req.body is empty!`
+          message: `Cannot update Project with id=${id}. Maybe Project was not found or req.body is empty!`
         });
       }
     })
     .catch(err => {
       res.status(500).send({
-        message: "Error updating Locations with id=" + id
+        message: "Error updating Project with id=" + id
       });
     });
 };
 
-//Get Locations by Id
+//Get Project by Id
 exports.getById = (req,res) => {
   const id = req.params.id;
 
-  Location.findByPk(id)
+  Project.findByPk(id)
     .then(data => {
       res.send(data);
     })
     .catch(err => {
       res.status(500).send({
-        message: "Error retrieving Locations with id=" + id
+        message: "Error retrieving Project with id=" + id
       });
     });
-}
+};
 
 //search query
-exports.findLocationsBySearchQuery = (req, res) => {
+exports.findProjectsBySearchQuery = (req, res) => {
   var queryString = req.query;
   var offset = 0;
   var limit = 100;
@@ -176,23 +132,22 @@ exports.findLocationsBySearchQuery = (req, res) => {
     description = req.query.description;
   }
 
-  Location.findAll({ 
+  Project.findAll({ 
     where: {
-      status:1,
+      status:true,
       name: {
         [Op.or]: {
           [Op.like]: '%'+name+'%',
-          [Op.eq]: '%'+name+''
+          [Op.eq]: ''+name+''
         }
       },
       description: {
         [Op.or]: {
-          [Op.like]: ''+description+'%',
+          [Op.like]: '%'+description+'%',
           [Op.eq]: ''+description+''
         }
-      }
+      },
     },
-    include: [{model: Site}],
     order: [
     ['id', 'DESC'],
     ],
@@ -205,9 +160,9 @@ exports.findLocationsBySearchQuery = (req, res) => {
     responseData.push(data);
 
     var total = 0;
-    await Location.count({ 
+    await Project.count({ 
       where: {
-        status:1,
+        status:true,
         name: {
           [Op.or]: {
             [Op.like]: '%'+name+'%',
@@ -219,7 +174,7 @@ exports.findLocationsBySearchQuery = (req, res) => {
             [Op.like]: '%'+description+'%',
             [Op.eq]: ''+description+''
           }
-        }
+        },
       },
     })
     .then(data => {
@@ -228,44 +183,45 @@ exports.findLocationsBySearchQuery = (req, res) => {
     .catch(err => {
       res.status(500).send({
         message:
-        err.message || "Some error occurred while retrieving Locations."
+        err.message || "Some error occurred while retrieving Project."
       });
     });
-    var totalLocations = {
+    var totalProjects = {
       totalCount : total
     }
-    countArray.push(totalLocations);
+    countArray.push(totalProjects);
     responseData.push(countArray);
     res.send(responseData);
   })
   .catch(err => {
     res.status(500).send({
       message:
-      err.message || "Some error occurred while retrieving Locations."
+      err.message || "Some error occurred while retrieving Projects."
     });
   });
 };
 
-// get count of all locations whose status =1 
-exports.countOfLocations = (req, res) => {
+// get count of all Project whose status =1 
+exports.countOfProjects = (req, res) => {
   var total = 0
-  Location.count({
+  Project.count({
     where :
     {
-      status :1
+      status :true
     }
   })
   .then(data => {
     total = data;
     var totalCount = {
-      totalLocations : total 
+      totalProjects : total 
     }
      res.send(totalCount);
   })
   .catch(err => {
     res.status(500).send({
       message:
-      err.message || "Some error occurred while retrieving Location count."
+      err.message || "Some error occurred while retrieving Project count."
     });
   });
 };
+
