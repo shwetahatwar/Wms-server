@@ -161,7 +161,7 @@ exports.getPicklistbyUser = async (req,res) =>{
       })
       .then(picklistData => {
         var updatedAt = picklistData[0]["dataValues"]["updatedAt"];
-        if(picklistData[0]["dataValues"]["picklistStatus"] == "In Progress"){
+        if(picklistData[0]["dataValues"]["picklistStatus"] != "Completed"){
           picklistArray.push(picklistData[0]["dataValues"]);  
           console.log("Line 182",picklistArray);
         }

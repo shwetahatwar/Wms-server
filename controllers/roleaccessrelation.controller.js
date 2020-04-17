@@ -188,6 +188,10 @@ exports.validateAccessUrl = async (req,res) =>{
         if(data.length !=0){
           res.send(data);
         }
+        else{
+          let data = [];
+          res.status(200).send(data);
+        }
       })
       .catch(err => {
         console.log("Error on 192",err)
@@ -198,7 +202,7 @@ exports.validateAccessUrl = async (req,res) =>{
     }
     else{
       let data = [];
-       res.send(data);
+       res.status(200).send(data);
     }
   })
   .catch(err => {

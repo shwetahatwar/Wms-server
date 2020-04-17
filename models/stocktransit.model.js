@@ -19,6 +19,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
+    status:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false
+    },
     createdBy:{
       type:DataTypes.STRING,
       allowNull:true

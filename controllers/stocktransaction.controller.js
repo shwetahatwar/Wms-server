@@ -24,6 +24,8 @@ exports.transferOut = async (req, res) => {
     transactionTimestamp: Date.now(),
     materialInwardId:req.body.materialInwardId,
     fromSiteId: req.body.siteId,
+    toSiteId:req.body.toSiteId,
+    status:true,
     transferOutUserId:req.body.userId,
     transactionType :"Transfer Out",
     createdBy:req.user.username,
@@ -93,6 +95,7 @@ exports.transferIn = async (req, res) => {
   await StockTransit.findAll({
     where: { 
       materialInwardId : req.body.materialInwardId,
+      toSiteId: req.body.siteId,
     },
     limit:10,
     offset:0,
@@ -104,8 +107,8 @@ exports.transferIn = async (req, res) => {
     console.log("Data On line 105",data);
     if(data[0] != null || data[0] != undefined){
       const stockTransitData = {
-        toSiteId: req.body.siteId,
-        transferInUserId:req.body.userId
+        transferInUserId:req.body.userId,
+        status:false,
       };
       await StockTransit.update(stockTransitData, {
         where: {

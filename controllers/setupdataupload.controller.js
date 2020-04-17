@@ -4,6 +4,7 @@ const User = db.users;
 const Role = db.roles;
 const Site = db.sites;
 const Access = db.access;
+const RoleAccessRelation = db.roleaccessrelations;
 var XLSX = require('xlsx'),
      xls_utils = XLSX.utils;
 
@@ -86,8 +87,25 @@ exports.uploadUserMaster = async (req,res) =>{
         };
 
         await Access.create(accessData)
-        .then(data => {
-          console.log("Line 34", data);
+        .then(async data => {
+          const roleAccessData = {
+            roleId: roleData,
+            accessId: data["dataValues"]["id"],
+            status: true,
+            createdBy:"admin",
+            updatedBy:"admin"
+          };
+
+          await RoleAccessRelation.create(roleAccessData)
+          .then(data => {
+            console.log("RoleAccessRelation created",data);
+          })
+          .catch(err => {
+            res.status(500).send({
+              message:
+              err["errors"][0]["message"] || "Some error occurred while creating the RoleAccessRelation."
+            });
+          });
         })
         .catch(err => {
           console.log("Line 37", err);
