@@ -14,7 +14,7 @@ exports.create = async (req, res) => {
     return;
   }
 
-  const zone = {
+  const rack = {
     name: req.body.name,
     status:true,
     zoneId: req.body.zoneId,
@@ -23,7 +23,7 @@ exports.create = async (req, res) => {
   };
 
   
-  Rack.create(zone)
+  Rack.create(rack)
   .then(data => {
     res.send(data);
   })

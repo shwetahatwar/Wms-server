@@ -26,7 +26,12 @@ exports.create = async (req, res) => {
     }
   })
   .then(data => {
-    roleId = data[0]["dataValues"]["id"];
+    if(data.length != 0){
+      roleId = data[0]["dataValues"]["id"];
+    }
+    else{
+      return res.status(401).json({ message: 'Invalid Role' });
+    }
   })
   .catch(err => {
     return res.status(401).json({ message: 'Invalid Role' });
@@ -40,7 +45,12 @@ exports.create = async (req, res) => {
     }
   })
   .then(data => {
-    siteId = data[0]["dataValues"]["id"];
+    if(data.length != 0){
+      siteId = data[0]["dataValues"]["id"];
+    }
+    else{
+      return res.status(401).json({ message: 'Invalid Site' });
+    }
   })
   .catch(err => {
     return res.status(401).json({ message: 'Invalid Site' });
