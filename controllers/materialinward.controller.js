@@ -43,9 +43,6 @@ exports.create = async (req, res) => {
     if(partsBarcode != null && partsBarcode !=undefined){
       var serialNumberId;
       await MaterialInward.findAll({
-        where: { 
-          partNumberId: req.body.partNumberId
-        },
         limit:1,
         offset:0,
         order: [
@@ -56,21 +53,16 @@ exports.create = async (req, res) => {
         console.log("Data On line 43",data);
         if(data[0] != null || data[0] != undefined){
           serialNumberId = data[0]["dataValues"]["barcodeSerial"];
-          serialNumberId = serialNumberId.substring(serialNumberId.length -7, serialNumberId.length);
           serialNumberId = (parseInt(serialNumberId) + 1).toString();
-          var str = '' + serialNumberId;
-          while (str.length < 7) {
-            str = '0' + str;
-          }
-          serialNumberId = partsBarcode + "#" + str;
-          console.log("Line 50 Serial Number", str);
+          serialNumberId = '' + serialNumberId;
+          console.log("Line 50 Serial Number", serialNumberId);
         }
         else{
-          serialNumberId = partsBarcode + "#" + "0000001";
+          serialNumberId ="1111111111";
         }
       })
       .catch(err=>{
-        serialNumberId = partsBarcode + "#" + "0000001";
+        serialNumberId ="1111111111";
       });
       const materialinward = {
         partNumberId: req.body.partNumberId,
