@@ -7,6 +7,8 @@ router.post("/", users.loginRequired,picklists.create);
 router.get("/", users.loginRequired,picklists.findAll);
 router.get("/:id", users.loginRequired,picklists.findOne);
 router.put("/:id", users.loginRequired,picklists.update);
+router.post("/post/picklistsmaterialcount", users.loginRequired,picklists.getCountForPicklist);
+
 
 router.get("/:picklistId/picklistmaterials", users.loginRequired,picklists.getPicklistMaterialLists);
 router.post("/:picklistId/picklistmaterials", users.loginRequired,picklists.postPicklistMaterialLists);

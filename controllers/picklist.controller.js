@@ -214,6 +214,25 @@ exports.findAll = (req, res) => {
   });
 };
 
+exports.getCountForPicklist = async(req,res) =>{
+  let responseData =[];
+  for(var i=0;i<req.body.length;i++){
+    var checkMaterialQty = await MaterialInward.count({
+      where:{
+        'partNumber':req.body[i].partNumber,
+        'QCStatus':1,
+      }
+    });
+    let item = {
+      "partNumber":req.body[i].partNumber,
+      "quantity":checkMaterialQty
+    }
+    responseData.push(item);
+  }
+  console.log(responseData);
+  res.send(responseData);
+}
+
 // Find a single Picklist with an id
 exports.findOne = (req, res) => {
   const id = req.params.id;
