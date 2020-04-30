@@ -11,6 +11,7 @@ router.put("/updatewithbarcode/:barcodeSerial", users.loginRequired,materialinwa
 router.put("/update/:id/updateQcStatus", users.loginRequired,materialinwards.updateQcStatus);
 router.get("/get/getCountByQcStatus", users.loginRequired,materialinwards.countByQcStatus);
 router.get('/get/findMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findMaterialInwardsBySearchQuery);
-
+router.get('/get/getinventorydetails', users.loginRequired,materialinwards.inventoryData);
+router.get('/get/inventory/getinventoryStock', users.loginRequired,materialinwards.inventoryStockData);
 
 module.exports = router;

@@ -6,6 +6,7 @@ const Shelf = db.shelfs;
 const InventoryTransaction = db.inventorytransactions;
 const PutawayTransaction = db.putawaytransactions;
 const QCTransaction = db.qctransactions;
+const Sequelize = require("sequelize");
 
 // Create and Save a new MaterialInward
 exports.create = async (req, res) => {
@@ -676,4 +677,106 @@ exports.updateWithBarcode = async (req, res) => {
   // }
 }
 
+};
+
+//get inventory where count less than 10
+exports.inventoryData = async (req, res) => {
+  await MaterialInward.findAll({
+    where:{
+      'QCStatus':1,
+    },
+    group: [ 'partNumberId' ],
+    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
+    include: [{
+      model: PartNumber,
+      attributes: ['description','partNumber']
+    }],
+    having: Sequelize.where(Sequelize.fn('COUNT', Sequelize.col('partNumberId')), '<=', 10)
+  })
+  .then(async data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message: "Error while retrieving inventory"
+    });
+  });
+};
+
+
+//get inventory Stock 
+exports.inventoryStockData = async (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.offset != null || req.query.offset != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+  if(req.query.partNumber != null && req.query.partNumber != undefined ||
+    req.query.description != null && req.query.description != undefined){
+    if(!req.query.partNumber){
+      req.query.partNumber = "";
+    }
+    if(!req.query.description){
+      req.query.description = "";
+    }
+    await MaterialInward.findAll({
+      where:{
+        'QCStatus':1,
+      },
+      group: [ 'partNumberId' ],
+      attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
+      include: [{
+        model: PartNumber,
+        where:{
+          description: {
+            [Op.like]: '%'+req.query.description+'%'
+          },
+          partNumber: {
+            [Op.like]: '%'+req.query.partNumber+'%'
+          },
+        },
+        attributes: ['description','partNumber']
+      }],
+      limit:limit,
+      offset:offset
+    })
+  .then(async data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message: "Error while retrieving inventory"
+    });
+  });
+}
+else{
+  await MaterialInward.findAll({
+    where:{
+      'QCStatus':1,
+    },
+    group: [ 'partNumberId' ],
+    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
+    include: [{
+      model: PartNumber,
+      attributes: ['description','partNumber']
+    }],
+    limit:limit,
+    offset:offset
+  })
+  .then(async data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message: "Error while retrieving inventory"
+    });
+  });
+}
 };
