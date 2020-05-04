@@ -117,112 +117,69 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   var responseData = [];
-  if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null && 
-    req.query.partNumber != undefined && req.query.partNumber != null){
-   await MaterialInward.findAll({
-      where: {
-        barcodeSerial: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.barcodeSerial+'',
-            [Op.like]: '%'+req.query.barcodeSerial+'%'
-          }
-        },
-        status : true 
-      }
-    }).then(async data => {
-      for(var i=0;i<data.length;i++){
-        await PutawayTransaction.findAll({
-          where: {
-            materialInwardId: data[i]["dataValues"]["id"]
-          },
-          include: [
-          {model: MaterialInward},
-          {model: Shelf,
-            as: 'prevLocation'},
-            {model: Shelf,
-              as: 'currentLocation'}],
-        }).then(data => {
-          if(data.length != 0){
-            responseData.push(data);
-          }
-        });
-      }
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      dataCount.push(count);
-      responseData.push(dataCount);
-      res.send(responseData);
-    });
+  if(req.query.barcodeSerial == undefined){
+    req.query.barcodeSerial = "";
   }
-   else if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
-   await MaterialInward.findAll({
-      where: {
-        barcodeSerial: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.barcodeSerial+'',
+  if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null && req.query.barcodeSerial != ""){
+   await PutawayTransaction.findAll({
+      include: [
+      {
+        model: MaterialInward,
+        required: true,
+        where:{
+          barcodeSerial :
+          {
             [Op.like]: '%'+req.query.barcodeSerial+'%'
           }
         },
-        status : true 
-      }
-    }).then(async data => {
-      for(var i=0;i<data.length;i++){
-        await PutawayTransaction.findAll({
-          where: {
-            materialInwardId: data[i]["dataValues"]["id"]
-          },
-          include: [
-          {model: MaterialInward},
-          {model: Shelf,
-            as: 'prevLocation'},
-            {model: Shelf,
-              as: 'currentLocation'}],
+      },
+      {model: Shelf,
+        as: 'prevLocation'},
+        {model: Shelf,
+          as: 'currentLocation'},
+         ],
+         offset:offset,
+         limit:limit
         }).then(data => {
           if(data.length != 0){
             responseData.push(data);
           }
         });
-      }
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      dataCount.push(count);
-      responseData.push(dataCount);
-      res.send(responseData);
-    });
+        let count = {
+          'totalCount':responseData.length
+        };
+        let dataCount = [];
+        dataCount.push(count);
+        responseData.push(dataCount);
+        res.send(responseData);
   }
   else if(req.query.partNumber != undefined && req.query.partNumber != null){
-    await MaterialInward.findAll({
-      where: {
-        partNumber: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.partNumber+'',
-            [Op.like]: '%'+req.query.partNumber+'%'
-          }
+    await PutawayTransaction.findAll({
+      include: [
+      {
+       model: MaterialInward,
+       required: true,       
+       where:{
+          partNumber: {
+              [Op.like]: '%'+req.query.partNumber+'%'
+            },
         },
-        status : true
-      }
-    }).then(async data => {
-      for(var i=0;i<data.length;i++){
-        await PutawayTransaction.findAll({
-          where: {
-            materialInwardId: data[i]["dataValues"]["id"]
-          },
-          include: [
-          {model: MaterialInward},
-          {model: Shelf,
-            as: 'prevLocation'},
-            {model: Shelf,
-              as: 'currentLocation'}],
+      },
+      {model: Shelf,
+        as: 'prevLocation'},
+        {model: Shelf,
+          as: 'currentLocation'},
+          ],
+          offset:offset,
+          limit:limit
         }).then(data => {
           for(var a=0;a<data.length;a++){
             if(data.length != 0){
               responseData.push(data[a]["dataValues"]);
             }
           }
+        }).catch(err => {
+          console.log(err);
         });
       }
 
@@ -236,6 +193,25 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
       dataList.push(dataCount);
       console.log("IN part Search");
       res.send(dataList);
-    });
-  }
   };
+
+// get count of all PutawayTransaction 
+exports.countOfPutawayTransaction = (req, res) => {
+  var total = 0
+  PutawayTransaction.count({
+  })
+  .then(data => {
+    total = data;
+    var totalCount = {
+      totalProjects : total 
+    }
+     res.send(totalCount);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving PutawayTransaction count."
+    });
+  });
+};
+

@@ -133,32 +133,17 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
   }
   else if(req.query.partNumber != undefined && req.query.partNumber != null){
     var partNumberId;
-    await PartNumber.findAll({
-      where: {
-        partNumber: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.partNumber+'',
-            [Op.like]: '%'+req.query.partNumber+'%'
-          }
-        },
-        status:1
-      }
-    }).then(data => {
-      partNumberId = data[0]["dataValues"]["id"];
-    });
-
-    await MaterialInward.findAll({
-      where: {
-        partNumberId:partNumberId,
-        status : 1
-      }
-    }).then(async data => {
-      for(var i=0;i<data.length;i++){
         await QCTransaction.findAll({
-          where: {
-            materialInwardId: data[i]["dataValues"]["id"]
-          },
-          include: [{model: MaterialInward}]
+          include: [{model: MaterialInward,
+            required:true,
+            where: {
+              partNumber: {
+                  [Op.like]: '%'+req.query.partNumber+'%'
+                }
+              },
+          }],
+          offset:offset,
+          limit:limit 
         }).then(data => {
           for(var a=0;a<data.length;a++){
             if(data.length != 0){
@@ -166,8 +151,6 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
             }
           }
         });
-      }
-
       let count = {
         'totalCount':responseData.length
       };
@@ -178,6 +161,5 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
       dataList.push(dataCount);
       console.log("IN part Search");
       res.send(dataList);
-    });
-  }
+      }
   };

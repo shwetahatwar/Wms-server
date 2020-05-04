@@ -680,8 +680,8 @@ exports.updateWithBarcode = async (req, res) => {
 };
 
 //get inventory where count less than 10
-exports.inventoryData = async (req, res) => {
-  await MaterialInward.findAll({
+exports.inventoryData = (req, res) => {
+  MaterialInward.findAll({
     where:{
       'QCStatus':1,
     },
@@ -693,7 +693,7 @@ exports.inventoryData = async (req, res) => {
     }],
     having: Sequelize.where(Sequelize.fn('COUNT', Sequelize.col('partNumberId')), '<=', 10)
   })
-  .then(async data => {
+  .then(data => {
     res.send(data);
   })
   .catch(err => {
@@ -776,6 +776,169 @@ else{
   .catch(err => {
     res.status(500).send({
       message: "Error while retrieving inventory"
+    });
+  });
+}
+};
+
+//get data by search query for transfer Out
+exports.findMaterialInwardsForTransferOut = async (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+
+  if(req.query.partNumber != undefined && req.query.partNumber != null){
+    var partNumberId;
+    if(req.query.barcodeSerial == undefined){
+      req.query.barcodeSerial="";
+    }
+    if(req.query.partNumber != null && req.query.partNumber != undefined){
+      MaterialInward.findAll({ 
+        where: {
+          status:1,
+          QCStatus:req.query.QCStatus,
+          materialStatus:req.query.materialStatus,
+          partNumber: {
+            [Op.or]: {
+              [Op.eq]: ''+req.query.partNumber+'',
+              [Op.like]: '%'+req.query.partNumber+'%'
+            }
+          },
+          barcodeSerial: {
+            [Op.or]: {
+          [Op.eq]: ''+req.query.barcodeSerial+'',
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        }
+      }
+    },
+    include: [{
+      model: PartNumber
+    },
+    {
+      model: Shelf
+    }],
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  }).then(async data => {
+    var countArray =[];
+    var responseData =[];
+    responseData.push(data);
+    console.log("responseData",responseData);
+    var total = 0;
+    await MaterialInward.count({ 
+      where: {
+        status:1,
+        QCStatus:req.query.QCStatus,
+        materialStatus:req.query.materialStatus,
+        partNumber: {
+          [Op.or]: {
+            [Op.eq]: ''+req.query.partNumber+'',
+            [Op.like]: '%'+req.query.partNumber+'%'
+          }
+        },
+        barcodeSerial: {
+          [Op.or]: {
+          [Op.eq]: ''+req.query.barcodeSerial+'',
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        }
+      }
+    },
+  }).then(data => {
+    total = data;
+  }).catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving materialinward."
+    });
+  });
+  var totalMaterials = {
+    totalCount : total
+  }
+  countArray.push(totalMaterials);
+  responseData.push(countArray);
+  res.send(responseData);
+}).catch(err => {
+  res.status(500).send({
+    message:
+    err.message || "Some error occurred while retrieving materialinward."
+  });
+});
+}
+}
+else{
+  MaterialInward.findAll({ 
+    where: {
+      status:1,
+      QCStatus:req.query.QCStatus,
+      materialStatus:req.query.materialStatus,
+      barcodeSerial: {
+        [Op.or]: {
+          [Op.eq]: ''+req.query.barcodeSerial+'',
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        }
+      }
+    },
+    include: [{
+      model: PartNumber
+    },
+    {
+      model: Shelf
+    }],
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  }).then(async data => {
+    var countArray =[];
+    var responseData =[];
+    responseData.push(data);
+
+    var total = 0;
+    await MaterialInward.count({ 
+      where: {
+        status:1,
+        QCStatus:req.query.QCStatus,
+        materialStatus:req.query.materialStatus,
+        barcodeSerial: {
+          [Op.or]: {
+          // [Op.like]: ''+req.query.barcodeSerial+'%',
+          [Op.eq]: ''+req.query.barcodeSerial+'',
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        }
+      }
+    },
+  }).then(data => {
+    total = data;
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving materialinward."
+    });
+  });
+  var totalMaterials = {
+    totalCount : total
+  }
+  countArray.push(totalMaterials);
+  responseData.push(countArray);
+  res.send(responseData);
+})
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving materialinward."
     });
   });
 }

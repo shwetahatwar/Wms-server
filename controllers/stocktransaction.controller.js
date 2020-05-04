@@ -257,7 +257,7 @@ exports.findAllDatewise = (req, res) => {
         [Op.lt]: parseInt(req.query.createdAtEnd),
       }
     },
-    include: [
+   include: [
     {model: MaterialInward},
     {model: Site,
       as: 'fromSite'},
@@ -296,24 +296,16 @@ exports.findBySearchQuery = async (req, res) => {
   var responseData = [];
   if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null && 
     req.query.partNumber != undefined && req.query.partNumber != null){
-    await MaterialInward.findAll({
-      where: {
-        barcodeSerial: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.barcodeSerial+'',
-            [Op.like]: '%'+req.query.barcodeSerial+'%'
-          }
-        },
-        status : 1 
-      }
-    }).then(async data => {
-      for(var i=0;i<data.length;i++){
         await StockTransaction.findAll({
-          where: {
-            materialInwardId: data[i]["dataValues"]["id"]
-          },
           include: [
-          {model: MaterialInward},
+          {model: MaterialInward,
+            where: {
+              barcodeSerial: {
+                  [Op.like]: '%'+req.query.barcodeSerial+'%'
+                }
+              },
+              required:true
+            },
           {model: Site,
             as: 'fromSite'},
             {model: Site,
@@ -329,7 +321,7 @@ exports.findBySearchQuery = async (req, res) => {
             }
           }
         });
-      }
+
       let count = {
         'totalCount':responseData.length
       };
@@ -340,7 +332,6 @@ exports.findBySearchQuery = async (req, res) => {
       dataList.push(dataCount);
       console.log("IN barcodeSerial & PartNumber Search");
       res.send(dataList);
-    });
   }
   else if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
     await MaterialInward.findAll({
@@ -352,7 +343,9 @@ exports.findBySearchQuery = async (req, res) => {
           }
         },
         status : 1 
-      }
+      },
+      offset:offset,
+      limit:limit 
     }).then(async data => {
       for(var i=0;i<data.length;i++){
         await StockTransaction.findAll({
@@ -379,7 +372,6 @@ exports.findBySearchQuery = async (req, res) => {
           }
         });
       }
-
       let count = {
         'totalCount':responseData.length
       };
@@ -393,62 +385,44 @@ exports.findBySearchQuery = async (req, res) => {
     });
   }
   else if(req.query.partNumber != undefined && req.query.partNumber != null){
-    var partNumberId;
-    await PartNumber.findAll({
-      where: {
-        partNumber: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.partNumber+'',
+    await StockTransaction.findAll({
+      include: [
+      {model: MaterialInward,
+        where: {
+          partNumber: {
             [Op.like]: '%'+req.query.partNumber+'%'
           }
         },
-        status:1
-      }
-    }).then(data => {
-      partNumberId = data[0]["dataValues"]["id"];
-    });
+        required:true
+      },
+      {model: Site,
+        as: 'fromSite'},
+        {model: Site,
+          as: 'toSite'},
+          {model: User,
+            as: 'transferOutUser'},
+            {model: User,
+              as: 'transferInUser'}],
+              offset:offset,
+              limit:limit
+            }).then(data => {
+              if(data.length != 0){
+                for(var a=0;a<data.length;a++){
+                  responseData.push(data[a]["dataValues"]);
+                }
+              }
+            });
 
-    await MaterialInward.findAll({
-      where: {
-        partNumberId:partNumberId,
-        status : 1
-      }
-    }).then(async data => {
-      for(var i=0;i<data.length;i++){
-        await StockTransaction.findAll({
-          where: {
-            materialInwardId: data[i]["dataValues"]["id"]
-          },
-          include: [
-          {model: MaterialInward},
-          {model: Site,
-            as: 'fromSite'},
-            {model: Site,
-              as: 'toSite'},
-              {model: User,
-                as: 'transferOutUser'},
-                {model: User,
-                  as: 'transferInUser'}],
-        }).then(data => {
-          if(data.length != 0){
-            for(var a=0;a<data.length;a++){
-              responseData.push(data[a]["dataValues"]);
-            }
+            let count = {
+              'totalCount':responseData.length
+            };
+            let dataCount = [];
+            let dataList = [];
+            dataList.push(responseData);
+            dataCount.push(count);
+            dataList.push(dataCount);
+            console.log("IN part Search");
+            res.send(dataList);
           }
-        });
-      }
-
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      let dataList = [];
-      dataList.push(responseData);
-      dataCount.push(count);
-      dataList.push(dataCount);
-      console.log("IN part Search");
-      res.send(dataList);
-    });
-  }
 };
 

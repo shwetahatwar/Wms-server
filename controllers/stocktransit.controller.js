@@ -92,9 +92,14 @@ exports.findAllDatewise = (req, res) => {
     },
     include: [
     {model: MaterialInward},
-    {model: Site},
-    // {model: User},
-    ],
+    {model: Site,
+      as: 'fromSite'},
+      {model: Site,
+        as: 'toSite'},
+        {model: User,
+      as: 'transferOutUser'},
+      {model: User,
+        as: 'transferInUser'}],
     offset:offset,
     limit:limit 
   })
@@ -133,7 +138,9 @@ exports.findBySearchQuery = async (req, res) => {
           }
         },
         status : 1 
-      }
+      },
+      offset:offset,
+      limit:limit 
     }).then(async data => {
       for(var i=0;i<data.length;i++){
         await StockTransit.findAll({
@@ -142,8 +149,14 @@ exports.findBySearchQuery = async (req, res) => {
           },
           include: [
           {model: MaterialInward},
-          {model: Site},
-          ],
+          {model: Site,
+            as: 'fromSite'},
+            {model: Site,
+              as: 'toSite'},
+              {model: User,
+                as: 'transferOutUser'},
+                {model: User,
+                  as: 'transferInUser'}],
         }).then(data => {
           if(data.length != 0){
             for(var a=0;a<data.length;a++){
@@ -174,7 +187,9 @@ exports.findBySearchQuery = async (req, res) => {
           }
         },
         status : 1 
-      }
+      },
+      offset:offset,
+      limit:limit 
     }).then(async data => {
       for(var i=0;i<data.length;i++){
         await StockTransit.findAll({
@@ -183,8 +198,14 @@ exports.findBySearchQuery = async (req, res) => {
           },
           include: [
           {model: MaterialInward},
-          {model: Site},
-          ],
+          {model: Site,
+            as: 'fromSite'},
+            {model: Site,
+              as: 'toSite'},
+              {model: User,
+                as: 'transferOutUser'},
+                {model: User,
+                  as: 'transferInUser'}],
         }).then(data => {
           if(data.length != 0){
             if(data.length != 0){
@@ -219,7 +240,9 @@ exports.findBySearchQuery = async (req, res) => {
           }
         },
         status:1
-      }
+      },
+      offset:offset,
+      limit:limit 
     }).then(data => {
       partNumberId = data[0]["dataValues"]["id"];
     });

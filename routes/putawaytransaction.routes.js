@@ -7,5 +7,6 @@ router.get("/", users.loginRequired,putawaytransactions.findAll);
 router.get("/:id", users.loginRequired,putawaytransactions.findOne);
 router.get("/get/getByTransactionDate", users.loginRequired,putawaytransactions.getByTransactionDate);
 router.get("/get/findPutawayTransactionBySearchQuery",users.loginRequired,putawaytransactions.findPutawayTransactionBySearchQuery)
+router.get('/get/countofputawaytransactions', users.loginRequired,putawaytransactions.PutawayTransaction);
 
 module.exports = router;

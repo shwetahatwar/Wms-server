@@ -13,5 +13,6 @@ router.get("/get/getCountByQcStatus", users.loginRequired,materialinwards.countB
 router.get('/get/findMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findMaterialInwardsBySearchQuery);
 router.get('/get/getinventorydetails', users.loginRequired,materialinwards.inventoryData);
 router.get('/get/inventory/getinventoryStock', users.loginRequired,materialinwards.inventoryStockData);
+router.get('/get/transfer/findMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findMaterialInwardsForTransferOut);
 
 module.exports = router;
