@@ -284,7 +284,7 @@ exports.findShelfsBySearchQuery = (req, res) => {
       },
       description: {
         [Op.or]: {
-          [Op.like]: ''+description+'%',
+          [Op.like]: '%'+description+'%',
           [Op.eq]: ''+description+''
         }
       }

@@ -23,6 +23,7 @@ exports.create = (req, res) => {
     purchaseOrderNumber: req.body.purchaseOrderNumber,
     numberOfPacks: req.body.numberOfPacks,
     PartNumber:req.body.PartNumber,
+    location:req.body.location,
     createdBy:req.user.username,
     updatedBy:req.user.username
   };

@@ -89,6 +89,7 @@ exports.update = (req, res) => {
       }
     })
     .catch(err => {
+      console.log("err",err)
       res.status(500).send({
         message: "Error updating PartNumber with id=" + id
       });

@@ -394,6 +394,71 @@ exports.countByQcStatus = async (req, res) => {
   });
 };
 
+
+//Get count
+exports.countByQcStatusHHT = async (req, res) => {
+  var countTable=[];
+  var total = 0;
+  var ok = 0;
+  var pending = 0;
+  var rejected = 0;
+  await MaterialInward.count({
+    where:{
+      status:1,
+      // materialStatus : "Available"
+    }
+  })
+  .then(data => {
+    console.log(data);
+    total = data;
+  })
+  await MaterialInward.count({
+    where:{
+      status:1,
+      // materialStatus : "Available",
+      QCStatus:1
+    }
+  })
+  .then(data => {
+    ok = data;
+  })
+  await MaterialInward.count({
+    where:{
+      status:1,
+      // materialStatus : "Available",
+      QCStatus:0
+    }
+  })
+  .then(data => {
+    pending = data;
+  })
+  await MaterialInward.count({
+    where:{
+      status:1,
+      // materialStatus : "Available",
+      QCStatus:2
+    }
+  })
+  .then(data => {
+  rejected = data;
+
+   let QCStatus = {
+     "ok":ok,
+     "pending":pending,
+     "rejected":rejected,
+     "total":total
+   }
+    res.status(200).send({
+      QCStatus :QCStatus
+    });
+  })
+  .catch(err => {
+    console.log(err);
+    res.status(500);
+    res.send(err);
+  });
+};
+
 //get data by search query
 exports.findMaterialInwardsBySearchQuery = async (req, res) => {
   var queryString = req.query;
@@ -684,6 +749,7 @@ exports.inventoryData = (req, res) => {
   MaterialInward.findAll({
     where:{
       'QCStatus':1,
+      'materialStatus': "Available",
     },
     group: [ 'partNumberId' ],
     attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
@@ -729,9 +795,11 @@ exports.inventoryStockData = async (req, res) => {
     await MaterialInward.findAll({
       where:{
         'QCStatus':1,
+        'materialStatus': "Available",
       },
       group: [ 'partNumberId' ],
-      attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
+      attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
+      [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
       include: [{
         model: PartNumber,
         where:{
@@ -760,9 +828,11 @@ else{
   await MaterialInward.findAll({
     where:{
       'QCStatus':1,
+      'materialStatus': "Available",
     },
     group: [ 'partNumberId' ],
-    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
+    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
+    [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
     include: [{
       model: PartNumber,
       attributes: ['description','partNumber']
@@ -774,6 +844,7 @@ else{
     res.send(data);
   })
   .catch(err => {
+    console.log(err)
     res.status(500).send({
       message: "Error while retrieving inventory"
     });
@@ -942,4 +1013,30 @@ else{
     });
   });
 }
+};
+
+exports.inventoryDataCount = (req, res) => {
+  MaterialInward.findAll({
+    where:{
+      'QCStatus':1,
+    },
+    group: [ 'partNumberId' ],
+    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
+    include: [{
+      model: PartNumber,
+      attributes: ['description','partNumber']
+    }],
+    having: Sequelize.where(Sequelize.fn('COUNT', Sequelize.col('partNumberId')), '<=', 10)
+  })
+  .then(data => {
+    let count = data.length;
+    res.status(200).send({
+      dataCount :count
+    });
+  })
+  .catch(err => {
+    res.status(500).send({
+      message: "Error while retrieving inventory"
+    });
+  });
 };

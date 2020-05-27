@@ -19,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
     },
      currentLocationId:{
       type: DataTypes.INTEGER,
-      allowNull: false
+      // allowNull: false
     },
     createdBy:{
       type:DataTypes.STRING,

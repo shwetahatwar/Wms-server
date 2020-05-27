@@ -13,6 +13,9 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
+    location:{
+      type: DataTypes.STRING,
+    },
     numberOfPacks:{
       type:DataTypes.INTEGER,
       allowNull:false

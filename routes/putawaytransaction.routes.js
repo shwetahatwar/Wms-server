@@ -6,7 +6,7 @@ var users = require('../controllers/user.controller');
 router.get("/", users.loginRequired,putawaytransactions.findAll);
 router.get("/:id", users.loginRequired,putawaytransactions.findOne);
 router.get("/get/getByTransactionDate", users.loginRequired,putawaytransactions.getByTransactionDate);
-router.get("/get/findPutawayTransactionBySearchQuery",users.loginRequired,putawaytransactions.findPutawayTransactionBySearchQuery)
-router.get('/get/countofputawaytransactions', users.loginRequired,putawaytransactions.PutawayTransaction);
+router.get("/get/findPutawayTransactionBySearchQuery",users.loginRequired,putawaytransactions.findPutawayTransactionBySearchQuery);
+router.get('/get/countofputawaytransactions', users.loginRequired,putawaytransactions.countOfPutawayTransaction);
 
 module.exports = router;
