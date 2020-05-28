@@ -750,6 +750,7 @@ exports.inventoryData = (req, res) => {
     where:{
       'QCStatus':1,
       'materialStatus': "Available",
+      'status':true
     },
     group: [ 'partNumberId' ],
     attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
@@ -796,6 +797,7 @@ exports.inventoryStockData = async (req, res) => {
       where:{
         'QCStatus':1,
         'materialStatus': "Available",
+        'status':true
       },
       group: [ 'partNumberId' ],
       attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
@@ -829,6 +831,7 @@ else{
     where:{
       'QCStatus':1,
       'materialStatus': "Available",
+      'status':true
     },
     group: [ 'partNumberId' ],
     attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
@@ -1019,6 +1022,8 @@ exports.inventoryDataCount = (req, res) => {
   MaterialInward.findAll({
     where:{
       'QCStatus':1,
+      'materialStatus': "Available",
+      'status':true
     },
     group: [ 'partNumberId' ],
     attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],

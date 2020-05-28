@@ -27,6 +27,7 @@ exports.create = async (req, res) => {
         'QCStatus':1,
         'partNumber':req.body.material[i]["partNumber"],
         'materialStatus': "Available",
+        'status':true
       },
       group: [ 'partNumberId' ],
       attributes: ['partNumberId',[Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
@@ -68,6 +69,7 @@ exports.create = async (req, res) => {
         'QCStatus':1,
         'partNumber':req.body.material[i]["partNumber"],
         'materialStatus': "Available",
+        'status':true
       },
       group: [ 'partNumberId' ],
       attributes: ['partNumberId',[Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],     
@@ -84,6 +86,7 @@ exports.create = async (req, res) => {
             'partNumber':req.body.material[i].partNumber,
             'QCStatus':1,
             'materialStatus': "Available",
+            'status':true
           },
           order: [
           ['createdAt', 'ASC'],
@@ -106,6 +109,7 @@ exports.create = async (req, res) => {
                 'partNumber':req.body.material[i].partNumber,
                 'barcodeSerial':dups[s],
                 'QCStatus':1,
+                'status':true
               },
               include: [
               {
@@ -243,6 +247,7 @@ exports.getCountForPicklist = async(req,res) =>{
         'QCStatus':1,
         'partNumber':req.body[i]["partNumber"],
         'materialStatus': "Available",
+        'status':true
       },
       group: [ 'partNumberId' ],
       attributes: ['partNumberId',[Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
