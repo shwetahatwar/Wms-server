@@ -327,6 +327,73 @@ exports.updateQcStatus = (req, res) => {
   });
 }; 
 
+
+exports.getCountByPending = async (req, res) => {
+  var countTable=[];
+
+  await MaterialInward.count({
+    where:{
+      status:true,
+      materialStatus : "NA"
+    }
+  })
+  .then(data => {
+    console.log(data);
+
+    let singleData = {
+      'total':data
+    };
+    countTable.push(singleData);
+  })
+  await MaterialInward.count({
+    where:{
+      status:true,
+      materialStatus : "NA",
+      QCStatus:1
+    }
+  })
+  .then(data => {
+    let singleData = {
+      'ok':data
+    };
+    countTable.push(singleData);
+  })
+  await MaterialInward.count({
+    where:{
+      status:true,
+      materialStatus : "NA",
+      QCStatus:0
+    }
+  })
+  .then(data => {
+    let singleData = {
+      'pending':data
+    };
+    countTable.push(singleData);
+  })
+  await MaterialInward.count({
+    where:{
+      status:true,
+      materialStatus : "NA",
+      QCStatus:2
+    }
+  })
+  .then(data => {
+    let singleData = {
+      'rejected':data
+    };
+    countTable.push(singleData);
+    res.status(200).send({
+      countTable
+    });
+  })
+  .catch(err => {
+    console.log(err);
+    res.status(500);
+    res.send(err);
+  });
+
+}
 // get count by QC
 exports.countByQcStatus = async (req, res) => {
   var countTable=[];
@@ -458,6 +525,88 @@ exports.countByQcStatusHHT = async (req, res) => {
     res.send(err);
   });
 };
+
+exports.findPendingMaterialInwardsBySearchQuery= async (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+
+  if(req.query.barcodeSerial == undefined){
+    req.query.barcodeSerial='';
+  }
+  if(req.query.partNumber == undefined){
+    req.query.partNumber='';
+  }
+  MaterialInward.findAll({ 
+    where: {
+      status:true,
+      QCStatus:req.query.QCStatus,
+      materialStatus:"NA",
+      partNumber: {
+          [Op.like]: '%'+req.query.partNumber+'%'
+      },
+      barcodeSerial: {
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+      }
+    },
+    include: [{
+      model: PartNumber
+    },
+    {
+      model: Shelf
+    }],
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  }).then(async data => {
+    var countArray =[];
+    var responseData =[];
+    responseData.push(data);
+    console.log("responseData",responseData);
+    var total = 0;
+    await MaterialInward.count({ 
+      where: {
+      status:true,
+      QCStatus:req.query.QCStatus,
+      materialStatus:"NA",
+      partNumber: {
+          [Op.like]: '%'+req.query.partNumber+'%'
+      },
+      barcodeSerial: {
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+      }
+    },
+  }).then(data => {
+    total = data;
+  }).catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving materialinward."
+    });
+  });
+  var totalMaterials = {
+    totalCount : total
+  }
+  countArray.push(totalMaterials);
+  responseData.push(countArray);
+  res.send(responseData);
+}).catch(err => {
+  res.status(500).send({
+    message:
+    err.message || "Some error occurred while retrieving materialinward."
+  });
+});
+}
 
 //get data by search query
 exports.findMaterialInwardsBySearchQuery = async (req, res) => {
@@ -753,17 +902,20 @@ exports.inventoryData = (req, res) => {
       'status':true
     },
     group: [ 'partNumberId' ],
-    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
+    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
+    [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
     include: [{
       model: PartNumber,
       attributes: ['description','partNumber']
     }],
-    having: Sequelize.where(Sequelize.fn('COUNT', Sequelize.col('partNumberId')), '<=', 10)
+    having: Sequelize.where(Sequelize.literal('SUM(eachPackQuantity * 1)'), '<=', 10)
+    // having: Sequelize.where(Sequelize.fn('COUNT', Sequelize.col('partNumberId')), '<=', 10)
   })
   .then(data => {
     res.send(data);
   })
   .catch(err => {
+    console.log("Error",err)
     res.status(500).send({
       message: "Error while retrieving inventory"
     });
@@ -1031,7 +1183,7 @@ exports.inventoryDataCount = (req, res) => {
       model: PartNumber,
       attributes: ['description','partNumber']
     }],
-    having: Sequelize.where(Sequelize.fn('COUNT', Sequelize.col('partNumberId')), '<=', 10)
+   having: Sequelize.where(Sequelize.literal('SUM(eachPackQuantity * 1)'), '<=', 10)
   })
   .then(data => {
     let count = data.length;

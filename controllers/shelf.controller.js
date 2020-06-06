@@ -190,7 +190,10 @@ exports.getAll = (req,res) =>{
     where:req.query,
     include:[
     {
-      model : Rack
+      model : Rack,
+      include:[{
+        model:Zone
+      }]
     }
     ],
     order: [
@@ -264,13 +267,17 @@ exports.findShelfsBySearchQuery = (req, res) => {
   delete queryString['limit'];
 
   var name ='';
-  var description ='';
+  var zone ='';
+  var rack ='';
 
   if(req.query.name != undefined){
     name = req.query.name;
   }
-  if(req.query.description != undefined){
-    description = req.query.description;
+  if(req.query.zone != undefined){
+    zone = req.query.zone;
+  }
+  if(req.query.rack != undefined){
+    rack = req.query.rack;
   }
 
   Shelf.findAll({ 
@@ -281,15 +288,24 @@ exports.findShelfsBySearchQuery = (req, res) => {
           [Op.like]: '%'+name+'%',
           [Op.eq]: '%'+name+''
         }
-      },
-      description: {
-        [Op.or]: {
-          [Op.like]: '%'+description+'%',
-          [Op.eq]: ''+description+''
-        }
       }
     },
-    include: [{model: Rack}],
+    include: [{model: Rack,
+      required:true,
+      where: {
+        name: {
+          [Op.like]: '%'+rack+'%'
+        }
+      },
+    include:[{
+      model:Zone,
+      required:true,
+      where: {
+        name: {
+          [Op.like]: '%'+zone+'%'
+        }
+      },
+      }]}],
     order: [
     ['id', 'DESC'],
     ],
@@ -310,14 +326,24 @@ exports.findShelfsBySearchQuery = (req, res) => {
             [Op.like]: '%'+name+'%',
             [Op.eq]: ''+name+''
           }
-        },
-        description: {
-          [Op.or]: {
-            [Op.like]: '%'+description+'%',
-            [Op.eq]: ''+description+''
-          }
         }
       },
+      include: [{model: Rack,
+        required:true,
+        where: {
+          name: {
+            [Op.like]: '%'+rack+'%'
+          }
+        },
+        include:[{
+          model:Zone,
+          required:true,
+          where: {
+            name: {
+              [Op.like]: '%'+zone+'%'
+            }
+          },
+        }]}],
     })
     .then(data => {
       total = data;

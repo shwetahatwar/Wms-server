@@ -7,5 +7,6 @@ router.post("/", users.loginRequired,zones.create);
 router.get("/", users.loginRequired,zones.getAll);
 router.get("/:id", users.loginRequired,zones.getById);
 router.put('/:id', users.loginRequired,zones.update);
+router.get('/get/findZonesBySearchQuery', users.loginRequired,zones.findZonesBySearchQuery);
 
 module.exports = router;

@@ -4,7 +4,6 @@ module.exports = (sequelize, DataTypes) => {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
     },
     zoneId:{
       type: DataTypes.INTEGER,
@@ -21,8 +20,15 @@ module.exports = (sequelize, DataTypes) => {
     updatedBy:{
       type:DataTypes.STRING,
       allowNull:true
-    }
-    
+    }    
+  },
+    {
+      indexes: [
+        {
+            unique: true,
+            fields: ['name', 'zoneId']
+        }
+    ]
   }),
 
   Zone = sequelize.define("zone", {

@@ -96,4 +96,61 @@ exports.getById = (req,res) => {
         message: "Error retrieving Zone with id=" + id
       });
     });
-}
+};
+
+exports.findZonesBySearchQuery = (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+
+  var zone ='';
+  var site = '';
+
+  if(req.query.zone != undefined){
+    zone = req.query.zone;
+  }
+  if(req.query.site != undefined){
+    site = req.query.site;
+  }
+
+  Zone.findAll({ 
+    where: {
+      status:1,
+      name: {
+        [Op.or]: {
+          [Op.like]: '%'+zone+'%',
+          [Op.eq]: '%'+zone+''
+        }
+      }
+    },
+    include: [{model: Site,
+      required:true,
+      where: {
+        name: {
+          [Op.like]: '%'+site+'%'
+        }
+      },
+    }],
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  }).then(async data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving Locations."
+    });
+  });
+};

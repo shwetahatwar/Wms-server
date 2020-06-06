@@ -29,6 +29,9 @@ exports.findAll = (req, res) => {
      as: 'prevLocation'},
      {model: Shelf,
      as: 'currentLocation'}],
+     order: [
+    ['id', 'DESC'],
+    ],
     offset:offset,
     limit:limit 
   })
@@ -120,7 +123,12 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
   if(req.query.barcodeSerial == undefined){
     req.query.barcodeSerial = "";
   }
-  if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null && req.query.barcodeSerial != ""){
+  let currentLocation = '';
+  if(req.query.currentLocation){
+    currentLocation = req.query.currentLocation;
+  }
+  if(req.query.currentLocation || req.query.barcodeSerial){
+   console.log("In",req.body.currentLocation)
    await PutawayTransaction.findAll({
       include: [
       {
@@ -136,11 +144,18 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
       {model: Shelf,
         as: 'prevLocation'},
         {model: Shelf,
+          required:true,
+           where: {
+            name: {
+              [Op.like]: '%'+currentLocation+'%'
+            }
+          },
           as: 'currentLocation'},
          ],
          offset:offset,
          limit:limit
         }).then(data => {
+          console.log("Data",data)
           if(data.length != 0){
             responseData.push(data);
           }
@@ -168,6 +183,12 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
       {model: Shelf,
         as: 'prevLocation'},
         {model: Shelf,
+           required:true,
+           where: {
+            name: {
+              [Op.like]: '%'+currentLocation+'%'
+            }
+          },
           as: 'currentLocation'},
           ],
           offset:offset,
@@ -181,9 +202,7 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
         }).catch(err => {
           console.log(err);
         });
-      }
-
-      let count = {
+        let count = {
         'totalCount':responseData.length
       };
       let dataCount = [];
@@ -193,6 +212,7 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
       dataList.push(dataCount);
       console.log("IN part Search");
       res.send(dataList);
+      }
   };
 
 // get count of all PutawayTransaction 

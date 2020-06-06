@@ -4,7 +4,6 @@ module.exports = (sequelize, DataTypes) => {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
     },
     rackId:{
       type: DataTypes.INTEGER,
@@ -27,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.FLOAT,
       allowNull: true
     },
-     volume: {
+    volume: {
       type: DataTypes.FLOAT,
       allowNull: true
     },
@@ -48,6 +47,14 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:true
     }
     
+  },
+  {
+    indexes: [
+    {
+      unique: true,
+      fields: ['name', 'rackId']
+    }
+    ]
   }),
 
   Rack = sequelize.define("rack", {

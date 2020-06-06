@@ -8,7 +8,7 @@ const PartNumber = db.partnumbers;
 const Shelf = db.shelfs;
 const Sequelize = require("sequelize");
 var sequelize = require('../config/db.config.js');
-  
+var nodemailer = require ('nodemailer');  
 
 // Create and Save a new Picklist
 exports.create = async (req, res) => {
@@ -474,6 +474,7 @@ exports.getPicklistPickingMaterialLists = (req, res) => {
 
 //Create Picklist Picking Material List
 exports.postPicklistPickingMaterialLists = async (req, res) => {
+
   console.log(req.body.materials.length);
   for(var i=0;i<req.body.materials.length;i++){
     console.log(req.body.materials[i]);
@@ -513,7 +514,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
           barcodeSerial:req.body.materials[i].serialNumber
         }
       })
-      .then(num => {
+      .then(async num => {
         if (num == 1) {
         } 
         else {
@@ -531,6 +532,77 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
       });
     });
   }
+  await MaterialInward.findAll({
+    where:{
+      'QCStatus':1,
+      'materialStatus': "Available",
+      'status':true
+    },
+    group: [ 'partNumberId' ],
+    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
+    [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
+    include: [{
+      model: PartNumber,
+      attributes: ['description','partNumber']
+    }],
+    having: Sequelize.where(Sequelize.literal('SUM(eachPackQuantity * 1)'), '<=', 10)
+  })
+  .then(data => {
+    var selfSignedConfig = {
+      host: 'smtp.zoho.com',
+      port: 465,
+            secure: true, // use SSL
+            auth: {
+              user: "servicedesk@briot.in",
+              pass: "UQvm0upjLKBy"
+            }
+          };
+          var transporter = nodemailer.createTransport(selfSignedConfig);
+
+          var result ="Hi Sir, <br/>";
+          result = result + "Writing just to let you know that inventory for below part numbers is low.";
+          result += "<br/>";
+          result += "<br/>";
+          result += "<table border=1>";
+          result += "<th>Sr No</td>";
+          result += "<th>Part Number</td>";
+          result += "<th>Part Description</td>";
+          result += "<th>Quantity</td>";
+          console.log("data",data.length)          
+          for(var i=0;i<data.length;i++){
+            console.log(data[i]["dataValues"])
+            result += "<tr>";
+            result += "<td>"+(i+1)+"</td>";
+            result += "<td><b>"+data[i]["dataValues"]["partnumber"]["partNumber"]+"</b></td>";
+            result += "<td><b>"+data[i]["dataValues"]["partnumber"]["description"]+"</b></td>";
+            result += "<td style=text-align:right><b>"+data[i]["dataValues"]["totalQuantity"]+"</b></td>";
+            result += "</tr>";
+          }
+          result += "</table>";
+          result += "<br/><br/>";
+          result +="Have a great day!";
+
+          console.log(result);
+          if(data.length!=0){
+            var mailOptions = {
+              from: "servicedesk@briot.in", // sender address (who sends)
+              to: "sagar@briot.in;servicedesk@briot.in", // list of receivers (who receives)
+              subject: "Replenishment Alert", // Subject line
+              html: ''+result+'',
+            };
+            transporter.sendMail(mailOptions, function(error, info) {
+              if(error){
+                console.log(error);
+              } else {
+                console.log('Message sent: ' + info.response);
+              }
+            });
+          }
+          })
+  .catch(err => {
+    console.log("Error",err)
+
+  });
   //updated picklist
   var updatedPicklist = {
     picklistStatus: "Completed"
@@ -540,7 +612,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
       id: req.params.picklistId
     }
   })
-  .then(num => {
+  .then(async num => {
     if (num == 1) {
       console.log("Picklist updated",req.params.picklistId);
     } 
@@ -550,6 +622,24 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
   .catch(err => {
     res.status(500).send({
       message: "Error updating Picklist with id=" + id
+    });
+  });
+  let updatedData={
+    "status":false
+  }
+  await MaterialInward.update(updatedData, {
+    where: {
+      eachPackQuantity:0
+    }
+  }).then(async num => {
+    if (num == 1) {
+    } 
+    else {
+    }
+  })
+  .catch(err => {
+    res.status(500).send({
+      message: "Error updating Material Stock"
     });
   });
   res.status(200).send({

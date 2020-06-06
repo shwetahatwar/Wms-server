@@ -1,6 +1,7 @@
 const db = require("../models");
 const Zone = db.zones;
 const Rack = db.racks;
+const Site = db.sites;
 const Op = db.Sequelize.Op;
 
 // Create and Save a new Rack
@@ -53,7 +54,10 @@ exports.getAll = (req,res) =>{
     where:req.query,
     include:[
     {
-      model:Zone
+      model:Zone,
+      include:[{
+        model:Site
+      }]
     }
     ],
      order: [
@@ -152,13 +156,17 @@ exports.findRacksBySearchQuery = (req, res) => {
   delete queryString['limit'];
 
   var name ='';
-  var zoneId ='';
+  var zone ='';
+  var site = '';
 
   if(req.query.name != undefined){
     name = req.query.name;
   }
-  if(req.query.zoneId != undefined){
-    zoneId = req.query.zoneId;
+  if(req.query.zone != undefined){
+    zone = req.query.zone;
+  }
+  if(req.query.site != undefined){
+    site = req.query.site;
   }
 
   Rack.findAll({ 
@@ -169,15 +177,24 @@ exports.findRacksBySearchQuery = (req, res) => {
           [Op.like]: '%'+name+'%',
           [Op.eq]: '%'+name+''
         }
-      },
-      zoneId: {
-        [Op.or]: {
-          [Op.like]: ''+zoneId+'%',
-          [Op.eq]: ''+zoneId+''
-        }
       }
     },
-    include: [{model: Zone}],
+    include: [{model: Zone,
+      required:true,
+          where: {
+            name: {
+              [Op.like]: '%'+zone+'%'
+            }
+          },
+      include:[{
+        model:Site,
+        required:true,
+          where: {
+            name: {
+              [Op.like]: '%'+site+'%'
+            }
+          },
+      }]}],
     order: [
     ['id', 'DESC'],
     ],
@@ -198,14 +215,24 @@ exports.findRacksBySearchQuery = (req, res) => {
             [Op.like]: '%'+name+'%',
             [Op.eq]: ''+name+''
           }
-        },
-        zoneId: {
-          [Op.or]: {
-            [Op.like]: '%'+zoneId+'%',
-            [Op.eq]: ''+zoneId+''
-          }
         }
       },
+      include: [{model: Zone,
+      required:true,
+          where: {
+            name: {
+              [Op.like]: '%'+zone+'%'
+            }
+          },
+      include:[{
+        model:Site,
+        required:true,
+          where: {
+            name: {
+              [Op.like]: '%'+site+'%'
+            }
+          },
+      }]}],
     })
     .then(data => {
       total = data;

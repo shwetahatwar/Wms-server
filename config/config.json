@@ -1,0 +1,10 @@
+{
+  "development": {
+    "username": "root",
+    "password": "root123",
+    "database": "wms",
+    "host": "localhost",
+    "dialect": "mysql"
+  }
+}
+
