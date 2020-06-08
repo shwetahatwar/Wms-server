@@ -61,7 +61,7 @@ module.exports = (sequelize, DataTypes) => {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
+      // unique: true
     },
     zoneId:{
       type: DataTypes.INTEGER,
@@ -80,6 +80,14 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:true
     }
     
+  },
+  {
+      indexes: [
+        {
+            unique: true,
+            fields: ['name', 'zoneId']
+        }
+    ]
   });
 
   Shelf.belongsTo(Rack, {foreignKey: 'rackId',onDelete: 'CASCADE'});

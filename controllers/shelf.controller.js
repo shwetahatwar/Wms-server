@@ -2,6 +2,7 @@ const db = require("../models");
 const Zone = db.zones;
 const Rack = db.racks;
 const Shelf = db.shelfs;
+const Site = db.sites;
 const Op = db.Sequelize.Op;
 
 // Create and Save a new Shelf
@@ -269,12 +270,16 @@ exports.findShelfsBySearchQuery = (req, res) => {
   var name ='';
   var zone ='';
   var rack ='';
+  var site ='';
 
   if(req.query.name != undefined){
     name = req.query.name;
   }
   if(req.query.zone != undefined){
     zone = req.query.zone;
+  }
+   if(req.query.site != undefined){
+    site = req.query.site;
   }
   if(req.query.rack != undefined){
     rack = req.query.rack;
@@ -305,6 +310,15 @@ exports.findShelfsBySearchQuery = (req, res) => {
           [Op.like]: '%'+zone+'%'
         }
       },
+      include:[{
+        model:Site,
+        required:true,
+        where: {
+          name: {
+            [Op.like]: '%'+site+'%'
+          }
+        },
+      }]
       }]}],
     order: [
     ['id', 'DESC'],
@@ -343,6 +357,15 @@ exports.findShelfsBySearchQuery = (req, res) => {
               [Op.like]: '%'+zone+'%'
             }
           },
+          include:[{
+            model:Site,
+            required:true,
+            where: {
+              name: {
+                [Op.like]: '%'+site+'%'
+              }
+            },
+          }]
         }]}],
     })
     .then(data => {

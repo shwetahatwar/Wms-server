@@ -35,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
+      // unique: true
     },
     siteId:{
       type: DataTypes.INTEGER,
@@ -54,7 +54,16 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:true
     }
     
-  });
+  },
+  {
+     indexes: [
+        {
+            unique: true,
+            fields: ['name', 'siteId']
+        }
+    ]
+  }
+  );
 
   Rack.belongsTo(Zone, {foreignKey: 'zoneId',onDelete: 'CASCADE'});
   return Rack;
