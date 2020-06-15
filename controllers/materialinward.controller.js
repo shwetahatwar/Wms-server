@@ -57,6 +57,10 @@ exports.create = async (req, res) => {
           serialNumberId = (parseInt(serialNumberId) + 1).toString();
           serialNumberId = '' + serialNumberId;
           console.log("Line 50 Serial Number", serialNumberId);
+          console.log("Line 60",serialNumberId.toString().length)
+          if(serialNumberId.toString().length > 10){
+            serialNumberId = serialNumberId.substring(1);
+          }
         }
         else{
           serialNumberId ="1111111111";
@@ -1197,3 +1201,42 @@ exports.inventoryDataCount = (req, res) => {
     });
   });
 };
+
+//get dashboard count for displaying pending for putaway & total inventory
+exports.dashboardCountForPendingPutaway = async (req,res) =>{
+  let responseData = [];
+  await MaterialInward.findAll({
+    where:{
+      'QCStatus':1,
+      'materialStatus': "Available",
+      'status':true
+    },
+    attributes: [[Sequelize.fn('sum', Sequelize.col('eachPackQuantity')), 'count']],
+  })
+  .then(async data => {
+    console.log(data[0]["dataValues"]);
+    count = parseInt(data[0]["dataValues"]["count"])
+  })
+  .catch(err => {
+    res.status(500).send({
+      message: "Error while retrieving inventory"
+    });
+  });
+
+  await MaterialInward.count({
+    where:{
+      status:true,
+      materialStatus : "NA",
+      QCStatus:1
+    }
+  })
+  .then(data => {
+    responseData ={
+      'pendingForPutaway':data,
+      'totalInventory':count
+    };
+  })
+  res.status(200).send({
+    responseData
+  });
+}

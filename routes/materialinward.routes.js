@@ -18,5 +18,6 @@ router.get('/get/getinventorycount', users.loginRequired,materialinwards.invento
 router.get("/get/getCountByQcStatusHHT", users.loginRequired,materialinwards.countByQcStatusHHT);
 router.get("/get/getCountByPending", users.loginRequired,materialinwards.getCountByPending);
 router.get('/get/findPendingMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findPendingMaterialInwardsBySearchQuery);
+router.get('/get/dashboardCountForPendingPutaway', users.loginRequired,materialinwards.dashboardCountForPendingPutaway);
 
 module.exports = router;
