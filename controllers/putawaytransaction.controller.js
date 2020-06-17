@@ -70,7 +70,7 @@ exports.getByTransactionDate = (req, res) => {
   if(req.query.offset != null || req.query.offset != undefined){
     offset = parseInt(req.query.offset)
   }
-  if(req.query.offset != null || req.query.offset != undefined){
+  if(req.query.limit != null || req.query.limit != undefined){
     limit = parseInt(req.query.limit)
   }
   delete queryString['offset'];

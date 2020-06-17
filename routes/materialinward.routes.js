@@ -19,5 +19,7 @@ router.get("/get/getCountByQcStatusHHT", users.loginRequired,materialinwards.cou
 router.get("/get/getCountByPending", users.loginRequired,materialinwards.getCountByPending);
 router.get('/get/findPendingMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findPendingMaterialInwardsBySearchQuery);
 router.get('/get/dashboardCountForPendingPutaway', users.loginRequired,materialinwards.dashboardCountForPendingPutaway);
+router.get('/get/getRecent/getRecentTransactionData', users.loginRequired,materialinwards.findRecentTransactions);
+router.get('/get/RecentTransactions/getRecentTransactions', users.loginRequired,materialinwards.findRecentTransactionsWithoutMaterialId);
 
 module.exports = router;

@@ -6,8 +6,9 @@ const Shelf = db.shelfs;
 const InventoryTransaction = db.inventorytransactions;
 const PutawayTransaction = db.putawaytransactions;
 const QCTransaction = db.qctransactions;
+const StockTransaction = db.stocktransactions;
 const Sequelize = require("sequelize");
-
+const Picklist = db.picklists;
 // Create and Save a new MaterialInward
 exports.create = async (req, res) => {
   console.log(req.body);
@@ -176,7 +177,7 @@ exports.findAll = (req, res) => {
   if(req.query.offset != null || req.query.offset != undefined){
     offset = parseInt(req.query.offset)
   }
-  if(req.query.offset != null || req.query.offset != undefined){
+  if(req.query.limit != null || req.query.limit != undefined){
     limit = parseInt(req.query.limit)
   }
   delete queryString['offset'];
@@ -936,7 +937,7 @@ exports.inventoryStockData = async (req, res) => {
   if(req.query.offset != null || req.query.offset != undefined){
     offset = parseInt(req.query.offset)
   }
-  if(req.query.offset != null || req.query.offset != undefined){
+  if(req.query.limit != null || req.query.limit != undefined){
     limit = parseInt(req.query.limit)
   }
   delete queryString['offset'];
@@ -1239,4 +1240,208 @@ exports.dashboardCountForPendingPutaway = async (req,res) =>{
   res.status(200).send({
     responseData
   });
-}
+};
+
+
+// get Recent updated Material List
+exports.findRecentTransactions = (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+  
+  MaterialInward.findAll({ 
+    where: queryString,
+    include: [{
+      model: PartNumber
+    },
+    {
+      model: Shelf
+    }],
+    order: [
+    ['updatedAt', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  })
+  .then(data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving materialinwards."
+    });
+  });
+};
+
+exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 20;
+  let responseData = [];
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+  // const materialId = req.params.id;
+  await InventoryTransaction.findAll({
+    include: [{model: MaterialInward}],
+    order: [
+    ['updatedAt', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit, 
+  })
+  .then(data => {
+    for(var i=0;i<data.length;i++){
+      let singleJson = {
+        'transactionTimestamp': data[i]["dataValues"]["createdAt"],
+        'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
+        'transactionType':"Material Inward",
+        'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'performedBy':data[i]["dataValues"]["performedBy"]
+      }
+      responseData.push(singleJson);
+    }
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving InventoryTransaction."
+    });
+  });
+
+  await PutawayTransaction.findAll({
+    include: [{model: MaterialInward}],
+    order: [
+    ['updatedAt', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit, 
+  })
+  .then(data => {
+    for(var i=0;i<data.length;i++){
+      let singleJson = {
+        'transactionTimestamp': data[i]["dataValues"]["createdAt"],
+        'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
+        'transactionType':"Material Putaway",
+        'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'performedBy':data[i]["dataValues"]["performedBy"]
+      }
+      responseData.push(singleJson);
+    }
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving InventoryTransaction."
+    });
+  });
+
+  await QCTransaction.findAll({
+    include: [{model: MaterialInward}],
+    order: [
+    ['updatedAt', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit, 
+  })
+  .then(data => {
+    for(var i=0;i<data.length;i++){
+      let singleJson = {
+        'transactionTimestamp': data[i]["dataValues"]["createdAt"],
+        'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
+        'transactionType':"Material QC Check",
+        'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'performedBy':data[i]["dataValues"]["performedBy"]
+      }
+      responseData.push(singleJson);
+    }
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving InventoryTransaction."
+    });
+  });
+
+  await StockTransaction.findAll({
+    include: [{model: MaterialInward}],
+    order: [
+    ['updatedAt', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit, 
+  })
+  .then(data => {
+    for(var i=0;i<data.length;i++){
+      let singleJson = {
+        'transactionTimestamp': data[i]["dataValues"]["createdAt"],
+        'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
+        'transactionType':"Stock Transfer",
+        'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'performedBy':data[i]["dataValues"]["createdBy"]
+      }
+      responseData.push(singleJson);
+    }
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving InventoryTransaction."
+    });
+  });
+
+  await Picklist.findAll({
+    order: [
+    ['updatedAt', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit, 
+  })
+  .then(data => {
+    for(var i=0;i<data.length;i++){
+      let picklistStatus = "Picklist Created";
+      let owner = data[i]["dataValues"]["createdBy"];
+      if(data[i]["dataValues"]["picklistStatus"]=="Completed"){
+        picklistStatus = "Picklist Completed";
+        owner = data[i]["dataValues"]["updatedBy"]
+      }
+      let singleJson = {
+        'transactionTimestamp': data[i]["dataValues"]["createdAt"],
+        'partNumber':data[i]["dataValues"]["picklistName"],
+        'transactionType':picklistStatus,
+        'performedBy':owner
+      }
+      responseData.push(singleJson);
+    }
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving InventoryTransaction."
+    });
+  });
+
+responseData.sort(function(a,b){
+  return new Date(b.transactionTimestamp) - new Date(a.transactionTimestamp)
+})
+
+responseData = responseData.slice(0,50);
+res.status(200).send({
+  responseData
+});
+};
