@@ -24,7 +24,15 @@ exports.findAll = (req, res) => {
 
   PutawayTransaction.findAll({ 
     where: req.query,
-    include: [{model: MaterialInward},
+    include: [{model: MaterialInward,
+      required:true,
+      where:{
+        QCStatus:{
+          [Op.ne]:2
+        },
+        status:1
+      }
+    },
     {model: Shelf,
      as: 'prevLocation'},
      {model: Shelf,
@@ -84,7 +92,14 @@ exports.getByTransactionDate = (req, res) => {
       }
     },
     include: [
-    {model: MaterialInward},
+    {model: MaterialInward,
+    required:true,
+      where:{
+        QCStatus:{
+          [Op.ne]:2
+        },
+        status:1
+      }},
     {model: Shelf,
      as: 'prevLocation'},
      {model: Shelf,
@@ -138,7 +153,10 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
           barcodeSerial :
           {
             [Op.like]: '%'+req.query.barcodeSerial+'%'
-          }
+          },
+           QCStatus:{
+          [Op.ne]:2
+        }
         },
       },
       {model: Shelf,
@@ -175,9 +193,12 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
        model: MaterialInward,
        required: true,       
        where:{
-          partNumber: {
-              [Op.like]: '%'+req.query.partNumber+'%'
-            },
+         partNumber: {
+           [Op.like]: '%'+req.query.partNumber+'%'
+         },
+         QCStatus:{
+           [Op.ne]:2
+         }
         },
       },
       {model: Shelf,

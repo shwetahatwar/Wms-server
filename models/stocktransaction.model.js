@@ -123,6 +123,9 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull:false
     },
+    QCRemarks:{
+      type: DataTypes.STRING
+    },
     materialStatus:{
       type: DataTypes.STRING,
       allowNull:false

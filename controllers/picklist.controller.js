@@ -40,10 +40,37 @@ exports.create = async (req, res) => {
   }
 
   if(canCreate == 1){
-
+    let serialNumberId;
+    await Picklist.findAll({
+      limit:1,
+      offset:0,
+      order: [
+      ['id', 'DESC'],
+      ],
+    })
+    .then(data => {
+      if(data[0] != null || data[0] != undefined){
+        console.log("Data",data[0]);
+       serialNumberId = data[0]["dataValues"]["picklistName"];
+       serialNumberId = serialNumberId.substring(serialNumberId.length - 6, serialNumberId.length);
+       serialNumberId = (parseInt(serialNumberId) + 1).toString();
+       var str = '' + serialNumberId;
+       while (str.length < 6) {
+         str = '0' + str;
+       }
+       serialNumberId = "P" + str;
+       console.log("Line 41 Serial Number", str);
+     }
+     else{
+       serialNumberId ="P" + "100001";
+     }
+    })
+    .catch(err=>{
+      serialNumberId ="P" + "100001";
+    });
   var picklistId;
   const picklistData = {
-    picklistName: req.body.picklistName,
+    picklistName: serialNumberId,
     status:true,
     picklistStatus:"Pending",
     createdBy:req.user.username,
@@ -605,7 +632,8 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
   });
   //updated picklist
   var updatedPicklist = {
-    picklistStatus: "Completed"
+    picklistStatus: "Completed",
+    updatedBy:req.user.username
   }
   await Picklist.update(updatedPicklist, {
     where: {

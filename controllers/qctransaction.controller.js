@@ -64,102 +64,145 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   var responseData = [];
-  if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null && 
-    req.query.partNumber != undefined && req.query.partNumber != null){
-   await MaterialInward.findAll({
-      where: {
-        barcodeSerial: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.barcodeSerial+'',
-            [Op.like]: '%'+req.query.barcodeSerial+'%'
-          }
-        },
-        status : 1 
-      }
-    }).then(async data => {
-      for(var i=0;i<data.length;i++){
-        await QCTransaction.findAll({
-          where: {
-            materialInwardId: data[i]["dataValues"]["id"]
-          },
-          include: [{model: MaterialInward}],
-        }).then(data => {
-          if(data.length != 0){
-            responseData.push(data);
-          }
-        });
-      }
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      dataCount.push(count);
-      responseData.push(dataCount);
-      res.send(responseData);
-    });
+  if(!req.query.partNumber){
+    req.query.partNumber="";
   }
-   else if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
-   await MaterialInward.findAll({
-      where: {
-        barcodeSerial: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.barcodeSerial+'',
-            [Op.like]: '%'+req.query.barcodeSerial+'%'
-          }
-        },
-        status : 1 
-      }
-    }).then(async data => {
-      for(var i=0;i<data.length;i++){
-        await QCTransaction.findAll({
-          where: {
-            materialInwardId: data[i]["dataValues"]["id"]
-          },
-          include: [{model: MaterialInward}],
-        }).then(data => {
-          if(data.length != 0){
-            responseData.push(data);
-          }
-        });
-      }
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      dataCount.push(count);
-      responseData.push(dataCount);
-      res.send(responseData);
-    });
+   if(!req.query.barcodeSerial){
+    req.query.barcodeSerial="";
   }
-  else if(req.query.partNumber != undefined && req.query.partNumber != null){
-    var partNumberId;
-        await QCTransaction.findAll({
+  console.log("QC status 67",req.query.QcStatus)
+  await QCTransaction.findAll({
+          where: {
+            currentQCStatus:req.query.QcStatus
+          },
           include: [{model: MaterialInward,
-            required:true,
-            where: {
-              partNumber: {
-                  [Op.like]: '%'+req.query.partNumber+'%'
-                }
-              },
-          }],
-          offset:offset,
-          limit:limit 
-        }).then(data => {
-          for(var a=0;a<data.length;a++){
-            if(data.length != 0){
-              responseData.push(data[a]["dataValues"]);
-            }
+          required: true,
+          where:{
+          partNumber: {
+              [Op.like]: '%'+req.query.partNumber+'%'
+            }, 
+            barcodeSerial: {
+              [Op.like]: '%'+req.query.barcodeSerial+'%'
+            }, 
           }
+        }],
+        }).then(data => {
+          if(data.length != 0){
+            responseData.push(data);
+          }
+          let count = {
+            'totalCount':responseData.length
+          };
+          let dataCount = [];
+          dataCount.push(count);
+          responseData.push(dataCount);
+          res.send(responseData);
+        }).catch(err => {
+          res.status(500).send({
+            message:
+            err.message || "Some error occurred while retrieving PutawayTransaction count."
+          });
         });
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      let dataList = [];
-      dataList.push(responseData);
-      dataCount.push(count);
-      dataList.push(dataCount);
-      console.log("IN part Search");
-      res.send(dataList);
-      }
+  // if(req.query.partNumber != undefined && req.query.partNumber != null){
+  //  await MaterialInward.findAll({
+  //     where: {
+  //       partNumber: {
+  //         [Op.or]: {
+  //           [Op.eq]: ''+req.query.partNumber+'',
+  //           [Op.iLike]: '%'+req.query.partNumber+'%'
+  //         }
+  //       },
+  //       status : true, 
+  //     }
+  //   }).then(async data => {
+  //     for(var i=0;i<data.length;i++){
+  //       await QCTransaction.findAll({
+  //         where: {
+  //           materialInwardId: data[i]["dataValues"]["id"],
+  //           currentQCStatus:req.query.QcStatus
+  //         },
+  //         include: [{model: MaterialInward}],
+  //       }).then(data => {
+  //         if(data.length != 0){
+  //           responseData.push(data);
+  //         }
+  //       });
+  //     }
+  //     let count = {
+  //       'totalCount':responseData.length
+  //     };
+  //     let dataCount = [];
+  //     dataCount.push(count);
+  //     responseData.push(dataCount);
+  //     res.send(responseData);
+  //   });
+  // }
+  //  else if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
+  //  await MaterialInward.findAll({
+  //     where: {
+  //       barcodeSerial: {
+  //         [Op.or]: {
+  //           [Op.eq]: ''+req.query.barcodeSerial+'',
+  //           [Op.iLike]: '%'+req.query.barcodeSerial+'%'
+  //         }
+  //       },
+  //       status : true 
+  //     }
+  //   }).then(async data => {
+  //     for(var i=0;i<data.length;i++){
+  //       await QCTransaction.findAll({
+  //         where: {
+  //           materialInwardId: data[i]["dataValues"]["id"],
+  //           currentQCStatus:req.query.QcStatus
+  //         },
+  //         include: [{model: MaterialInward}],
+  //       }).then(data => {
+  //         if(data.length != 0){
+  //           responseData.push(data);
+  //         }
+  //       });
+  //     }
+  //     let count = {
+  //       'totalCount':responseData.length
+  //     };
+  //     let dataCount = [];
+  //     dataCount.push(count);
+  //     responseData.push(dataCount);
+  //     res.send(responseData);
+  //   });
+  // }
+  // else{
+  //   var partNumberId;
+  //       await QCTransaction.findAll({
+  //         where:{
+  //           currentQCStatus:req.query.QcStatus
+  //         },
+  //         include: [{model: MaterialInward,
+  //           required:true,
+  //           where: {
+  //             partNumber: {
+  //                 [Op.iLike]: '%'+req.query.partNumber+'%'
+  //               }
+  //             },
+  //         }],
+  //         offset:offset,
+  //         limit:limit 
+  //       }).then(data => {
+  //         for(var a=0;a<data.length;a++){
+  //           if(data.length != 0){
+  //             responseData.push(data[a]["dataValues"]);
+  //           }
+  //         }
+  //       });
+  //     let count = {
+  //       'totalCount':responseData.length
+  //     };
+  //     let dataCount = [];
+  //     let dataList = [];
+  //     dataList.push(responseData);
+  //     dataCount.push(count);
+  //     dataList.push(dataCount);
+  //     console.log("IN part Search");
+  //     res.send(dataList);
+  //     }
   };

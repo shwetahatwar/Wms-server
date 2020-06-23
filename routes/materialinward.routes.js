@@ -21,5 +21,6 @@ router.get('/get/findPendingMaterialInwardsBySearchQuery', users.loginRequired,m
 router.get('/get/dashboardCountForPendingPutaway', users.loginRequired,materialinwards.dashboardCountForPendingPutaway);
 router.get('/get/getRecent/getRecentTransactionData', users.loginRequired,materialinwards.findRecentTransactions);
 router.get('/get/RecentTransactions/getRecentTransactions', users.loginRequired,materialinwards.findRecentTransactionsWithoutMaterialId);
+router.get('/stock/get/findMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findMaterialInwardsBySearchQueryStock);
 
 module.exports = router;

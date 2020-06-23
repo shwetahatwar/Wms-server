@@ -141,6 +141,30 @@ exports.countOfRacks = (req, res) => {
   });
 };
 
+// get count of all Racks by Zone 
+exports.countOfRacksByZoneId = (req, res) => {
+  var total = 0
+  Rack.count({
+    where :
+    {
+      zoneId :req.query.zoneId
+    }
+  })
+  .then(data => {
+    total = data;
+    var totalCount = {
+      totalRacks : total 
+    }
+     res.send(totalCount);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving Racks count."
+    });
+  });
+};
+
 //search query
 exports.findRacksBySearchQuery = (req, res) => {
   var queryString = req.query;
