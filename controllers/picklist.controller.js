@@ -33,10 +33,12 @@ exports.create = async (req, res) => {
       attributes: ['partNumberId',[Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
       
     });
-    console.log("checkMaterialQty",checkMaterialQty[0]["dataValues"]["totalQuantity"])
-    if(checkMaterialQty[0]["dataValues"]["totalQuantity"] >= req.body.material[i].numberOfPacks){
+    console.log("checkMaterialQty",checkMaterialQty[0])
+    if(checkMaterialQty[0]){
+    if(checkMaterialQty[0]["dataValues"]["totalQuantity"] >= parseInt(req.body.material[i].numberOfPacks)){
       canCreate =1;
     }
+  }
   }
 
   if(canCreate == 1){
@@ -516,7 +518,8 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
       updatedBy:req.user.username,
       partNumber:req.body.materials[i].partNumber,
       batchNumber:req.body.materials[i].batchNumber,
-      serialNumber:req.body.materials[i].serialNumber
+      serialNumber:req.body.materials[i].serialNumber,
+      quantityPicked:req.body.materials[i].quantity
     };
 
     // Save materials of picklist in the database

@@ -29,7 +29,8 @@ exports.create = (req, res) => {
       updatedBy:req.user.username,
       partNumber:req.body.material[i].partNumber,
       batchNumber:req.body.material[i].batchNumber,
-      serialNumber:req.body.material[i].serialNumber
+      serialNumber:req.body.material[i].serialNumber,
+      quantityPicked:req.body.materials[i].quantity
     };
 
     // Save Picklist Picking Material List in the database
