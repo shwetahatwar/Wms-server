@@ -18,6 +18,10 @@ module.exports = (sequelize, DataTypes) => {
       type:DataTypes.STRING,
       allowNull:true
     },
+    siteId:{
+      type: DataTypes.INTEGER,
+      allowNull:false
+    },
     updatedBy:{
       type:DataTypes.STRING,
       allowNull:true

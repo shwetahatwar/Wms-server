@@ -50,22 +50,31 @@ exports.getAll = (req,res) =>{
   }
   delete queryString['offset'];
   delete queryString['limit'];
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   Rack.findAll({
     where:req.query,
     include:[
     {
       model:Zone,
       include:[{
-        model:Site
-      }]
-    }
-    ],
-     order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
-  })
+        model:Site,
+        required:true,
+        where: {
+          id: {
+            [Op.like]: checkString
+          }
+        }}]
+      }
+      ],
+      order: [
+      ['id', 'DESC'],
+      ],
+      offset:offset,
+      limit:limit
+    })
   .then(data => {
     res.send(data);
   })
@@ -119,19 +128,36 @@ exports.getById = (req,res) => {
 
 // get count of all Racks whose status =1 
 exports.countOfRacks = (req, res) => {
-  var total = 0
+  var total = 0;
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   Rack.count({
     where :
     {
       status :1
-    }
-  })
+    },
+    include:[
+    {
+      model:Zone,
+      include:[{
+        model:Site,
+        required:true,
+        where: {
+          id: {
+            [Op.like]: checkString
+          }
+        }}]
+      }
+      ]
+    })
   .then(data => {
     total = data;
     var totalCount = {
       totalRacks : total 
     }
-     res.send(totalCount);
+    res.send(totalCount);
   })
   .catch(err => {
     res.status(500).send({
@@ -143,19 +169,36 @@ exports.countOfRacks = (req, res) => {
 
 // get count of all Racks by Zone 
 exports.countOfRacksByZoneId = (req, res) => {
-  var total = 0
+  var total = 0;
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   Rack.count({
     where :
     {
       zoneId :req.query.zoneId
-    }
-  })
+    },
+    include:[
+    {
+      model:Zone,
+      include:[{
+        model:Site,
+        required:true,
+        where: {
+          id: {
+            [Op.like]: checkString
+          }
+        }}]
+      }
+      ]
+    })
   .then(data => {
     total = data;
     var totalCount = {
       totalRacks : total 
     }
-     res.send(totalCount);
+    res.send(totalCount);
   })
   .catch(err => {
     res.status(500).send({
@@ -192,6 +235,10 @@ exports.findRacksBySearchQuery = (req, res) => {
   if(req.query.site != undefined){
     site = req.query.site;
   }
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
 
   Rack.findAll({ 
     where: {
@@ -205,26 +252,29 @@ exports.findRacksBySearchQuery = (req, res) => {
     },
     include: [{model: Zone,
       required:true,
-          where: {
-            name: {
-              [Op.like]: '%'+zone+'%'
-            }
-          },
+      where: {
+        name: {
+          [Op.like]: '%'+zone+'%'
+        }
+      },
       include:[{
         model:Site,
         required:true,
-          where: {
-            name: {
-              [Op.like]: '%'+site+'%'
-            }
+        where: {
+          name: {
+            [Op.like]: '%'+site+'%'
           },
+          id: {
+            [Op.like]: checkString
+          }
+        },
       }]}],
-    order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
-  })
+      order: [
+      ['id', 'DESC'],
+      ],
+      offset:offset,
+      limit:limit
+    })
   .then(async data => {
     var countArray =[];
     var responseData =[];
@@ -242,22 +292,25 @@ exports.findRacksBySearchQuery = (req, res) => {
         }
       },
       include: [{model: Zone,
-      required:true,
-          where: {
-            name: {
-              [Op.like]: '%'+zone+'%'
-            }
-          },
-      include:[{
-        model:Site,
         required:true,
+        where: {
+          name: {
+            [Op.like]: '%'+zone+'%'
+          }
+        },
+        include:[{
+          model:Site,
+          required:true,
           where: {
             name: {
               [Op.like]: '%'+site+'%'
+            },
+            id: {
+              [Op.like]: checkString
             }
           },
-      }]}],
-    })
+        }]}],
+      })
     .then(data => {
       total = data;
     })

@@ -8,7 +8,7 @@ const Site = db.sites;
 const Op = db.Sequelize.Op;
 
 exports.findAll = (req, res) => {
- var queryString = req.query;
+  var queryString = req.query;
   var offset = 0;
   var limit = 100;
 
@@ -21,13 +21,21 @@ exports.findAll = (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   
-  console.log(offset);
-  console.log(limit);
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   StockTransit.findAll({ 
     where: req.query,
     include: [
-    {model: MaterialInward},
+    {model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    },
     {model: Site,
       as: 'fromSite'},
       {model: Site,
@@ -37,18 +45,18 @@ exports.findAll = (req, res) => {
           {model: User,
             as: 'transferInUser'}
             ],
-    offset:offset,
-    limit:limit 
+            offset:offset,
+            limit:limit 
+          })
+  .then(data => {
+    res.send(data);
   })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving StockTransit."
-      });
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving StockTransit."
     });
+  });
 };
 
 // Find a single Stock transit  with an id
@@ -56,18 +64,18 @@ exports.findOne = (req, res) => {
   const id = req.params.id;
 
   StockTransit.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving StockTransit with id=" + id
-      });
+  .then(data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message: "Error retrieving StockTransit with id=" + id
     });
+  });
 };
 
 exports.findAllDatewise = (req, res) => {
- var queryString = req.query;
+  var queryString = req.query;
   var offset = 0;
   var limit = 100;
 
@@ -91,27 +99,34 @@ exports.findAllDatewise = (req, res) => {
       }
     },
     include: [
-    {model: MaterialInward},
+    {model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    },
     {model: Site,
       as: 'fromSite'},
       {model: Site,
         as: 'toSite'},
         {model: User,
-      as: 'transferOutUser'},
-      {model: User,
-        as: 'transferInUser'}],
-    offset:offset,
-    limit:limit 
+          as: 'transferOutUser'},
+          {model: User,
+            as: 'transferInUser'}],
+            offset:offset,
+            limit:limit 
+          })
+  .then(data => {
+    res.send(data);
   })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving StockTransit."
-      });
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving StockTransit."
     });
+  });
 };
 
 exports.findBySearchQuery = async (req, res) => {
@@ -127,6 +142,10 @@ exports.findBySearchQuery = async (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   var responseData = [];
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null && 
     req.query.partNumber != undefined && req.query.partNumber != null){
     await MaterialInward.findAll({
@@ -137,7 +156,10 @@ exports.findBySearchQuery = async (req, res) => {
             [Op.like]: '%'+req.query.barcodeSerial+'%'
           }
         },
-        status : 1 
+        status : 1 ,
+        siteId: {
+          [Op.like]: checkString
+        }
       },
       offset:offset,
       limit:limit 
@@ -157,25 +179,25 @@ exports.findBySearchQuery = async (req, res) => {
                 as: 'transferOutUser'},
                 {model: User,
                   as: 'transferInUser'}],
-        }).then(data => {
-          if(data.length != 0){
-            for(var a=0;a<data.length;a++){
-              responseData.push(data[a]["dataValues"]);
-            }
-          }
-        });
-      }
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      let dataList = [];
-      dataList.push(responseData);
-      dataCount.push(count);
-      dataList.push(dataCount);
-      console.log("IN barcodeSerial & PartNumber Search");
-      res.send(dataList);
-    });
+                }).then(data => {
+                  if(data.length != 0){
+                    for(var a=0;a<data.length;a++){
+                      responseData.push(data[a]["dataValues"]);
+                    }
+                  }
+                });
+              }
+              let count = {
+                'totalCount':responseData.length
+              };
+              let dataCount = [];
+              let dataList = [];
+              dataList.push(responseData);
+              dataCount.push(count);
+              dataList.push(dataCount);
+              console.log("IN barcodeSerial & PartNumber Search");
+              res.send(dataList);
+            });
   }
   else if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
     await MaterialInward.findAll({
@@ -186,7 +208,10 @@ exports.findBySearchQuery = async (req, res) => {
             [Op.like]: '%'+req.query.barcodeSerial+'%'
           }
         },
-        status : 1 
+        status : 1 ,
+        siteId: {
+          [Op.like]: checkString
+        }
       },
       offset:offset,
       limit:limit 
@@ -206,51 +231,41 @@ exports.findBySearchQuery = async (req, res) => {
                 as: 'transferOutUser'},
                 {model: User,
                   as: 'transferInUser'}],
-        }).then(data => {
-          if(data.length != 0){
-            if(data.length != 0){
-              for(var a=0;a<data.length;a++){
-                responseData.push(data[a]["dataValues"]);
+                }).then(data => {
+                  if(data.length != 0){
+                    if(data.length != 0){
+                      for(var a=0;a<data.length;a++){
+                        responseData.push(data[a]["dataValues"]);
+                      }
+                    }
+                  }
+                });
               }
-            }
-          }
-        });
-      }
 
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      let dataList = [];
-      dataList.push(responseData);
-      dataCount.push(count);
-      dataList.push(dataCount);
-      console.log("IN barcodeSerial Search");
-      res.send(dataList);
-    });
+              let count = {
+                'totalCount':responseData.length
+              };
+              let dataCount = [];
+              let dataList = [];
+              dataList.push(responseData);
+              dataCount.push(count);
+              dataList.push(dataCount);
+              console.log("IN barcodeSerial Search");
+              res.send(dataList);
+            });
   }
   else if(req.query.partNumber != undefined && req.query.partNumber != null){
     var partNumberId;
-    await PartNumber.findAll({
-      where: {
-        partNumber: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.partNumber+'',
-            [Op.like]: '%'+req.query.partNumber+'%'
-          }
-        },
-        status:1
-      },
-      offset:offset,
-      limit:limit 
-    }).then(data => {
-      partNumberId = data[0]["dataValues"]["id"];
-    });
-
+    
     await MaterialInward.findAll({
       where: {
-        partNumberId:partNumberId,
-        status : 1
+        partNumber: {
+          [Op.iLike]:'%'+ req.query.partNumber +'%'
+        },
+        status : 1,
+        siteId: {
+          [Op.like]: checkString
+        }
       }
     }).then(async data => {
       for(var i=0;i<data.length;i++){

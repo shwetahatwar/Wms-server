@@ -140,6 +140,12 @@ exports.findPicklistItemsBySearchQuery = async (req, res) => {
   if(req.query.partDescription == undefined || req.query.partDescription == null){
     req.query.partDescription="";
   }
+
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   PicklistMaterialList.findAll({ 
     where: {
       picklistId:req.query.picklistId,
@@ -157,7 +163,13 @@ exports.findPicklistItemsBySearchQuery = async (req, res) => {
       }
     },
     include: [{
-      model: Picklist
+      model: Picklist,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
     }], 
     order: [
     ['id', 'DESC'],

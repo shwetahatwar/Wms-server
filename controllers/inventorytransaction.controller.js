@@ -20,10 +20,20 @@ exports.findAll = (req, res) => {
   
   console.log(offset);
   console.log(limit);
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   InventoryTransaction.findAll({ 
     where: req.query,
-    include: [{model: MaterialInward}],
+    include: [{model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    }],
     offset:offset,
     limit:limit 
   })

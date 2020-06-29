@@ -138,6 +138,9 @@ exports.sign_in = (req, res) => {
 
 // Retrieve all Users from the database.
 exports.findAll = (req, res) => {
+  if(req.site){
+    req.query.siteId = req.site
+  }
 
   User.findAll({ 
     where: req.query,

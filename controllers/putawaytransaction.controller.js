@@ -19,9 +19,10 @@ exports.findAll = (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   
-  console.log(offset);
-  console.log(limit);
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   PutawayTransaction.findAll({ 
     where: req.query,
     include: [{model: MaterialInward,
@@ -30,7 +31,10 @@ exports.findAll = (req, res) => {
         QCStatus:{
           [Op.ne]:2
         },
-        status:1
+        status:1,
+        siteId: {
+          [Op.like]: checkString
+        }
       }
     },
     {model: Shelf,
@@ -83,6 +87,10 @@ exports.getByTransactionDate = (req, res) => {
   }
   delete queryString['offset'];
   delete queryString['limit'];
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   console.log("queryString",queryString);
   PutawayTransaction.findAll({ 
     where: {
@@ -98,7 +106,10 @@ exports.getByTransactionDate = (req, res) => {
         QCStatus:{
           [Op.ne]:2
         },
-        status:1
+        status:1,
+         siteId: {
+          [Op.like]: checkString
+        }
       }},
     {model: Shelf,
      as: 'prevLocation'},
@@ -135,6 +146,10 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   var responseData = [];
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   if(req.query.barcodeSerial == undefined){
     req.query.barcodeSerial = "";
   }
@@ -156,6 +171,9 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
           },
            QCStatus:{
           [Op.ne]:2
+        },
+        siteId: {
+          [Op.like]: checkString
         }
         },
       },
@@ -198,7 +216,11 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
          },
          QCStatus:{
            [Op.ne]:2
-         }
+         },
+         siteId: {
+          [Op.like]: checkString
+        }
+
         },
       },
       {model: Shelf,
@@ -238,8 +260,23 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
 
 // get count of all PutawayTransaction 
 exports.countOfPutawayTransaction = (req, res) => {
-  var total = 0
+  var total = 0;
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   PutawayTransaction.count({
+    include: [
+      {
+       model: MaterialInward,
+       required: true,       
+       where:{
+         siteId: {
+          [Op.like]: checkString
+        }
+
+        },
+      }]
   })
   .then(data => {
     total = data;

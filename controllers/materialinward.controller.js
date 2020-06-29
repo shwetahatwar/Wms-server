@@ -70,6 +70,9 @@ exports.create = async (req, res) => {
       .catch(err=>{
         serialNumberId ="1111111111";
       });
+      if(!req.body.siteId){
+        req.body.siteId = req.site
+      }
       const materialinward = {
         partNumberId: req.body.partNumberId,
         shelfId: req.body.shelfId,
@@ -80,7 +83,7 @@ exports.create = async (req, res) => {
         invoiceReferenceNumber: req.body.invoiceReferenceNumber,
         inwardDate: req.body.inwardDate,
         QCStatus: 0,
-        status:true,        
+        status:1,        
         QCRemarks: "NA",
         siteId : req.body.siteId,
         materialStatus : "NA",
@@ -107,32 +110,32 @@ exports.create = async (req, res) => {
       .catch(err => {
         console.log(err);
       });
-    if(req.body.shelfId != null && req.body.shelfId != undefined){
-      let prevCapacityOfLocation = 0;
-      await Shelf.findAll({
-        where: {id : req.body.shelfId}
-      })
-      .then(data => {
-        prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
-      });
-      let netWeightOfPacksInTons = netWeightOfPacks/1000;
-      netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
-      let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
-      updateCapacity = updateCapacity;
-      var updatedData = {
-        'loadedCapacity': updateCapacity
-      };
-      await Shelf.update(updatedData, {
-        where:{
-          id:req.body.shelfId
-        }
-      })
-      .then(data => {
-      })
-      .catch(err => {
-        console.log(err);
-      });
-    }
+      if(req.body.shelfId != null && req.body.shelfId != undefined){
+        let prevCapacityOfLocation = 0;
+        await Shelf.findAll({
+          where: {id : req.body.shelfId}
+        })
+        .then(data => {
+          prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
+        });
+        let netWeightOfPacksInTons = netWeightOfPacks/1000;
+        netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
+        let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
+        updateCapacity = updateCapacity;
+        var updatedData = {
+          'loadedCapacity': updateCapacity
+        };
+        await Shelf.update(updatedData, {
+          where:{
+            id:req.body.shelfId
+          }
+        })
+        .then(data => {
+        })
+        .catch(err => {
+          console.log(err);
+        });
+      }
     // MaterialInward transaction entry in the database
     const inventoryTransact = {
       transactionTimestamp: Date.now(),
@@ -152,18 +155,18 @@ exports.create = async (req, res) => {
     });
     
   }).catch(err => {
-      res.status(500).send({
-        message:
-        err.message || "Some error occurred while creating the MaterialInward."
-      });
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while creating the MaterialInward."
     });
-  }
-  else{
-    res.status(400).send({
-      message: "Part Number not found in database!"
-    });
-    
-  }
+  });
+}
+else{
+  res.status(400).send({
+    message: "Part Number not found in database!"
+  });
+
+}
 }
 res.send(dataArray);
 
@@ -183,7 +186,9 @@ exports.findAll = (req, res) => {
   }
   delete queryString['offset'];
   delete queryString['limit'];
-  
+  if(req.site){
+    req.query.siteId = req.site;
+  }
   MaterialInward.findAll({ 
     where: queryString,
     include: [{
@@ -336,11 +341,17 @@ exports.updateQcStatus = (req, res) => {
 
 exports.getCountByPending = async (req, res) => {
   var countTable=[];
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   await MaterialInward.count({
     where:{
-      status:true,
-      materialStatus : "NA"
+      status:1,
+      materialStatus : "NA",
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -353,9 +364,12 @@ exports.getCountByPending = async (req, res) => {
   })
   await MaterialInward.count({
     where:{
-      status:true,
+      status:1,
       materialStatus : "NA",
-      QCStatus:1
+      QCStatus:1,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -366,9 +380,12 @@ exports.getCountByPending = async (req, res) => {
   })
   await MaterialInward.count({
     where:{
-      status:true,
+      status:1,
       materialStatus : "NA",
-      QCStatus:0
+      QCStatus:0,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -379,9 +396,12 @@ exports.getCountByPending = async (req, res) => {
   })
   await MaterialInward.count({
     where:{
-      status:true,
+      status:1,
       materialStatus : "NA",
-      QCStatus:2
+      QCStatus:2,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -403,10 +423,16 @@ exports.getCountByPending = async (req, res) => {
 // get count by QC
 exports.countByQcStatus = async (req, res) => {
   var countTable=[];
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   await MaterialInward.count({
     where:{
       status:1,
+      siteId: {
+        [Op.like]: checkString
+      }
       // materialStatus : "Available"
     }
   })
@@ -422,7 +448,10 @@ exports.countByQcStatus = async (req, res) => {
     where:{
       status:1,
       // materialStatus : "Available",
-      QCStatus:1
+      QCStatus:1,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -435,7 +464,10 @@ exports.countByQcStatus = async (req, res) => {
     where:{
       status:1,
       // materialStatus : "Available",
-      QCStatus:0
+      QCStatus:0,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -448,7 +480,10 @@ exports.countByQcStatus = async (req, res) => {
     where:{
       status:1,
       // materialStatus : "Available",
-      QCStatus:2
+      QCStatus:2,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -475,9 +510,18 @@ exports.countByQcStatusHHT = async (req, res) => {
   var ok = 0;
   var pending = 0;
   var rejected = 0;
+
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   await MaterialInward.count({
     where:{
       status:1,
+      siteId: {
+        [Op.like]: checkString
+      }
       // materialStatus : "Available"
     }
   })
@@ -489,7 +533,10 @@ exports.countByQcStatusHHT = async (req, res) => {
     where:{
       status:1,
       // materialStatus : "Available",
-      QCStatus:1
+      QCStatus:1,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -499,7 +546,10 @@ exports.countByQcStatusHHT = async (req, res) => {
     where:{
       status:1,
       // materialStatus : "Available",
-      QCStatus:0
+      QCStatus:0,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -509,18 +559,21 @@ exports.countByQcStatusHHT = async (req, res) => {
     where:{
       status:1,
       // materialStatus : "Available",
-      QCStatus:2
+      QCStatus:2,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
-  rejected = data;
+    rejected = data;
 
-   let QCStatus = {
-     "ok":ok,
-     "pending":pending,
-     "rejected":rejected,
-     "total":total
-   }
+    let QCStatus = {
+      "ok":ok,
+      "pending":pending,
+      "rejected":rejected,
+      "total":total
+    }
     res.status(200).send({
       QCStatus :QCStatus
     });
@@ -544,7 +597,10 @@ exports.findPendingMaterialInwardsBySearchQuery= async (req, res) => {
   }
   delete queryString['offset'];
   delete queryString['limit'];
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   if(req.query.barcodeSerial == undefined){
     req.query.barcodeSerial='';
   }
@@ -556,14 +612,17 @@ exports.findPendingMaterialInwardsBySearchQuery= async (req, res) => {
   }
   MaterialInward.findAll({ 
     where: {
-      status:true,
+      status:1,
       QCStatus:req.query.QCStatus,
       materialStatus:"NA",
       partNumber: {
-          [Op.like]: '%'+req.query.partNumber+'%'
+        [Op.like]: '%'+req.query.partNumber+'%'
       },
       barcodeSerial: {
-          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        [Op.like]: '%'+req.query.barcodeSerial+'%'
+      },
+      siteId: {
+        [Op.like]: checkString
       }
     },
     include: [{
@@ -591,46 +650,49 @@ exports.findPendingMaterialInwardsBySearchQuery= async (req, res) => {
     var total = 0;
     await MaterialInward.count({ 
       where: {
-      status:true,
-      QCStatus:req.query.QCStatus,
-      materialStatus:"NA",
-      partNumber: {
+        status:1,
+        QCStatus:req.query.QCStatus,
+        materialStatus:"NA",
+        partNumber: {
           [Op.like]: '%'+req.query.partNumber+'%'
-      },
-      barcodeSerial: {
+        },
+        barcodeSerial: {
           [Op.like]: '%'+req.query.barcodeSerial+'%'
-      }
-    },
-    include: [{
-      model: PartNumber,
-      required:true,
-      where: {
-        description: {
-          [Op.like]: '%'+req.query.description+'%'
+        },
+        siteId: {
+          [Op.like]: checkString
         }
       },
-    },
-    ]
-  }).then(data => {
-    total = data;
+      include: [{
+        model: PartNumber,
+        required:true,
+        where: {
+          description: {
+            [Op.like]: '%'+req.query.description+'%'
+          }
+        },
+      },
+      ]
+    }).then(data => {
+      total = data;
+    }).catch(err => {
+      res.status(500).send({
+        message:
+        err.message || "Some error occurred while retrieving materialinward."
+      });
+    });
+    var totalMaterials = {
+      totalCount : total
+    }
+    countArray.push(totalMaterials);
+    responseData.push(countArray);
+    res.send(responseData);
   }).catch(err => {
     res.status(500).send({
       message:
       err.message || "Some error occurred while retrieving materialinward."
     });
   });
-  var totalMaterials = {
-    totalCount : total
-  }
-  countArray.push(totalMaterials);
-  responseData.push(countArray);
-  res.send(responseData);
-}).catch(err => {
-  res.status(500).send({
-    message:
-    err.message || "Some error occurred while retrieving materialinward."
-  });
-});
 }
 
 //get data by search query
@@ -646,6 +708,11 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
   }
   delete queryString['offset'];
   delete queryString['limit'];
+
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
 
   if(req.query.partNumber != undefined && req.query.partNumber != null){
     var partNumberId;
@@ -683,6 +750,9 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
           // [Op.like]: ''+req.query.barcodeSerial+'%',
           [Op.eq]: ''+req.query.barcodeSerial+'',
           [Op.like]: '%'+req.query.barcodeSerial+'%'
+        },
+        siteId: {
+          [Op.like]: checkString
         }
       }
     },
@@ -707,6 +777,9 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
       where: {
         status:1,
         QCStatus:req.query.QCStatus,
+        siteId: {
+          [Op.like]: checkString
+        },
         partNumber: {
           [Op.or]: {
             [Op.eq]: ''+req.query.partNumber+'',
@@ -749,6 +822,9 @@ else{
     where: {
       status:1,
       QCStatus:req.query.QCStatus,
+      siteId: {
+        [Op.like]: checkString
+      },
       barcodeSerial: {
         [Op.or]: {
           // [Op.like]: ''+req.query.barcodeSerial+'%',
@@ -783,6 +859,9 @@ else{
           // [Op.like]: ''+req.query.barcodeSerial+'%',
           [Op.eq]: ''+req.query.barcodeSerial+'',
           [Op.like]: '%'+req.query.barcodeSerial+'%'
+        },
+        siteId: {
+          [Op.like]: checkString
         }
       }
     },
@@ -824,6 +903,11 @@ exports.findMaterialInwardsBySearchQueryStock = async (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
 
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   if(req.query.barcodeSerial == undefined){
     req.query.barcodeSerial="";
   }
@@ -844,93 +928,69 @@ exports.findMaterialInwardsBySearchQueryStock = async (req, res) => {
         },
         barcodeSerial: {
           [Op.like]: '%'+req.query.barcodeSerial+'%'
+        },
+        siteId: {
+          [Op.like]: checkString
         }
       },
-    include: [{
-      model: PartNumber
-    },
-    {
-      model: Shelf
-    }],
-    order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
-  }).then(async data => {
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
-    console.log("responseData",responseData);
-    var total = 0;
-    await MaterialInward.count({ 
-      where: {
-        status:1,
-        QCStatus:req.query.QCStatus,
-        materialStatus:{
-          [Op.or]: ["Available", "NA"]
+      include: [{
+        model: PartNumber
+      },
+      {
+        model: Shelf
+      }],
+      order: [
+      ['id', 'DESC'],
+      ],
+      offset:offset,
+      limit:limit
+    }).then(async data => {
+      var countArray =[];
+      var responseData =[];
+      responseData.push(data);
+      console.log("responseData",responseData);
+      var total = 0;
+      await MaterialInward.count({ 
+        where: {
+          status:1,
+          QCStatus:req.query.QCStatus,
+          materialStatus:{
+            [Op.or]: ["Available", "NA"]
+          },
+          partNumber: {
+            [Op.like]: '%'+req.query.partNumber+'%'
+          },
+          barcodeSerial: {
+            [Op.like]: '%'+req.query.barcodeSerial+'%'
+          },
+          siteId: {
+            [Op.like]: checkString
+          }
         },
-         partNumber: {
-          [Op.like]: '%'+req.query.partNumber+'%'
-        },
-        barcodeSerial: {
-          [Op.like]: '%'+req.query.barcodeSerial+'%'
-        }
-    },
-  }).then(data => {
-    total = data;
-  }).catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving materialinward."
+      }).then(data => {
+        total = data;
+      }).catch(err => {
+        res.status(500).send({
+          message:
+          err.message || "Some error occurred while retrieving materialinward."
+        });
+      });
+      var totalMaterials = {
+        totalCount : total
+      }
+      countArray.push(totalMaterials);
+      responseData.push(countArray);
+      res.send(responseData);
+    }).catch(err => {
+      res.status(500).send({
+        message:
+        err.message || "Some error occurred while retrieving materialinward."
+      });
     });
-  });
-  var totalMaterials = {
-    totalCount : total
   }
-  countArray.push(totalMaterials);
-  responseData.push(countArray);
-  res.send(responseData);
-}).catch(err => {
-  res.status(500).send({
-    message:
-    err.message || "Some error occurred while retrieving materialinward."
-  });
-});
-}
 
-else{
-  MaterialInward.findAll({ 
-    where: {
-      status:1,
-      materialStatus:{
-          [Op.or]: ["Available", "NA"]
-      },
-       partNumber: {
-          [Op.like]: '%'+req.query.partNumber+'%'
-        },
-        barcodeSerial: {
-          [Op.like]: '%'+req.query.barcodeSerial+'%'
-        }
-    },
-    include: [{
-      model: PartNumber
-    },
-    {
-      model: Shelf
-    }],
-    order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
-  }).then(async data => {
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
-
-    var total = 0;
-    await MaterialInward.count({ 
+  else{
+    MaterialInward.findAll({ 
       where: {
         status:1,
         materialStatus:{
@@ -941,31 +1001,67 @@ else{
         },
         barcodeSerial: {
           [Op.like]: '%'+req.query.barcodeSerial+'%'
+        },
+        siteId: {
+          [Op.like]: checkString
         }
-    },
-  }).then(data => {
-    total = data;
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving materialinward."
+      },
+      include: [{
+        model: PartNumber
+      },
+      {
+        model: Shelf
+      }],
+      order: [
+      ['id', 'DESC'],
+      ],
+      offset:offset,
+      limit:limit
+    }).then(async data => {
+      var countArray =[];
+      var responseData =[];
+      responseData.push(data);
+
+      var total = 0;
+      await MaterialInward.count({ 
+        where: {
+          status:1,
+          materialStatus:{
+            [Op.or]: ["Available", "NA"]
+          },
+          partNumber: {
+            [Op.like]: '%'+req.query.partNumber+'%'
+          },
+          barcodeSerial: {
+            [Op.like]: '%'+req.query.barcodeSerial+'%'
+          },
+          siteId: {
+            [Op.like]: checkString
+          }
+        },
+      }).then(data => {
+        total = data;
+      })
+      .catch(err => {
+        res.status(500).send({
+          message:
+          err.message || "Some error occurred while retrieving materialinward."
+        });
+      });
+      var totalMaterials = {
+        totalCount : total
+      }
+      countArray.push(totalMaterials);
+      responseData.push(countArray);
+      res.send(responseData);
+    })
+    .catch(err => {
+      res.status(500).send({
+        message:
+        err.message || "Some error occurred while retrieving materialinward."
+      });
     });
-  });
-  var totalMaterials = {
-    totalCount : total
   }
-  countArray.push(totalMaterials);
-  responseData.push(countArray);
-  res.send(responseData);
-})
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving materialinward."
-    });
-  });
-}
 };
 
 // Update a MaterialInward by the Barcode Serial in the request
@@ -1015,54 +1111,54 @@ exports.updateWithBarcode = async (req, res) => {
     let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
     console.log("updateCapacity",updateCapacity,totalCapacity,netWeightOfPacksInTons);
     // if(updateCapacity <= totalCapacity){
-    var updatedData = {
-      'loadedCapacity': updateCapacity
-    };
-    await Shelf.update(updatedData, {
-      where:{
-        id:req.body.shelfId
-      }
-    })
-    .then(async data => {
-      await MaterialInward.update(req.body, {
-        where: req.params
-      })
-      .then(async num => {
-        if (num == 1) {
-          const putwayTransaction = {
-            transactionTimestamp: Date.now(),
-            performedBy:req.user.username,
-            materialInwardId:materialInwardId,
-            prevLocationId :locationIds,
-            currentLocationId :req.body.shelfId, 
-            createdBy:req.user.username,
-            updatedBy:req.user.username
-          }
-          await PutawayTransaction.create(putwayTransaction)
-          .then(data => {
-          })
-          .catch(err => {
-            console.log(err);
-          });
-          res.send({
-            message: "MaterialInward was updated successfully."
-          });
-        } 
-        else {
-          res.send({
-            message: `Cannot update MaterialInward with Barcode=${barcodeSerial}. Maybe MaterialInward was not found or req.body is empty!`
-          });
+      var updatedData = {
+        'loadedCapacity': updateCapacity
+      };
+      await Shelf.update(updatedData, {
+        where:{
+          id:req.body.shelfId
         }
       })
-      .catch(err => {
-        res.status(500).send({
-          message: "Error updating MaterialInward with Barcode=" + barcodeSerial
+      .then(async data => {
+        await MaterialInward.update(req.body, {
+          where: req.params
+        })
+        .then(async num => {
+          if (num == 1) {
+            const putwayTransaction = {
+              transactionTimestamp: Date.now(),
+              performedBy:req.user.username,
+              materialInwardId:materialInwardId,
+              prevLocationId :locationIds,
+              currentLocationId :req.body.shelfId, 
+              createdBy:req.user.username,
+              updatedBy:req.user.username
+            }
+            await PutawayTransaction.create(putwayTransaction)
+            .then(data => {
+            })
+            .catch(err => {
+              console.log(err);
+            });
+            res.send({
+              message: "MaterialInward was updated successfully."
+            });
+          } 
+          else {
+            res.send({
+              message: `Cannot update MaterialInward with Barcode=${barcodeSerial}. Maybe MaterialInward was not found or req.body is empty!`
+            });
+          }
+        })
+        .catch(err => {
+          res.status(500).send({
+            message: "Error updating MaterialInward with Barcode=" + barcodeSerial
+          });
         });
+      })
+      .catch(err => {
+        console.log(err);
       });
-    })
-    .catch(err => {
-      console.log(err);
-    });
   // }
   // else{
   //   res.status(500).send({
@@ -1076,11 +1172,19 @@ exports.updateWithBarcode = async (req, res) => {
 
 //get inventory where count less than 10
 exports.inventoryData = (req, res) => {
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   MaterialInward.findAll({
     where:{
       'QCStatus':1,
       'materialStatus': "Available",
-      'status':true
+      'status':1,
+      'siteId': {
+        [Op.like]: checkString
+      }
     },
     group: [ 'partNumberId' ],
     attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
@@ -1126,11 +1230,20 @@ exports.inventoryStockData = async (req, res) => {
     if(!req.query.description){
       req.query.description = "";
     }
+
+    let checkString = '%'+req.site+'%'
+    if(req.site){
+      checkString = req.site
+    }
+
     await MaterialInward.findAll({
       where:{
         'QCStatus':1,
         'materialStatus': "Available",
-        'status':true
+        'status':1,
+        'siteId': {
+          [Op.like]: checkString
+        }
       },
       group: [ 'partNumberId' ],
       attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
@@ -1150,42 +1263,45 @@ exports.inventoryStockData = async (req, res) => {
       limit:limit,
       offset:offset
     })
-  .then(async data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error while retrieving inventory"
+    .then(async data => {
+      res.send(data);
+    })
+    .catch(err => {
+      res.status(500).send({
+        message: "Error while retrieving inventory"
+      });
     });
-  });
-}
-else{
-  await MaterialInward.findAll({
-    where:{
-      'QCStatus':1,
-      'materialStatus': "Available",
-      'status':true
-    },
-    group: [ 'partNumberId' ],
-    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
-    [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
-    include: [{
-      model: PartNumber,
-      attributes: ['description','partNumber']
-    }],
-    limit:limit,
-    offset:offset
-  })
-  .then(async data => {
-    res.send(data);
-  })
-  .catch(err => {
-    console.log(err)
-    res.status(500).send({
-      message: "Error while retrieving inventory"
+  }
+  else{
+    await MaterialInward.findAll({
+      where:{
+        'QCStatus':1,
+        'materialStatus': "Available",
+        'status':1,
+        'siteId': {
+          [Op.like]: checkString
+        }
+      },
+      group: [ 'partNumberId' ],
+      attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
+      [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
+      include: [{
+        model: PartNumber,
+        attributes: ['description','partNumber']
+      }],
+      limit:limit,
+      offset:offset
+    })
+    .then(async data => {
+      res.send(data);
+    })
+    .catch(err => {
+      console.log(err)
+      res.status(500).send({
+        message: "Error while retrieving inventory"
+      });
     });
-  });
-}
+  }
 };
 
 //get data by search query for transfer Out
@@ -1201,6 +1317,11 @@ exports.findMaterialInwardsForTransferOut = async (req, res) => {
   }
   delete queryString['offset'];
   delete queryString['limit'];
+
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
 
   if(req.query.partNumber != undefined && req.query.partNumber != null){
     var partNumberId;
@@ -1221,109 +1342,121 @@ exports.findMaterialInwardsForTransferOut = async (req, res) => {
           },
           barcodeSerial: {
             [Op.or]: {
-          [Op.eq]: ''+req.query.barcodeSerial+'',
-          [Op.like]: '%'+req.query.barcodeSerial+'%'
-        }
-      }
-    },
-    include: [{
-      model: PartNumber
-    },
-    {
-      model: Shelf
-    }],
-    order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
-  }).then(async data => {
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
-    console.log("responseData",responseData);
-    var total = 0;
-    await MaterialInward.count({ 
-      where: {
-        status:1,
-        QCStatus:req.query.QCStatus,
-        materialStatus:req.query.materialStatus,
-        partNumber: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.partNumber+'',
-            [Op.like]: '%'+req.query.partNumber+'%'
+              [Op.eq]: ''+req.query.barcodeSerial+'',
+              [Op.like]: '%'+req.query.barcodeSerial+'%'
+            },
+            siteId: {
+              [Op.like]: checkString
+            }
           }
         },
-        barcodeSerial: {
-          [Op.or]: {
-          [Op.eq]: ''+req.query.barcodeSerial+'',
-          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        include: [{
+          model: PartNumber
+        },
+        {
+          model: Shelf
+        }],
+        order: [
+        ['id', 'DESC'],
+        ],
+        offset:offset,
+        limit:limit
+      }).then(async data => {
+        var countArray =[];
+        var responseData =[];
+        responseData.push(data);
+        console.log("responseData",responseData);
+        var total = 0;
+        await MaterialInward.count({ 
+          where: {
+            status:1,
+            QCStatus:req.query.QCStatus,
+            materialStatus:req.query.materialStatus,
+            partNumber: {
+              [Op.or]: {
+                [Op.eq]: ''+req.query.partNumber+'',
+                [Op.like]: '%'+req.query.partNumber+'%'
+              }
+            },
+            barcodeSerial: {
+              [Op.or]: {
+                [Op.eq]: ''+req.query.barcodeSerial+'',
+                [Op.like]: '%'+req.query.barcodeSerial+'%'
+              },
+              siteId: {
+                [Op.like]: checkString
+              }
+            }
+          },
+        }).then(data => {
+          total = data;
+        }).catch(err => {
+          res.status(500).send({
+            message:
+            err.message || "Some error occurred while retrieving materialinward."
+          });
+        });
+        var totalMaterials = {
+          totalCount : total
         }
-      }
-    },
-  }).then(data => {
-    total = data;
-  }).catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving materialinward."
-    });
-  });
-  var totalMaterials = {
-    totalCount : total
+        countArray.push(totalMaterials);
+        responseData.push(countArray);
+        res.send(responseData);
+      }).catch(err => {
+        res.status(500).send({
+          message:
+          err.message || "Some error occurred while retrieving materialinward."
+        });
+      });
+    }
   }
-  countArray.push(totalMaterials);
-  responseData.push(countArray);
-  res.send(responseData);
-}).catch(err => {
-  res.status(500).send({
-    message:
-    err.message || "Some error occurred while retrieving materialinward."
-  });
-});
-}
-}
-else{
-  MaterialInward.findAll({ 
-    where: {
-      status:1,
-      QCStatus:req.query.QCStatus,
-      materialStatus:req.query.materialStatus,
-      barcodeSerial: {
-        [Op.or]: {
-          [Op.eq]: ''+req.query.barcodeSerial+'',
-          [Op.like]: '%'+req.query.barcodeSerial+'%'
-        }
-      }
-    },
-    include: [{
-      model: PartNumber
-    },
-    {
-      model: Shelf
-    }],
-    order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
-  }).then(async data => {
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
-
-    var total = 0;
-    await MaterialInward.count({ 
+  else{
+    MaterialInward.findAll({ 
       where: {
         status:1,
         QCStatus:req.query.QCStatus,
         materialStatus:req.query.materialStatus,
         barcodeSerial: {
           [Op.or]: {
+            [Op.eq]: ''+req.query.barcodeSerial+'',
+            [Op.like]: '%'+req.query.barcodeSerial+'%'
+          }
+        },
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+      include: [{
+        model: PartNumber
+      },
+      {
+        model: Shelf
+      }],
+      order: [
+      ['id', 'DESC'],
+      ],
+      offset:offset,
+      limit:limit
+    }).then(async data => {
+      var countArray =[];
+      var responseData =[];
+      responseData.push(data);
+
+      var total = 0;
+      await MaterialInward.count({ 
+        where: {
+          status:1,
+          QCStatus:req.query.QCStatus,
+          materialStatus:req.query.materialStatus,
+          barcodeSerial: {
+            [Op.or]: {
           // [Op.like]: ''+req.query.barcodeSerial+'%',
           [Op.eq]: ''+req.query.barcodeSerial+'',
           [Op.like]: '%'+req.query.barcodeSerial+'%'
         }
+      },
+      siteId: {
+        [Op.like]: checkString
       }
     },
   }).then(data => {
@@ -1342,21 +1475,29 @@ else{
   responseData.push(countArray);
   res.send(responseData);
 })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving materialinward."
+    .catch(err => {
+      res.status(500).send({
+        message:
+        err.message || "Some error occurred while retrieving materialinward."
+      });
     });
-  });
-}
+  }
 };
 
 exports.inventoryDataCount = (req, res) => {
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   MaterialInward.findAll({
     where:{
       'QCStatus':1,
       'materialStatus': "Available",
-      'status':true
+      'status':1,
+      'siteId': {
+        [Op.like]: checkString
+      }
     },
     group: [ 'partNumberId' ],
     attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count']],
@@ -1364,7 +1505,7 @@ exports.inventoryDataCount = (req, res) => {
       model: PartNumber,
       attributes: ['description','partNumber']
     }],
-   having: Sequelize.where(Sequelize.literal('SUM(eachPackQuantity * 1)'), '<=', 10)
+    having: Sequelize.where(Sequelize.literal('SUM(eachPackQuantity * 1)'), '<=', 10)
   })
   .then(data => {
     let count = data.length;
@@ -1382,11 +1523,19 @@ exports.inventoryDataCount = (req, res) => {
 //get dashboard count for displaying pending for putaway & total inventory
 exports.dashboardCountForPendingPutaway = async (req,res) =>{
   let responseData = [];
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   await MaterialInward.findAll({
     where:{
       'QCStatus':1,
       'materialStatus': "Available",
-      'status':true
+      'status':1,
+      'siteId': {
+        [Op.like]: checkString
+      }
     },
     attributes: [[Sequelize.fn('sum', Sequelize.col('eachPackQuantity')), 'count']],
   })
@@ -1402,9 +1551,12 @@ exports.dashboardCountForPendingPutaway = async (req,res) =>{
 
   await MaterialInward.count({
     where:{
-      status:true,
+      status:1,
       materialStatus : "NA",
-      QCStatus:1
+      QCStatus:1,
+      siteId: {
+        [Op.like]: checkString
+      }
     }
   })
   .then(data => {
@@ -1421,10 +1573,13 @@ exports.dashboardCountForPendingPutaway = async (req,res) =>{
 
 // get Recent updated Material List
 exports.findRecentTransactions = (req, res) => {
+  if(req.site){
+    req.query.siteId = req.site;
+  }
   var queryString = req.query;
   var offset = 0;
   var limit = 100;
-
+  console.log(req.query,req.query.siteId);
   if(req.query.offset != null || req.query.offset != undefined){
     offset = parseInt(req.query.offset)
   }
@@ -1473,8 +1628,20 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   // const materialId = req.params.id;
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   await InventoryTransaction.findAll({
-    include: [{model: MaterialInward}],
+    include: [{model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    }],
     order: [
     ['updatedAt', 'DESC'],
     ],
@@ -1501,7 +1668,14 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
   });
 
   await PutawayTransaction.findAll({
-    include: [{model: MaterialInward}],
+    include: [{model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    }],
     order: [
     ['updatedAt', 'DESC'],
     ],
@@ -1528,7 +1702,14 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
   });
 
   await QCTransaction.findAll({
-    include: [{model: MaterialInward}],
+    include: [{model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    }],
     order: [
     ['updatedAt', 'DESC'],
     ],
@@ -1555,7 +1736,14 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
   });
 
   await StockTransaction.findAll({
-    include: [{model: MaterialInward}],
+    include: [{model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    }],
     order: [
     ['updatedAt', 'DESC'],
     ],
@@ -1582,6 +1770,11 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
   });
 
   await Picklist.findAll({
+    where: {
+      siteId: {
+        [Op.like]: checkString
+      }
+    },
     order: [
     ['updatedAt', 'DESC'],
     ],
@@ -1612,12 +1805,12 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
     });
   });
 
-responseData.sort(function(a,b){
-  return new Date(b.transactionTimestamp) - new Date(a.transactionTimestamp)
-})
+  responseData.sort(function(a,b){
+    return new Date(b.transactionTimestamp) - new Date(a.transactionTimestamp)
+  })
 
-responseData = responseData.slice(0,50);
-res.status(200).send({
-  responseData
-});
+  responseData = responseData.slice(0,50);
+  res.status(200).send({
+    responseData
+  });
 };

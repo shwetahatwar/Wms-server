@@ -17,6 +17,7 @@ exports.create = (req, res) => {
     name: req.body.name,
     description: req.body.description,
     status:true,
+    siteId:req.site,
     createdBy:req.user.username,
     updatedBy:req.user.username
   };
@@ -48,7 +49,9 @@ exports.getAll = (req,res) =>{
   }
   delete queryString['offset'];
   delete queryString['limit'];
-
+  if(req.site){
+    req.query.siteId = req.site
+  }
   Project.findAll({
     where:req.query,
     order: [
@@ -121,7 +124,10 @@ exports.findProjectsBySearchQuery = (req, res) => {
   }
   delete queryString['offset'];
   delete queryString['limit'];
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   var name ='';
   var description ='';
 
@@ -147,6 +153,9 @@ exports.findProjectsBySearchQuery = (req, res) => {
           [Op.eq]: ''+description+''
         }
       },
+      siteId: {
+          [Op.like]: checkString
+        }
     },
     order: [
     ['id', 'DESC'],
@@ -175,6 +184,9 @@ exports.findProjectsBySearchQuery = (req, res) => {
             [Op.eq]: ''+description+''
           }
         },
+        siteId: {
+          [Op.like]: checkString
+        }
       },
     })
     .then(data => {
@@ -203,11 +215,19 @@ exports.findProjectsBySearchQuery = (req, res) => {
 
 // get count of all Project whose status =1 
 exports.countOfProjects = (req, res) => {
-  var total = 0
+  var total = 0;
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   Project.count({
     where :
     {
-      status :true
+      status :true,
+      siteId: {
+          [Op.like]: checkString
+        }
     }
   })
   .then(data => {

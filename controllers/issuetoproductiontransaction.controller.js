@@ -21,11 +21,22 @@ exports.findAll = (req, res) => {
   
   console.log(offset);
   console.log(limit);
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+  
   IssueToProductionTransaction.findAll({ 
     where: req.query,
     include: [
-    {model: MaterialInward},
+    {model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    },
     {model: Project},
     {model: User,
       as: 'doneBy'},
@@ -176,7 +187,10 @@ exports.findByDate = (req, res) => {
   
   console.log(offset);
   console.log(limit);
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   IssueToProductionTransaction.findAll({ 
   	where: {
   		transactionTimestamp: {
@@ -185,7 +199,14 @@ exports.findByDate = (req, res) => {
   		}
   	},
     include: [
-    {model: MaterialInward},
+    {model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    },
     {model: Project},
     {model: User,
       as: 'doneBy'},

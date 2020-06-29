@@ -6,7 +6,7 @@ const Op = db.Sequelize.Op;
 
 //Get All QC transactions
 exports.getAll = (req,res) =>{
- var queryString = req.query;
+  var queryString = req.query;
   var offset = 0;
   var limit = 100;
 
@@ -19,21 +19,32 @@ exports.getAll = (req,res) =>{
   delete queryString['offset'];
   delete queryString['limit'];
 
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   QCTransaction.findAll({ 
     where: req.query,
-    include: [{model: MaterialInward}],
-    offset:offset,
-    limit:limit 
-  })
-  .then(data => {
-      res.send(data);
+    include: [{model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      }}],
+      offset:offset,
+      limit:limit 
     })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving ScrapandRecover."
-      });
+  .then(data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving ScrapandRecover."
     });
+  });
 };
 
 // Find a single QC Transaction with an id
@@ -41,14 +52,14 @@ exports.findOne = (req, res) => {
   const id = req.params.id;
 
   InventoryTransaction.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving InventoryTransaction with id=" + id
-      });
+  .then(data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message: "Error retrieving InventoryTransaction with id=" + id
     });
+  });
 };
 
 exports.findQCTransactionsBySearchQuery = async (req, res) => {
@@ -67,42 +78,45 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
   if(!req.query.partNumber){
     req.query.partNumber="";
   }
-   if(!req.query.barcodeSerial){
+  if(!req.query.barcodeSerial){
     req.query.barcodeSerial="";
   }
   console.log("QC status 67",req.query.QcStatus)
   await QCTransaction.findAll({
-          where: {
-            currentQCStatus:req.query.QcStatus
-          },
-          include: [{model: MaterialInward,
-          required: true,
-          where:{
-          partNumber: {
-              [Op.like]: '%'+req.query.partNumber+'%'
-            }, 
-            barcodeSerial: {
-              [Op.like]: '%'+req.query.barcodeSerial+'%'
-            }, 
-          }
-        }],
-        }).then(data => {
-          if(data.length != 0){
-            responseData.push(data);
-          }
-          let count = {
-            'totalCount':responseData.length
-          };
-          let dataCount = [];
-          dataCount.push(count);
-          responseData.push(dataCount);
-          res.send(responseData);
-        }).catch(err => {
-          res.status(500).send({
-            message:
-            err.message || "Some error occurred while retrieving PutawayTransaction count."
-          });
-        });
+    where: {
+      currentQCStatus:req.query.QcStatus
+    },
+    include: [{model: MaterialInward,
+      required: true,
+      where:{
+        partNumber: {
+          [Op.like]: '%'+req.query.partNumber+'%'
+        }, 
+        barcodeSerial: {
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        }, 
+        siteId: {
+          [Op.like]: checkString
+        }
+      }
+    }],
+  }).then(data => {
+    if(data.length != 0){
+      responseData.push(data);
+    }
+    let count = {
+      'totalCount':responseData.length
+    };
+    let dataCount = [];
+    dataCount.push(count);
+    responseData.push(dataCount);
+    res.send(responseData);
+  }).catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving PutawayTransaction count."
+    });
+  });
   // if(req.query.partNumber != undefined && req.query.partNumber != null){
   //  await MaterialInward.findAll({
   //     where: {
@@ -205,4 +219,4 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
   //     console.log("IN part Search");
   //     res.send(dataList);
   //     }
-  };
+};

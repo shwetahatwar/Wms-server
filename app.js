@@ -72,6 +72,13 @@ app.use(function(req, res, next) {
       }).then(data=>{
         // console.log("Line 65",data[0]["dataValues"]);
         if(data[0] != null || data[0] != undefined)
+          if(data[0]["roleId"] != 1){
+            req.site = data[0]["siteId"];
+          }
+          else{
+            req.siteId = data[0]["siteId"];
+            req.site ='';
+          }
           req.user = data[0]["dataValues"]
       });
       next();

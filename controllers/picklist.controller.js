@@ -18,16 +18,22 @@ exports.create = async (req, res) => {
     });
     return;
   } 
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   var responseData;
   var canCreate = 0; 
   for(var i=0;i<req.body.material.length;i++){
     var checkMaterialQty = await MaterialInward.findAll({
-       where:{
+      where:{
         'QCStatus':1,
         'partNumber':req.body.material[i]["partNumber"],
         'materialStatus': "Available",
-        'status':true
+        'status':true,
+        'siteId': {
+          [Op.like]: checkString
+        }
       },
       group: [ 'partNumberId' ],
       attributes: ['partNumberId',[Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
@@ -35,10 +41,10 @@ exports.create = async (req, res) => {
     });
     console.log("checkMaterialQty",checkMaterialQty[0])
     if(checkMaterialQty[0]){
-    if(checkMaterialQty[0]["dataValues"]["totalQuantity"] >= parseInt(req.body.material[i].numberOfPacks)){
-      canCreate =1;
+      if(checkMaterialQty[0]["dataValues"]["totalQuantity"] >= parseInt(req.body.material[i].numberOfPacks)){
+        canCreate =1;
+      }
     }
-  }
   }
 
   if(canCreate == 1){
@@ -53,77 +59,84 @@ exports.create = async (req, res) => {
     .then(data => {
       if(data[0] != null || data[0] != undefined){
         console.log("Data",data[0]);
-       serialNumberId = data[0]["dataValues"]["picklistName"];
-       serialNumberId = serialNumberId.substring(serialNumberId.length - 6, serialNumberId.length);
-       serialNumberId = (parseInt(serialNumberId) + 1).toString();
-       var str = '' + serialNumberId;
-       while (str.length < 6) {
-         str = '0' + str;
-       }
-       serialNumberId = "P" + str;
-       console.log("Line 41 Serial Number", str);
-     }
-     else{
-       serialNumberId ="P" + "100001";
-     }
+        serialNumberId = data[0]["dataValues"]["picklistName"];
+        serialNumberId = serialNumberId.substring(serialNumberId.length - 6, serialNumberId.length);
+        serialNumberId = (parseInt(serialNumberId) + 1).toString();
+        var str = '' + serialNumberId;
+        while (str.length < 6) {
+          str = '0' + str;
+        }
+        serialNumberId = "P" + str;
+        console.log("Line 41 Serial Number", str);
+      }
+      else{
+        serialNumberId ="P" + "100001";
+      }
     })
     .catch(err=>{
       serialNumberId ="P" + "100001";
     });
-  var picklistId;
-  const picklistData = {
-    picklistName: serialNumberId,
-    status:true,
-    picklistStatus:"Pending",
-    createdBy:req.user.username,
-    updatedBy:req.user.username
-  };
+    var picklistId;
+    const picklistData = {
+      picklistName: serialNumberId,
+      status:true,
+      picklistStatus:"Pending",
+      siteId :req.site,
+      createdBy:req.user.username,
+      updatedBy:req.user.username
+    };
 
-  await Picklist.create(picklistData)
-  .then(data => {
-    responseData = data;
-    picklistId = data["dataValues"]["id"]
-  })
-  .catch(err => {
-     res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the picklist."
-      });
-  });
-  for(var i=0;i<req.body.material.length;i++){
-    var checkMaterialQty;
-    let location;
-    await MaterialInward.findAll({
-       where:{
-        'QCStatus':1,
-        'partNumber':req.body.material[i]["partNumber"],
-        'materialStatus': "Available",
-        'status':true
-      },
-      group: [ 'partNumberId' ],
-      attributes: ['partNumberId',[Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],     
+    await Picklist.create(picklistData)
+    .then(data => {
+      responseData = data;
+      picklistId = data["dataValues"]["id"]
     })
-    .then(async data=>{
-      if(data != null && data !=undefined){
-        checkMaterialQty = data[0]["dataValues"]["totalQuantity"];
-      }
-      console.log("checkMaterialQty",checkMaterialQty)
-      if(checkMaterialQty !=0 && checkMaterialQty !=undefined){
-      if(checkMaterialQty >= req.body.material[i].numberOfPacks){
-        var getBarcodePacks = await MaterialInward.findAll({
-          where: {
-            'partNumber':req.body.material[i].partNumber,
-            'QCStatus':1,
-            'materialStatus': "Available",
-            'status':true
-          },
-          order: [
-          ['createdAt', 'ASC'],
-          ],
-        });
-        counter = req.body.material[i]["numberOfPacks"];
-        var dups = [];
-        var arr = getBarcodePacks.filter(function(el) {
+    .catch(err => {
+      res.status(500).send({
+        message:
+        err["errors"][0]["message"] || "Some error occurred while creating the picklist."
+      });
+    });
+    for(var i=0;i<req.body.material.length;i++){
+      var checkMaterialQty;
+      let location;
+      await MaterialInward.findAll({
+        where:{
+          'QCStatus':1,
+          'partNumber':req.body.material[i]["partNumber"],
+          'materialStatus': "Available",
+          'status':true,
+          'siteId': {
+            [Op.like]: checkString
+          }
+        },
+        group: [ 'partNumberId' ],
+        attributes: ['partNumberId',[Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],     
+      })
+      .then(async data=>{
+        if(data != null && data !=undefined){
+          checkMaterialQty = data[0]["dataValues"]["totalQuantity"];
+        }
+        console.log("checkMaterialQty",checkMaterialQty)
+        if(checkMaterialQty !=0 && checkMaterialQty !=undefined){
+          if(checkMaterialQty >= req.body.material[i].numberOfPacks){
+            var getBarcodePacks = await MaterialInward.findAll({
+              where: {
+                'partNumber':req.body.material[i].partNumber,
+                'QCStatus':1,
+                'materialStatus': "Available",
+                'status':true,
+                'siteId': {
+                  [Op.like]: checkString
+                }
+              },
+              order: [
+              ['createdAt', 'ASC'],
+              ],
+            });
+            counter = req.body.material[i]["numberOfPacks"];
+            var dups = [];
+            var arr = getBarcodePacks.filter(function(el) {
           // If it is not a duplicate, return true
           if (dups.indexOf(el["barcodeSerial"]) == -1) {
             dups.push(el["barcodeSerial"]);
@@ -131,107 +144,110 @@ exports.create = async (req, res) => {
           }
           return false;
         });
-        for(var s=0;s<dups.length;s++){
-          if(counter != 0 && counter > 0){
-            var barcodePackQuantity1 = await MaterialInward.findAll({
-              where:{
-                'partNumber':req.body.material[i].partNumber,
-                'barcodeSerial':dups[s],
-                'QCStatus':1,
-                'status':true
-              },
-              include: [
-              {
-                model: Shelf
-              }],
-            });
-            console.log("barcodePackQuantity1",barcodePackQuantity1)
-            var barcodePackQuantity = barcodePackQuantity1[0]["dataValues"]["eachPackQuantity"]; 
-            if(barcodePackQuantity1[0]["dataValues"]["shelf"]){
-              location =barcodePackQuantity1[0]["dataValues"]["shelf"]["barcodeSerial"]
-            }
+            for(var s=0;s<dups.length;s++){
+              if(counter != 0 && counter > 0){
+                var barcodePackQuantity1 = await MaterialInward.findAll({
+                  where:{
+                    'partNumber':req.body.material[i].partNumber,
+                    'barcodeSerial':dups[s],
+                    'QCStatus':1,
+                    'status':true,
+                    'siteId': {
+                      [Op.like]: checkString
+                    }
+                  },
+                  include: [
+                  {
+                    model: Shelf
+                  }],
+                });
+                console.log("barcodePackQuantity1",barcodePackQuantity1)
+                var barcodePackQuantity = barcodePackQuantity1[0]["dataValues"]["eachPackQuantity"]; 
+                if(barcodePackQuantity1[0]["dataValues"]["shelf"]){
+                  location =barcodePackQuantity1[0]["dataValues"]["shelf"]["barcodeSerial"]
+                }
 
-            console.log("Line 96 barcodePackQuantity :",barcodePackQuantity);
-            console.log("Line 97 counter :",counter);
-            var partDescription;
-            await PartNumber.findAll({ 
-              where:{
-                partNumber:req.body.material[i]["partNumber"]
-              }
-            }).then(data => {
-              if(data.length !=0){
-                partDescription = data[0]["dataValues"]["description"];
-              }
-            })
-            .catch(err => {
-              res.status(500).send({
-                message:
-                err.message || "Some error occurred while retrieving materials."
-              });
-            });
+                console.log("Line 96 barcodePackQuantity :",barcodePackQuantity);
+                console.log("Line 97 counter :",counter);
+                var partDescription;
+                await PartNumber.findAll({ 
+                  where:{
+                    partNumber:req.body.material[i]["partNumber"]
+                  }
+                }).then(data => {
+                  if(data.length !=0){
+                    partDescription = data[0]["dataValues"]["description"];
+                  }
+                })
+                .catch(err => {
+                  res.status(500).send({
+                    message:
+                    err.message || "Some error occurred while retrieving materials."
+                  });
+                });
 
-            if(barcodePackQuantity >= counter){
-              const picklistMaterialListData = {
-                picklistId: picklistId,
-                batchNumber: dups[s],
-                numberOfPacks:counter,
-                purchaseOrderNumber:req.body.material[i]["purchaseOrderNumber"],
-                partNumber:req.body.material[i]["partNumber"],
-                partDescription:partDescription,
-                location:location,
-                createdBy:req.user.username,
-                updatedBy:req.user.username
+                if(barcodePackQuantity >= counter){
+                  const picklistMaterialListData = {
+                    picklistId: picklistId,
+                    batchNumber: dups[s],
+                    numberOfPacks:counter,
+                    purchaseOrderNumber:req.body.material[i]["purchaseOrderNumber"],
+                    partNumber:req.body.material[i]["partNumber"],
+                    partDescription:partDescription,
+                    location:location,
+                    createdBy:req.user.username,
+                    updatedBy:req.user.username
+                  }
+                  await PicklistMaterialList.create(picklistMaterialListData)
+                  .then(picklistMaterialList=>{
+                    console.log("Data on line 129",picklistMaterialList);
+                  })
+                  .catch(err=>{
+                    console.log("Error on line 132",err);
+                  });
+                  counter = counter - counter;
+                  console.log("Line 116 counter :",counter);
+                  break;
+                }
+                else if(barcodePackQuantity !=0){
+                  const picklistMaterialListData = {
+                    picklistId: picklistId,
+                    batchNumber: dups[s],
+                    numberOfPacks:barcodePackQuantity,
+                    partNumber:req.body.material[i]["partNumber"],
+                    purchaseOrderNumber:req.body.material[i]["purchaseOrderNumber"],
+                    partDescription:partDescription,
+                    location:location,
+                    createdBy:req.user.username,
+                    updatedBy:req.user.username
+                  }
+                  PicklistMaterialList.create(picklistMaterialListData)
+                  .then(picklistMaterialList=>{
+                  })
+                  .catch(err=>{
+                    console.log(err);
+                    t.rollback();
+                  });
+                  counter = counter - barcodePackQuantity;
+                }
               }
-             await PicklistMaterialList.create(picklistMaterialListData)
-              .then(picklistMaterialList=>{
-                console.log("Data on line 129",picklistMaterialList);
-              })
-              .catch(err=>{
-                console.log("Error on line 132",err);
-              });
-              counter = counter - counter;
-              console.log("Line 116 counter :",counter);
-              break;
-            }
-            else if(barcodePackQuantity !=0){
-              const picklistMaterialListData = {
-                picklistId: picklistId,
-                batchNumber: dups[s],
-                numberOfPacks:barcodePackQuantity,
-                partNumber:req.body.material[i]["partNumber"],
-                purchaseOrderNumber:req.body.material[i]["purchaseOrderNumber"],
-                partDescription:partDescription,
-                location:location,
-                createdBy:req.user.username,
-                updatedBy:req.user.username
-              }
-              PicklistMaterialList.create(picklistMaterialListData)
-              .then(picklistMaterialList=>{
-              })
-              .catch(err=>{
-                console.log(err);
-                t.rollback();
-              });
-              counter = counter - barcodePackQuantity;
             }
           }
         }
-      }
-    }
-    })
-    .catch(err=>{
+      })
+.catch(err=>{
 
-    })
-  }
-  res.send(responseData);
-  }
-  else{
-    res.status(500).send({
-      message:
-      "Picklist not created due to insufficient quantity ."
-    });
-  }
-  
+})
+}
+res.send(responseData);
+}
+else{
+  res.status(500).send({
+    message:
+    "Picklist not created due to insufficient quantity ."
+  });
+}
+
 };
 
 // Get all Picklists from the database.
@@ -248,7 +264,9 @@ exports.findAll = (req, res) => {
   }
   delete queryString['offset'];
   delete queryString['limit'];
-  
+  if(req.site){
+    req.query.siteId = req.site
+  }
   Picklist.findAll({ 
     where: queryString,
     order: [
@@ -270,13 +288,20 @@ exports.findAll = (req, res) => {
 
 exports.getCountForPicklist = async(req,res) =>{
   let responseData =[];
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   for(var i=0;i<req.body.length;i++){
     var checkMaterialQty = await MaterialInward.findAll({
-       where:{
+      where:{
         'QCStatus':1,
         'partNumber':req.body[i]["partNumber"],
         'materialStatus': "Available",
-        'status':true
+        'status':true,
+        'siteId': {
+          [Op.like]: checkString
+        }
       },
       group: [ 'partNumberId' ],
       attributes: ['partNumberId',[Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
@@ -435,7 +460,7 @@ exports.postPicklistMaterialLists = async (req, res) => {
   }
   res.status(200).send({
     message:
-      "Completed Successfully."
+    "Completed Successfully."
   });
   
 };
@@ -508,7 +533,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
   for(var i=0;i<req.body.materials.length;i++){
     console.log(req.body.materials[i]);
 
-     if(req.body.materials[i].serialNumber){
+    if(req.body.materials[i].serialNumber){
       req.body.materials[i].serialNumber = req.body.materials[i].serialNumber.trim();
     }
     const picklistpickingmateriallist = {
@@ -532,7 +557,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
           barcodeSerial:req.body.materials[i].serialNumber
         },
       }).then(data => {
-         eachPackQuantity = data[0]["dataValues"]["eachPackQuantity"];
+        eachPackQuantity = data[0]["dataValues"]["eachPackQuantity"];
       });
       eachPackQuantity= parseInt(eachPackQuantity) - parseInt(req.body.materials[i].quantity);
       let updatedData = {
@@ -558,15 +583,22 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
     .catch(err => {
       res.status(500).send({
         message:
-          err.message || "Some error occurred while creating the Picklist Picking Material List."
+        err.message || "Some error occurred while creating the Picklist Picking Material List."
       });
     });
+  }
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
   }
   await MaterialInward.findAll({
     where:{
       'QCStatus':1,
       'materialStatus': "Available",
-      'status':true
+      'status':true,
+      'siteId': {
+        [Op.like]: checkString
+      }
     },
     group: [ 'partNumberId' ],
     attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
@@ -628,7 +660,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
               }
             });
           }
-          })
+        })
   .catch(err => {
     console.log("Error",err)
 
@@ -675,7 +707,7 @@ exports.postPicklistPickingMaterialLists = async (req, res) => {
   });
   res.status(200).send({
     message:
-      "Completed Successfully."
+    "Completed Successfully."
   });
   
 };
@@ -735,8 +767,13 @@ exports.getPicklistCountDashboard = async (req, res) => {
     newMonth = "0" + newMonth;
   var newYear = d.getFullYear();
   var newDateTimeNow = newYear + "-" + newMonth + "-" + newDay;
-
-  var query = "SELECT * FROM wms.picklists where createdAt like '%" + newDateTimeNow + "%';";
+  var query = "";
+  if(req.site){
+  query = "SELECT * FROM wms.picklists where siteId="+req.site+" and createdAt like '%" + newDateTimeNow + "%';";
+  }
+  else{
+    query = "SELECT * FROM wms.picklists where createdAt like '%" + newDateTimeNow + "%';";  
+  }
   await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT})
   .then(function(picklists) {
     console.log(picklists);
@@ -766,9 +803,9 @@ exports.getPicklistCountDashboard = async (req, res) => {
   })
   .catch(function(err){
     res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving count."
-      });
+      message:
+      err.message || "Some error occurred while retrieving count."
+    });
   });
 };
 
@@ -787,28 +824,36 @@ exports.getPicklistByDate = (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   console.log("queryString",queryString);
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+
   Picklist.findAll({ 
     where: {
       createdAt: {
         [Op.gte]: parseInt(req.query.createdAtStart),
         [Op.lt]: parseInt(req.query.createdAtEnd),
+      },
+      siteId: {
+        [Op.like]: checkString
       }
     },
     order: [
-            ['id', 'DESC'],
-        ],
-        offset:offset,
-        limit:limit
-    })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving picklists."
-      });
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  })
+  .then(data => {
+    res.send(data);
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving picklists."
     });
+  });
 };
 
 //get by picklist name
@@ -824,6 +869,10 @@ exports.findPicklistByName = async (req, res) => {
   }
   delete queryString['offset'];
   delete queryString['limit'];
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   Picklist.findAll({ 
     where: {
       picklistName: {
@@ -831,6 +880,9 @@ exports.findPicklistByName = async (req, res) => {
           [Op.eq]: ''+req.query.picklistName+'',
           [Op.like]: '%'+req.query.picklistName+'%'
         }
+      },
+      siteId: {
+        [Op.like]: checkString
       }
     },
     order: [

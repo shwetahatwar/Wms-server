@@ -190,11 +190,22 @@ exports.findAll = (req, res) => {
   
   console.log(offset);
   console.log(limit);
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
 
   StockTransaction.findAll({ 
     where: req.query,
     include: [
-    {model: MaterialInward},
+    {model: MaterialInward,
+    required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    },
     {model: Site,
       as: 'fromSite'},
       {model: Site,
@@ -247,8 +258,10 @@ exports.findAllDatewise = (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   
-  console.log(offset);
-  console.log(limit);
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
 
   StockTransaction.findAll({ 
     where: {
@@ -258,7 +271,14 @@ exports.findAllDatewise = (req, res) => {
       }
     },
    include: [
-    {model: MaterialInward},
+    {model: MaterialInward,
+    required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    },
     {model: Site,
       as: 'fromSite'},
       {model: Site,
@@ -294,6 +314,10 @@ exports.findBySearchQuery = async (req, res) => {
   delete queryString['offset'];
   delete queryString['limit'];
   var responseData = [];
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null && 
     req.query.partNumber != undefined && req.query.partNumber != null){
         await StockTransaction.findAll({
@@ -302,7 +326,10 @@ exports.findBySearchQuery = async (req, res) => {
             where: {
               barcodeSerial: {
                   [Op.like]: '%'+req.query.barcodeSerial+'%'
-                }
+                },
+                siteId: {
+          [Op.like]: checkString
+        }
               },
               required:true
             },
@@ -342,7 +369,10 @@ exports.findBySearchQuery = async (req, res) => {
             [Op.like]: '%'+req.query.barcodeSerial+'%'
           }
         },
-        status : 1 
+        status : 1,
+        siteId: {
+          [Op.like]: checkString
+        } 
       },
       offset:offset,
       limit:limit 
@@ -391,7 +421,10 @@ exports.findBySearchQuery = async (req, res) => {
         where: {
           partNumber: {
             [Op.like]: '%'+req.query.partNumber+'%'
-          }
+          },
+          siteId: {
+          [Op.like]: checkString
+        }
         },
         required:true
       },

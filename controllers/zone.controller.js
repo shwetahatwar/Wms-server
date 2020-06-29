@@ -36,6 +36,9 @@ exports.create = async (req, res) => {
 
 //Get All Zone
 exports.getAll = (req,res) =>{
+  if(req.site){
+    req.query.siteId = req.site
+  }
   Zone.findAll({
     where:req.query,
     include:[
@@ -113,7 +116,10 @@ exports.findZonesBySearchQuery = (req, res) => {
 
   var zone ='';
   var site = '';
-
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   if(req.query.zone != undefined){
     zone = req.query.zone;
   }
@@ -129,7 +135,10 @@ exports.findZonesBySearchQuery = (req, res) => {
           [Op.like]: '%'+zone+'%',
           [Op.eq]: '%'+zone+''
         }
-      }
+      },
+      siteId: {
+          [Op.like]: checkString
+        }
     },
     include: [{model: Site,
       required:true,
