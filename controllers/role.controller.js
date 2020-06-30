@@ -35,7 +35,7 @@ exports.create = (req, res) => {
 
 //Get All Roles
 exports.getAll = (req,res) =>{
-  console.log("Line 37 IN");
+  
   Role.findAll({
     where:req.query
   })

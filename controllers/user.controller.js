@@ -5,262 +5,231 @@ var jwt = require('jsonwebtoken');
 const Role = db.roles;
 const Site = db.sites;
 const UserSiteRelation = db.usersiterelations;
-var bcrypt = require('bcrypt-nodejs');
-var bbPromise = require('bluebird');
+const userConfig = require('../config/user.config');
+var HTTPError = require('http-errors');
+const WhereBuilder = require('../helpers/WhereBuilder');
 
-// Create and Save a new User
-exports.create = async (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.username) {
+exports.create = async (req, res, next) => {
+  const { username, password, role, site, employeeId } = req.body;
+
+  if (!username) {
     res.status(400).send({
       message: "Content can not be empty!"
     });
     return;
   }
 
-  var roleId;
-  await Role.findAll({
+  var foundRole = await Role.findOne({
     where: {
-      name:req.body.role
-    }
-  })
-  .then(data => {
-    if(data.length != 0){
-      roleId = data[0]["dataValues"]["id"];
-    }
-    else{
-      return res.status(401).json({ message: 'Invalid Role' });
-    }
-  })
-  .catch(err => {
-    return res.status(401).json({ message: 'Invalid Role' });
-  })
-
-  var siteId;
-  console.log("SIte",req.body.site);
-  await Site.findAll({
-    where: {
-      name:req.body.site
-    }
-  })
-  .then(data => {
-    if(data.length != 0){
-      siteId = data[0]["dataValues"]["id"];
-    }
-    else{
-      return res.status(401).json({ message: 'Invalid Site' });
-    }
-  })
-  .catch(err => {
-    return res.status(401).json({ message: 'Invalid Site' });
-  })
-
-  // Create a User
-  const user = {
-    username: req.body.username,
-    password: req.body.password,
-    status: "1",
-    roleId: roleId,
-    siteId: siteId,
-    employeeId:req.body.employeeId,
-    createdBy:req.user.username,
-    updatedBy:req.user.username
-  };
-
-  // Save User in the database
-  await User.create(user)
-    .then(async data => {
-      console.log("Data",data["id"])
-      var userSite = {
-        userId : data["id"],
-        siteId : siteId,
-        createdBy:req.user.username,
-        updatedBy:req.user.username
-
-      }
-      await UserSiteRelation.create(userSite)
-      .then(data => {
-
-      })
-      .catch(err => {
-        console.log("Error",err);
-        res.status(500).send({
-          message:
-          err["errors"][0]["message"] || "Some error occurred while creating the UserSite Relation."
-        });
-      });
-      res.send(data);
-    })
-    .catch(err => {
-      console.log("Error",err["errors"]);
-      res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the User."
-      });
-    });
-};
-
-exports.sign_in = (req, res) => {
-  User.scope('withPassword').findOne({
-    where: {
-      username: req.body.username,
-    },
-    include: [{
-      model: Role
-    }],
-  }).then((user) => {
-    if(user.status == false){
-      return res.status(401).json({ message: 'Authentication failed. Invalid user or password.' });
-    }
-
-    if (!user || !user.comparePassword(req.body.password)) {
-      return res.status(401).json({ message: 'Authentication failed. Invalid user or password.' });
-    }
-
-    return res.json(
-      { token: jwt.sign({ username: user.username }, 'WMSSTRINGKEY'),
-      username: user.username,
-      userId:user.id,
-      siteId:user.siteId,
-      employeeId: user.employeeId,
-      roleId:user["role"]["id"],
-      role:user["role"]["name"]
-    })
-  })
-  .catch((err) => {
-    console.log('err', err);
-    if (err) {
-      return res.status(401).json({ message: 'Error while authenticating.' });
+      name: role
     }
   });
+
+  if (!foundRole) {
+    return next(HTTPError(500, "User not created, inappropriate role"))
+  }
+
+  foundRole = foundRole.toJSON();
+
+  var foundSite = await Site.findOne({
+    where: {
+      name: site
+    }
+  });
+
+  if (!foundSite) {
+    return next(HTTPError(500, "User not created, inappropriate site"))
+  }
+
+  foundSite = foundSite.toJSON();
+
+  try{
+    var user = await User.create({
+      username: username,
+      password: password,
+      status: "1",
+      roleId: foundRole["id"],
+      siteId: foundSite["id"],
+      employeeId: employeeId,
+      createdBy: req.user.username,
+      updatedBy: req.user.username
+    });
+
+    if (!user) {
+      return next(HTTPError(500, "User not created"))
+    }
+
+    user = user.toJSON();
+    req.user = user;
+
+    var userSiteRelation = await UserSiteRelation.create({
+      userId : user["id"],
+      siteId : foundSite["id"],
+      createdBy:req.user.username,
+      updatedBy:req.user.username
+    });
+    
+    if (!userSiteRelation) {
+      return next(HTTPError(500, "User Site Relation not created"))
+    }
+  }
+  catch (err) {
+    return next(err);
+  }
+
+  next();
 };
 
 // Retrieve all Users from the database.
-exports.findAll = (req, res) => {
-  if(req.site){
-    req.query.siteId = req.site
-  }
+exports.findAll = async (req, res, next) => {
+  var { name, siteId } = req.query;
 
-  User.findAll({ 
-    where: req.query,
+  var whereClause = new WhereBuilder()
+    .clause('name', name)
+    .clause('siteId',siteId).toJSON();
+
+  var list = await User.findAll({ 
+    where: whereClause,
     include: [
     {
       model: Role
     },
     {
       model: Site
-    },
+    }],
+    order: [
+      ['id', 'DESC'],
     ],
-     order: [
-        ['id', 'DESC'],
-        ],
-     })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving users."
-      });
-    });
+  });
+
+  if (!list) {
+    return next(HTTPError(400, "User not found"));
+  }
+  
+  req.userList = list.map ( el => { return el.get({ plain: true }) } );
+  next();
 };
 
-// Find a single User with an id
-exports.findOne = (req, res) => {
-  const id = req.params.id;
+exports.getUser = async (req, res, next) => {
+  var { username } = req.body;
+  var user = null;
 
-  User.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving User with id=" + id
-      });
+  if (username) {
+    user = await User.scope('withPassword').findOne({
+      where: {
+        username: username
+      },
+      include: [{
+        model: Role, as: 'role'
+      }]
     });
+
+    if (!user) {
+      return next(HTTPError(404, "User not found"));
+    }
+
+    req.signinuser = user.toJSON();
+  }
+
+  if (req.signinuser) {
+    req.username = req.signinuser.username;
+    next();
+  } else {
+    next(HTTPError(404, "User not found"));
+  }
+}
+
+exports.matchPassword = async (req, res, next) => {
+  var { password } = req.body;
+
+  if (!password) {
+    return next(HTTPError(400, "Password required"))
+  }
+
+  console.log(password);
+  const passwordMatched = await User.comparePassword(password, req.signinuser.password);
+
+  if (!passwordMatched) {
+    return next(HTTPError(400, "Password mismatched"))
+  }
+
+  next();
+}
+
+exports.sign_in = async (req, res, next) => {
+  if (req.signinuser) {
+    var user = req.signinuser;
+    var jwtToken = jwt.sign({ username: user.username }, userConfig.SECRET)
+    var response = { 
+      token: jwtToken,
+      username: user.username,
+      userId:user.id,
+      siteId:user.siteId,
+      employeeId: user.employeeId,
+      roleId:user["role"]["id"],
+      role:user["role"]["name"]
+    };
+
+    req.userList = response;
+    req.user = response;
+    if(!response){
+      return next(HTTPError(500, "User not found"));
+    }
+    next();
+  }
+  else {
+    return next(HTTPError(500, "User not found"));
+  }
 };
 
-// Update a User by the id in the request
-exports.update = (req, res) => {
-  const id = req.params.id;
-
-  User.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "User was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`
-        });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error updating User with id=" + id
-      });
-    });
+exports.sendFindUserResponse = async (req, res, next) => {
+  if(!req.userList) {
+    req.userList = [];
+    return next(HTTPError(401, "User Email not found"))
+  }
+  res.status(200).send(req.userList);
 };
 
-// Delete a User with the specified id in the request
-exports.delete = (req, res) => {
-  const id = req.params.id;
-
-  User.destroy({
-    where: { id: id }
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "User was deleted successfully!"
-        });
-      } else {
-        res.send({
-          message: `Cannot delete User with id=${id}. Maybe User was not found!`
-        });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Could not delete User with id=" + id
-      });
-    });
+exports.sendCreateUserResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
 };
 
-// Delete all Users from the database.
-exports.deleteAll = (req, res) => {
-  User.destroy({
-    where: {},
-    truncate: false
-  })
-    .then(nums => {
-      res.send({ message: `${nums} Users were deleted successfully!` });
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while removing all users."
-      });
-    });
+exports.findOne = async (req, res, next) => {
+  const { id } = req.params;
+
+  var foundUser = await User.findByPk(id);
+  if (!foundUser) {
+    return next(HTTPError(500, "User not updated"))
+  }
+  req.userList = foundUser;
+  next();
 };
 
-// Find all published Users
-exports.findAllPublished = (req, res) => {
-  User.findAll({ where: { published: true } })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving users."
-      });
-    });
+exports.update = async (req, res, next) => {
+  const { id } = req.params;
+  var { username, password, role, site, employeeId } = req.body;
+
+  if (password) {
+    password = await User.encryptPassword(password);
+  }
+  // console.log(password);
+  whereClause = new WhereBuilder()
+    .clause('username', username)
+    .clause('password', password)
+    .clause('roleId', role)
+    .clause('siteId', site).toJSON();
+
+  var updatedUser = await User.update(whereClause,{
+    where: {
+      id: id
+    }
+  });
+
+  if (!updatedUser) {
+    return next(HTTPError(500, "User not updated"))
+  }
+  req.updatedUser = updatedUser;
+  next();
 };
 
 exports.loginRequired = (req,res,next) => {
@@ -270,44 +239,4 @@ exports.loginRequired = (req,res,next) => {
   } else {
     return res.status(401).json({ message: 'Unauthorized user!' });
   }
-};
-
-exports.reset_pass = (req, res) => {
-  console.log("Inside reset Pass");
-  var resetPassword = req.query.password;
-  
-  var passwordReset = new bbPromise(function(resolve, reject) {
-    bcrypt.genSalt(5, function(err, salt) {
-      if (err) { reject(err); return; }
-
-      bcrypt.hash(resetPassword, salt, null, function(err, hash) {
-        if (err) { reject(err); return; }
-        var hashGenerated = hash;
-        var json = {
-          "password":hashGenerated
-        };
-        console.log("json",json);
-        console.log("resetPassword",hashGenerated);
-        User.update(json, {
-          where: req.params
-        })
-        .then(num => {
-          if (num == 1) {
-            res.send({
-              message: "User was updated successfully."
-            });
-          } else {
-            res.send({
-              message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`
-            });
-          }
-        })
-        .catch(err => {
-          res.status(500).send({
-            message: "Error updating User with id=" + id
-          });
-        });
-      });
-    });
-  });
 };
