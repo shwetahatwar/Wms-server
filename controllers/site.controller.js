@@ -35,7 +35,26 @@ exports.create = (req, res) => {
 
 //Get All Sites
 exports.getAll = (req,res) =>{
-  console.log("Line 37 IN");
+  if(req.site){
+    req.query.id= req.site;
+  }
+  if(req.query.isAdmin=1){
+    Site.findAll({
+      where:{
+        status:1
+      }
+    })
+    .then(data => {
+      res.send(data);
+    })
+    .catch(err => {
+      res.status(500).send({
+        message:
+        err.message || "Some error occurred while retrieving Sites."
+      });
+    });
+  }
+  else{
   Site.findAll({
     where:req.query
   })
@@ -48,6 +67,7 @@ exports.getAll = (req,res) =>{
           err.message || "Some error occurred while retrieving Sites."
       });
     });
+  }
 };
 
 //Update Site by Id

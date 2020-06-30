@@ -198,13 +198,7 @@ exports.findAll = (req, res) => {
   StockTransaction.findAll({ 
     where: req.query,
     include: [
-    {model: MaterialInward,
-    required:true,
-      where: {
-        siteId: {
-          [Op.like]: checkString
-        }
-      },
+    {model: MaterialInward
     },
     {model: Site,
       as: 'fromSite'},
@@ -271,14 +265,7 @@ exports.findAllDatewise = (req, res) => {
       }
     },
    include: [
-    {model: MaterialInward,
-    required:true,
-      where: {
-        siteId: {
-          [Op.like]: checkString
-        }
-      },
-    },
+    {model: MaterialInward},
     {model: Site,
       as: 'fromSite'},
       {model: Site,

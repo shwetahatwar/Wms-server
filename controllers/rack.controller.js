@@ -59,14 +59,15 @@ exports.getAll = (req,res) =>{
     include:[
     {
       model:Zone,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
       include:[{
         model:Site,
-        required:true,
-        where: {
-          id: {
-            [Op.like]: checkString
-          }
-        }}]
+        }]
       }
       ],
       order: [
@@ -141,14 +142,15 @@ exports.countOfRacks = (req, res) => {
     include:[
     {
       model:Zone,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
       include:[{
         model:Site,
-        required:true,
-        where: {
-          id: {
-            [Op.like]: checkString
-          }
-        }}]
+        }]
       }
       ]
     })
@@ -182,14 +184,15 @@ exports.countOfRacksByZoneId = (req, res) => {
     include:[
     {
       model:Zone,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
       include:[{
         model:Site,
-        required:true,
-        where: {
-          id: {
-            [Op.like]: checkString
-          }
-        }}]
+        }]
       }
       ]
     })
@@ -255,7 +258,10 @@ exports.findRacksBySearchQuery = (req, res) => {
       where: {
         name: {
           [Op.like]: '%'+zone+'%'
-        }
+        },
+        siteId: {
+            [Op.like]: checkString
+          }
       },
       include:[{
         model:Site,
@@ -263,9 +269,6 @@ exports.findRacksBySearchQuery = (req, res) => {
         where: {
           name: {
             [Op.like]: '%'+site+'%'
-          },
-          id: {
-            [Op.like]: checkString
           }
         },
       }]}],
@@ -296,6 +299,9 @@ exports.findRacksBySearchQuery = (req, res) => {
         where: {
           name: {
             [Op.like]: '%'+zone+'%'
+          },
+          siteId: {
+            [Op.like]: checkString
           }
         },
         include:[{
@@ -304,9 +310,6 @@ exports.findRacksBySearchQuery = (req, res) => {
           where: {
             name: {
               [Op.like]: '%'+site+'%'
-            },
-            id: {
-              [Op.like]: checkString
             }
           },
         }]}],
