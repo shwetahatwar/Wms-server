@@ -9,6 +9,8 @@ const QCTransaction = db.qctransactions;
 const StockTransaction = db.stocktransactions;
 const Sequelize = require("sequelize");
 const Picklist = db.picklists;
+const IssueToProductionTransaction = db.issuetoproductiontransactions;
+
 // Create and Save a new MaterialInward
 exports.create = async (req, res) => {
   console.log(req.body);
@@ -1724,6 +1726,40 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
         'transactionType':"Material QC Check",
         'materialInwardId':data[i]["dataValues"]["materialInwardId"],
         'performedBy':data[i]["dataValues"]["performedBy"]
+      }
+      responseData.push(singleJson);
+    }
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving InventoryTransaction."
+    });
+  });
+
+    await IssueToProductionTransaction.findAll({
+    include: [{model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    }],
+    order: [
+    ['updatedAt', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit, 
+  })
+  .then(data => {
+    for(var i=0;i<data.length;i++){
+      let singleJson = {
+        'transactionTimestamp': data[i]["dataValues"]["createdAt"],
+        'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
+        'transactionType':data[i]["dataValues"]["transactionType"],
+        'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'performedBy':data[i]["dataValues"]["updatedBy"]
       }
       responseData.push(singleJson);
     }
