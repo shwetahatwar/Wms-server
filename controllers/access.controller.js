@@ -1,87 +1,88 @@
 const db = require("../models");
 const Access = db.access;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Create and Save a new access
-exports.create = (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.url) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+exports.create = async (req, res, next) => {
+  var { url, httpMethod } = req.body;
+  
+  if (!url || !httpMethod) {
+    return next(HTTPError(500, "Access not created, invalid url or httpMethod"))
   }
 
-  const accessData = {
-    url: req.body.url,
-    httpMethod:req.body.httpMethod
-  };
-
-  Access.create(accessData)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the Access."
-      });
-    });
-};
-
-//Get All Access
-exports.getAll = (req,res) =>{
-  Access.findAll({
-    where:req.query
+  var createdAccess = await Access.create({
+    url: url,
+    httpMethod: httpMethod
   })
-  .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving Access."
-      });
-    });
+
+  if (!createdAccess) {
+    return next(HTTPError(500, "Access not created"))
+  }
+
+  createdAccess = createdAccess.toJSON();
+  req.createdAccess = createdAccess;
+
+  next();
 };
 
-//Update Access by Id
-exports.update = (req, res) => {
-  const id = req.params.id;
+exports.getAll = async (req, res, next) =>{
+  var { url, httpMethod } = req.query;
 
-  Access.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "Access was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update Access with id=${id}. Maybe Access was not found or req.body is empty!`
-        });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error updating Access with id=" + id
-      });
-    });
+  var whereClause = new WhereBuilder()
+    .clause('url', url)
+    .clause('httpMethod', httpMethod).toJSON();
+
+  var getAllAccess = await Access.findAll({
+    where:whereClause
+  });
+  
+  if (!getAllAccess) {
+    return next(HTTPError(400, "Access not found"));
+  }
+  
+  req.accessList = getAllAccess.map ( el => { return el.get({ plain: true }) } );
+
+  next();
 };
 
-//Get Access by Id
-exports.getById = (req,res) => {
-  const id = req.params.id;
+exports.update = async (req, res, next) => {
+  const { id } = req.params;
+  var { url, httpMethod } = req.body;
+  
+  whereClause = new WhereBuilder()
+    .clause('url', url)
+    .clause('httpMethod', httpMethod).toJSON();
 
-  Access.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving Access with id=" + id
-      });
-    });
+  var updatedAccess = await Access.update(whereClause,{
+    where: {
+      id: id
+    }
+  });
+
+  if (!updatedAccess) {
+    return next(HTTPError(500, "Access not updated"))
+  }
+  req.updatedAccess = updatedAccess;
+  next();
+};
+
+exports.getById = async (req, res, next) => {
+
+  const { id } = req.params;
+
+  var foundAccess = await Access.findByPk(id);
+  if (!foundAccess) {
+    return next(HTTPError(500, "Access not updated"))
+  }
+  req.accessList = foundAccess;
+  next();
 }
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.accessList);
+};
+
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
+};

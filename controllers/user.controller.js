@@ -13,10 +13,7 @@ exports.create = async (req, res, next) => {
   const { username, password, role, site, employeeId } = req.body;
 
   if (!username) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+    return next(HTTPError(500, "User not created, invalid username"))
   }
 
   var foundRole = await Role.findOne({
@@ -185,7 +182,7 @@ exports.sign_in = async (req, res, next) => {
 exports.sendFindUserResponse = async (req, res, next) => {
   if(!req.userList) {
     req.userList = [];
-    return next(HTTPError(401, "User Email not found"))
+    return next(HTTPError(401, "User not found"))
   }
   res.status(200).send(req.userList);
 };
