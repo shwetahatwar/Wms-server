@@ -21,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull:true
     },
-     siteId:{
+    siteId:{
       type: DataTypes.INTEGER,
       allowNull:true
     },
@@ -125,8 +125,30 @@ module.exports = (sequelize, DataTypes) => {
   User.associate = function(models) {
   };
 
-  User.prototype.comparePassword = function(password) {
-    return bcrypt.compareSync(password, this.password);
+  User.comparePassword = function(reqpass, password) {
+    return new bbPromise((resolve, reject) => {
+      bcrypt.compare(reqpass, password, function(err, res) {
+        if(err) {
+          reject(err);
+        } else {
+          resolve(res);
+        }
+      });
+    })
+  };
+
+  User.encryptPassword = function (password) {
+    return new bbPromise(function(resolve, reject) {
+      bcrypt.genSalt(5, function(err, salt) {
+        if (err) { reject(err); return; }
+
+        bcrypt.hash(password, salt, null, function(err, hash) {
+          if (err) { reject(err); return; }
+          password = hash;
+          resolve(password);
+        });
+      });
+    });
   }
 
   return User;
