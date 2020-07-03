@@ -1,91 +1,118 @@
 const db = require("../models");
 const Role = db.roles;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
-// Create and Save a new Role
-exports.create = (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.name) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+// Create and Save a new access
+exports.create = async (req, res, next) => {
+  var { name} = req.body;
+  
+  if (!name) {
+    return next(HTTPError(500, "Role not created,name field is empty"))
   }
 
-  const role = {
-    name: req.body.name,
+  try {
+    var role = await Role.create({
+    name: name,
     status:true,
     createdBy:req.user.username,
     updatedBy:req.user.username
-  };
-
-  
-  Role.create(role)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the role."
-      });
-    });
-};
-
-//Get All Roles
-exports.getAll = (req,res) =>{
-  
-  Role.findAll({
-    where:req.query
   })
-  .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving Roles."
-      });
-    });
-};
-
-//Update Roles by Id
-exports.update = (req, res) => {
-  const id = req.params.id;
-
-  Role.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "Role was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update Role with id=${id}. Maybe Role was not found or req.body is empty!`
-        });
+    if (!role) {
+      return next(HTTPError(500, "Role not created"))
+    }
+  } catch (err) {
+   if(err["errors"]){
+        return next(HTTPError(500,
+          err["errors"][0]["message"]
+          ))
       }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error updating Role with id=" + id
-      });
-    });
+      else{
+        return next(HTTPError(500,
+          "Internal error has occurred, while creating the role."
+          ))
+      }
+  }
+
+  role = role.toJSON();
+  req.role = role;
+
+  next();
 };
 
-//Get Role by Id
-exports.getById = (req,res) => {
-  const id = req.params.id;
+exports.getAll = async (req, res, next) =>{
+  
+  var { name, status } = req.query;
 
-  Role.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving Role with id=" + id
+  var whereClause = new WhereBuilder()
+    .clause('name', name)
+    .clause('status', status).toJSON();
+
+  var getAllRole = await Role.findAll({
+    where:whereClause
+  });
+  
+  if (!getAllRole) {
+    return next(HTTPError(400, "Role not found"));
+  }
+  
+  req.roleList = getAllRole.map ( el => { return el.get({ plain: true }) } );
+
+  next();
+};
+
+exports.update = async (req, res, next) => {
+  
+  const { id } = req.params;
+  var { name, status } = req.body;
+  
+  whereClause = new WhereBuilder()
+    .clause('name', name)
+    .clause('status', status).toJSON();
+
+    try {
+      var updatedRole = await Role.update(whereClause,{
+        where: {
+          id: id
+        }
       });
-    });
+
+      if (!updatedRole) {
+        return next(HTTPError(500, "Role not updated"))
+      }
+    }catch (err) {
+      if(err["errors"]){
+        return next(HTTPError(500,
+          err["errors"][0]["message"]
+          ))
+      }
+      else{
+        return next(HTTPError(500,
+          "Internal error has occurred, while updating the role."
+          ))
+      }
+    }
+
+  req.updatedRole = updatedRole;
+  next();
+};
+
+exports.getById = async (req, res, next) => {
+
+  const { id } = req.params;
+
+  var foundRole = await Role.findByPk(id);
+  if (!foundRole) {
+    return next(HTTPError(500, "Role not found"))
+  }
+  req.roleList = foundRole;
+  next();
 }
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.roleList);
+};
+
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
+};

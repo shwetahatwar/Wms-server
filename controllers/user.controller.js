@@ -28,17 +28,17 @@ exports.create = async (req, res, next) => {
 
   foundRole = foundRole.toJSON();
 
-  var foundSite = await Site.findOne({
-    where: {
-      name: site
-    }
-  });
+  // var foundSite = await Site.findOne({
+  //   where: {
+  //     name: site
+  //   }
+  // });
 
-  if (!foundSite) {
-    return next(HTTPError(500, "User not created, inappropriate site"))
-  }
+  // if (!foundSite) {
+  //   return next(HTTPError(500, "User not created, inappropriate site"))
+  // }
 
-  foundSite = foundSite.toJSON();
+  // foundSite = foundSite.toJSON();
 
   try{
     var user = await User.create({
@@ -46,7 +46,7 @@ exports.create = async (req, res, next) => {
       password: password,
       status: "1",
       roleId: foundRole["id"],
-      siteId: foundSite["id"],
+      siteId: req.body.site,
       employeeId: employeeId,
       createdBy: req.user.username,
       updatedBy: req.user.username
@@ -71,7 +71,16 @@ exports.create = async (req, res, next) => {
     }
   }
   catch (err) {
-    return next(err);
+    if(err["errors"]){
+      return next(HTTPError(500,
+        err["errors"][0]["message"]
+        ))
+    }
+    else{
+      return next(HTTPError(500,
+         "Internal error has occurred, while creating the user."
+      ))
+    }     
   }
 
   next();
@@ -196,7 +205,7 @@ exports.findOne = async (req, res, next) => {
 
   var foundUser = await User.findByPk(id);
   if (!foundUser) {
-    return next(HTTPError(500, "User not updated"))
+    return next(HTTPError(500, "User not found"))
   }
   req.userList = foundUser;
   next();
@@ -216,15 +225,30 @@ exports.update = async (req, res, next) => {
     .clause('roleId', role)
     .clause('siteId', site).toJSON();
 
-  var updatedUser = await User.update(whereClause,{
-    where: {
-      id: id
-    }
-  });
+    try{
+      var updatedUser = await User.update(whereClause,{
+        where: {
+          id: id
+        }
+      });
 
-  if (!updatedUser) {
-    return next(HTTPError(500, "User not updated"))
-  }
+      if (!updatedUser) {
+        return next(HTTPError(500, "User not updated"))
+      }
+    }
+    catch (err) {
+      if(err["errors"]){
+        return next(HTTPError(500,
+          err["errors"][0]["message"]
+          ))
+      }
+      else{
+        return next(HTTPError(500,
+          "Internal error has occurred, while updating the user."
+          ))
+      }     
+    }
+
   req.updatedUser = updatedUser;
   next();
 };
