@@ -249,3 +249,68 @@ exports.findByDate = (req, res) => {
 		});
 	});
 };
+
+
+exports.findTransactionsBySearchQuery = async (req, res) => {
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  delete queryString['offset'];
+  delete queryString['limit'];
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+  	checkString = req.site
+  }
+  var responseData = [];
+  if(!req.query.partNumber){
+    req.query.partNumber="";
+  }
+  if(!req.query.barcodeSerial){
+    req.query.barcodeSerial="";
+  }
+  if(!req.query.transactionType){
+    req.query.transactionType="";
+  }
+  await IssueToProductionTransaction.findAll({
+    where: {
+      transactionType:{
+      	[Op.like]: '%'+req.query.transactionType+'%'
+      }
+    },
+    include: [{model: MaterialInward,
+      required: true,
+      where:{
+        partNumber: {
+          [Op.like]: '%'+req.query.partNumber+'%'
+        }, 
+        barcodeSerial: {
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        }, 
+        siteId: {
+          [Op.like]: checkString
+        }
+      }
+    },
+    {model: Project},
+    {model: User,
+      as: 'doneBy'},
+     ],
+     order: [
+    ['id', 'DESC'],
+    ]
+  }).then(data => {
+    
+    res.send(data);
+  }).catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving PutawayTransaction count."
+    });
+  });
+}
