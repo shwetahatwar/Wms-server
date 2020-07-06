@@ -2,6 +2,7 @@ const db = require("../models");
 const Site = db.sites;
 const Zone = db.zones;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Create and Save a new Zone
 exports.create = async (req, res,next) => {

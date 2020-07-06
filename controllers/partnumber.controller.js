@@ -1,44 +1,52 @@
 const db = require("../models");
 const PartNumber = db.partnumbers;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Create and Save a new PartNumber
-exports.create = (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.partNumber) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+exports.create =async (req, res,next) => {
+  var {partNumber,description,UOM,netWeight,netVolume} = req.body;
+  
+  if (!partNumber || !description) {
+    return next(HTTPError(500, "Part Number not created,partNumber or description field is empty"))
   }
 
-  const partNumber = {
-    partNumber: req.body.partNumber,
-    description: req.body.description,
-    UOM: req.body.UOM,
-    netWeight: req.body.netWeight,
-    netVolume: req.body.netVolume,
-    status:true,
-    createdBy:req.user.username,
-    updatedBy:req.user.username
-  };
-
-  
-  PartNumber.create(partNumber)
-    .then(data => {
-      res.send(data);
+  var partNumber;
+  try {
+      partNumber = await PartNumber.create({
+        partNumber: partNumber,
+        description: description,
+        UOM: UOM,
+        netWeight: netWeight,
+        netVolume: netVolume,
+        status:true,
+        createdBy:req.user.username,
+        updatedBy:req.user.username
     })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the PartNumber."
-      });
-    });
+    if (!partNumber) {
+      return next(HTTPError(500, "Part Number not created"))
+    }
+  } catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,
+        err["errors"][0]["message"]
+        ))
+    }
+    else{
+      return next(HTTPError(500,
+        "Internal error has occurred, while creating the part number."
+        ))
+    }
+  }
+
+  partNumber = partNumber.toJSON();
+  req.partNumber = partNumber;
+
+  next();
 };
 
 //Get All PartNumbers
-exports.getAll = (req,res) =>{
+exports.getAll =async (req,res,next) =>{
   var queryString = req.query;
   var offset = 0;
   var limit = 100;
@@ -49,66 +57,96 @@ exports.getAll = (req,res) =>{
   if(req.query.limit != null || req.query.limit != undefined){
     limit = parseInt(req.query.limit)
   }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  PartNumber.findAll({
-    where:req.query,
+
+  var {partNumber,description,UOM,status} = req.query;
+
+  var whereClause = new WhereBuilder()
+  .clause('partNumber', partNumber)
+  .clause('description', description)
+  .clause('UOM', UOM)
+  .clause('status', status).toJSON();
+
+  var getAllParts;
+  getAllParts = await PartNumber.findAll({
+    where:whereClause,
     order: [
     ['id', 'DESC'],
     ],
     offset:offset,
     limit:limit
-  })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving PartNumbers."
-    });
   });
+
+  if (!getAllParts) {
+    return next(HTTPError(400, "Part Numbers not found"));
+  }
+  
+  req.partsList = getAllParts.map ( el => { return el.get({ plain: true }) } );
+
+  next();
+  
+};
+
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.partsList);
 };
 
 //Update PartNumber by Id
-exports.update = (req, res) => {
+exports.update =async (req, res,next) => {
   const id = req.params.id;
 
-  PartNumber.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "PartNumber was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update PartNumber with id=${id}. Maybe PartNumber was not found or req.body is empty!`
-        });
+  var { partNumber, description , status , UOM , netWeight , netVolume } = req.body;
+  
+  whereClause = new WhereBuilder()
+  .clause('partNumber', partNumber)
+  .clause('description', description)
+  .clause('UOM', UOM)
+  .clause('netWeight', netWeight)
+  .clause('netVolume', netVolume)
+  .clause('status', status).toJSON();
+  console.log(whereClause);
+
+  var updatedPart;
+  try {
+    updatedPart = await PartNumber.update(whereClause,{
+      where: {
+        id: id
       }
-    })
-    .catch(err => {
-      console.log("err",err)
-      res.status(500).send({
-        message: "Error updating PartNumber with id=" + id
-      });
     });
+
+    if (!updatedPart) {
+      return next(HTTPError(500, "Part Number not updated"))
+    }
+  }catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,
+        err["errors"][0]["message"]
+        ))
+    }
+    else{
+      return next(HTTPError(500,
+        "Internal error has occurred, while updating the part number."
+        ))
+    }
+  }
+
+  req.updatedPart = updatedPart;
+  next();
+  
 };
 
 //Get PartNumber by Id
-exports.getById = (req,res) => {
+exports.getById =async (req,res,next) => {
   const id = req.params.id;
-
-  PartNumber.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving PartNumber with id=" + id
-      });
-    });
+  var partNumber = await PartNumber.findByPk(id);
+  if (!partNumber) {
+    return next(HTTPError(500, "Zone not found"))
+  }
+  req.partsList = partNumber;
+  next();
 }
 
 //search query

@@ -2,9 +2,10 @@ const db = require("../models");
 const MaterialInward = db.materialinwards;
 const InventoryTransaction = db.inventorytransactions;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Retrieve all Inventory Transaction from the database.
-exports.findAll = (req, res) => {
+exports.findAll =async (req, res,next) => {
  var queryString = req.query;
   var offset = 0;
   var limit = 100;
@@ -15,17 +16,24 @@ exports.findAll = (req, res) => {
   if(req.query.limit != null || req.query.limit != undefined){
     limit = parseInt(req.query.limit)
   }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  
-  console.log(offset);
-  console.log(limit);
+
   let checkString = '%'+req.site+'%'
   if(req.site){
     checkString = req.site
   }
-  InventoryTransaction.findAll({ 
-    where: req.query,
+
+  var {transactionTimestamp,performedBy,transactionType,materialInwardId,batchNumber} = req.query;
+
+   var whereClause = new WhereBuilder()
+  .clause('transactionTimestamp', transactionTimestamp)
+  .clause('performedBy', performedBy)
+  .clause('materialInwardId', materialInwardId)
+  .clause('batchNumber', batchNumber)
+  .clause('transactionType', transactionType).toJSON();
+  
+  var inventoryTransactions;
+  inventoryTransactions = await InventoryTransaction.findAll({ 
+    where:whereClause,
     include: [{model: MaterialInward,
       required:true,
       where: {
@@ -36,30 +44,29 @@ exports.findAll = (req, res) => {
     }],
     offset:offset,
     limit:limit 
-  })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving InventoryTransaction."
-      });
-    });
+  });
+
+  if (!inventoryTransactions) {
+    return next(HTTPError(400, "Inventory transactions not found"));
+  }
+  
+  req.inventoryTransactionsList = inventoryTransactions.map ( el => { return el.get({ plain: true }) } );
+
+  next();
+    
 };
 
 // Find a single Inventory Transaction with an id
-exports.findOne = (req, res) => {
+exports.findOne =async (req, res,next) => {
   const id = req.params.id;
-
-  InventoryTransaction.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving InventoryTransaction with id=" + id
-      });
-    });
+  var inventorytransaction = await InventoryTransaction.findByPk(id);
+  if (!inventorytransaction) {
+    return next(HTTPError(500, "Inventory transaction not found with id=" + id))
+  }
+  req.inventoryTransactionsList = inventorytransaction;
+  next();
 };
 
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.inventoryTransactionsList);
+};

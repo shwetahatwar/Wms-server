@@ -3,9 +3,11 @@ const MaterialInward = db.materialinwards;
 const Project = db.projects;
 const IssueToProductionTransaction = db.issuetoproductiontransactions;
 const User = db.users;
+const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Retrieve all Issue To ProductionTransaction from the database.
-exports.findAll = (req, res) => {
+exports.findAll =async (req, res,next) => {
 	var queryString = req.query;
 	var offset = 0;
 	var limit = 100;
@@ -16,58 +18,63 @@ exports.findAll = (req, res) => {
 	if(req.query.limit != null || req.query.limit != undefined){
 		limit = parseInt(req.query.limit)
 	}
-	delete queryString['offset'];
-	delete queryString['limit'];
-
-	console.log(offset);
-	console.log(limit);
+	
 	let checkString = '%'+req.site+'%'
 	if(req.site){
 		checkString = req.site
 	}
 
-	IssueToProductionTransaction.findAll({ 
-		where: req.query,
-		include: [
-		{model: MaterialInward,
-			required:true,
-			where: {
-				siteId: {
-					[Op.like]: checkString
-				}
+	var {transactionTimestamp,performedBy,transactionType,quantity,remarks,
+		materialInwardId, projectId} = req.query;
+
+		var whereClause = new WhereBuilder()
+		.clause('transactionTimestamp', transactionTimestamp)
+		.clause('performedBy', performedBy)
+		.clause('materialInwardId', materialInwardId)
+		.clause('quantity', quantity)
+		.clause('projectId', projectId)
+		.clause('remarks', remarks)
+		.clause('transactionType', transactionType).toJSON();
+  
+		var issueToProductionTransactions;
+		issueToProductionTransactions = await IssueToProductionTransaction.findAll({ 
+			where:whereClause,
+			include: [
+			{model: MaterialInward,
+				required:true,
+				where: {
+					siteId: {
+						[Op.like]: checkString
+					}
+				},
 			},
-		},
-		{model: Project},
-		{model: User,
-			as: 'doneBy'},
-			],
-			offset:offset,
-			limit:limit 
-		})
-	.then(data => {
-		res.send(data);
-	})
-	.catch(err => {
-		res.status(500).send({
-			message:
-			err.message || "Some error occurred while retrieving IssueToProductionTransaction."
-		});
-	});
+			{model: Project},
+			{model: User,
+				as: 'doneBy'},
+				],
+				offset:offset,
+				limit:limit 
+			});
+
+  if (!issueToProductionTransactions) {
+    return next(HTTPError(400, "Issue To Production transactions not found"));
+  }
+  
+  req.issueToProductionTransactionsList = issueToProductionTransactions.map ( el => { return el.get({ plain: true }) } );
+
+  next();
+    
 };
 
 // Find a single IssueToProductionTransaction with an id
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res,next) => {
 	const id = req.params.id;
-
-	IssueToProductionTransaction.findByPk(id)
-	.then(data => {
-		res.send(data);
-	})
-	.catch(err => {
-		res.status(500).send({
-			message: "Error retrieving IssueToProductionTransaction with id=" + id
-		});
-	});
+	var inventorytransaction = await IssueToProductionTransaction.findByPk(id);
+	if (!inventorytransaction) {
+		return next(HTTPError(500, "Issue To Production transaction not found with id=" + id))
+	}
+	req.issueToProductionTransactionsList = inventorytransaction;
+	next();
 };
 
 //Issue to Production API
@@ -88,28 +95,6 @@ exports.issueToProduction = async (req, res) => {
 		await IssueToProductionTransaction.create(stock)
 		.then(async data => {
 			issueToProductionData.push(data);
-			// let updateData = {
-			// 	'status':false
-			// }
-			// await  MaterialInward.update(updateData, {
-			// 	where: {
-			// 		id: req.body[i]["materialInwardId"]
-			// 	}
-			// }).then(num => {
-			// 	if (num == 1) {
-
-			// 	} else {
-			// 		res.send({
-			// 			message: `Some error occurred while updating MaterialInward!`
-			// 		});
-			// 	}
-			// })
-			// .catch(err => {
-			// 	res.status(500).send({
-			// 		message: "Some error occurred while updating MaterialInward"
-			// 	});
-			// })
-
 		})
 		.catch(err => {
 			res.status(500).send({
@@ -313,4 +298,8 @@ exports.findTransactionsBySearchQuery = async (req, res) => {
       err.message || "Some error occurred while retrieving PutawayTransaction count."
     });
   });
-}
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.issueToProductionTransactionsList);
+};
