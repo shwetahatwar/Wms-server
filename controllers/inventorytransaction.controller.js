@@ -5,7 +5,8 @@ const Op = db.Sequelize.Op;
 
 // Retrieve all Inventory Transaction from the database.
 exports.findAll = (req, res) => {
- var queryString = req.query;
+
+  var queryString = req.query;
   var offset = 0;
   var limit = 100;
 
@@ -26,7 +27,8 @@ exports.findAll = (req, res) => {
   }
   InventoryTransaction.findAll({ 
     where: req.query,
-    include: [{model: MaterialInward,
+    include: [{
+      model: MaterialInward,
       required:true,
       where: {
         siteId: {

@@ -46,3 +46,5 @@
 {"message":"::1 - - [01/Jul/2020:05:53:19 +0000] \"GET /access HTTP/1.1\" 200 2655 \"-\" \"PostmanRuntime/7.26.1\"\n","level":"info"}
 {"message":"::1 - - [01/Jul/2020:05:53:28 +0000] \"PUT /access/20 HTTP/1.1\" 200 21 \"-\" \"PostmanRuntime/7.26.1\"\n","level":"info"}
 {"message":"::1 - - [01/Jul/2020:05:53:31 +0000] \"GET /access HTTP/1.1\" 200 2655 \"-\" \"PostmanRuntime/7.26.1\"\n","level":"info"}
+{"message":"::1 - - [01/Jul/2020:05:59:00 +0000] \"PUT /inventorytransactions HTTP/1.1\" 404 160 \"-\" \"PostmanRuntime/7.26.1\"\n","level":"info"}
+{"message":"::1 - - [01/Jul/2020:05:59:03 +0000] \"GET /inventorytransactions HTTP/1.1\" 200 2 \"-\" \"PostmanRuntime/7.26.1\"\n","level":"info"}
