@@ -3,71 +3,78 @@ const MaterialInward = db.materialinwards;
 const Project = db.projects;
 const IssueToProductionTransaction = db.issuetoproductiontransactions;
 const User = db.users;
+const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Retrieve all Issue To ProductionTransaction from the database.
-exports.findAll = (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
+exports.findAll =async (req, res,next) => {
+	var queryString = req.query;
+	var offset = 0;
+	var limit = 100;
 
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
+	if(req.query.offset != null || req.query.offset != undefined){
+		offset = parseInt(req.query.offset)
+	}
+	if(req.query.limit != null || req.query.limit != undefined){
+		limit = parseInt(req.query.limit)
+	}
+	
+	let checkString = '%'+req.site+'%'
+	if(req.site){
+		checkString = req.site
+	}
+
+	var {transactionTimestamp,performedBy,transactionType,quantity,remarks,
+		materialInwardId, projectId} = req.query;
+
+		var whereClause = new WhereBuilder()
+		.clause('transactionTimestamp', transactionTimestamp)
+		.clause('performedBy', performedBy)
+		.clause('materialInwardId', materialInwardId)
+		.clause('quantity', quantity)
+		.clause('projectId', projectId)
+		.clause('remarks', remarks)
+		.clause('transactionType', transactionType).toJSON();
   
-  console.log(offset);
-  console.log(limit);
-  let checkString = '%'+req.site+'%'
-  if(req.site){
-    checkString = req.site
+		var issueToProductionTransactions;
+		issueToProductionTransactions = await IssueToProductionTransaction.findAll({ 
+			where:whereClause,
+			include: [
+			{model: MaterialInward,
+				required:true,
+				where: {
+					siteId: {
+						[Op.like]: checkString
+					}
+				},
+			},
+			{model: Project},
+			{model: User,
+				as: 'doneBy'},
+				],
+				offset:offset,
+				limit:limit 
+			});
+
+  if (!issueToProductionTransactions) {
+    return next(HTTPError(400, "Issue To Production transactions not found"));
   }
   
-  IssueToProductionTransaction.findAll({ 
-    where: req.query,
-    include: [
-    {model: MaterialInward,
-      required:true,
-      where: {
-        siteId: {
-          [Op.like]: checkString
-        }
-      },
-    },
-    {model: Project},
-    {model: User,
-      as: 'doneBy'},
-     ],
-    offset:offset,
-    limit:limit 
-  })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving IssueToProductionTransaction."
-    });
-  });
+  req.issueToProductionTransactionsList = issueToProductionTransactions.map ( el => { return el.get({ plain: true }) } );
+
+  next();
+    
 };
 
 // Find a single IssueToProductionTransaction with an id
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res,next) => {
 	const id = req.params.id;
-
-	IssueToProductionTransaction.findByPk(id)
-	.then(data => {
-		res.send(data);
-	})
-	.catch(err => {
-		res.status(500).send({
-			message: "Error retrieving IssueToProductionTransaction with id=" + id
-		});
-	});
+	var inventorytransaction = await IssueToProductionTransaction.findByPk(id);
+	if (!inventorytransaction) {
+		return next(HTTPError(500, "Issue To Production transaction not found with id=" + id))
+	}
+	req.issueToProductionTransactionsList = inventorytransaction;
+	next();
 };
 
 //Issue to Production API
@@ -78,7 +85,8 @@ exports.issueToProduction = async (req, res) => {
 			transactionTimestamp: Date.now(),
 			materialInwardId:req.body[i]["materialInwardId"],
 			projectId: req.body[i]["projectId"],
-			performedBy:req.body[i]["userId"],
+			performedBy:req.body[i]["userId"],			
+			quantity:req.body[i]["quantity"],
 			transactionType :"Issue To Production",
 			createdBy:req.user.username,
 			updatedBy:req.user.username
@@ -87,28 +95,6 @@ exports.issueToProduction = async (req, res) => {
 		await IssueToProductionTransaction.create(stock)
 		.then(async data => {
 			issueToProductionData.push(data);
-			let updateData = {
-				'status':false
-			}
-			await  MaterialInward.update(updateData, {
-				where: {
-					id: req.body[i]["materialInwardId"]
-				}
-			}).then(num => {
-				if (num == 1) {
-
-				} else {
-					res.send({
-						message: `Some error occurred while updating MaterialInward!`
-					});
-				}
-			})
-			.catch(err => {
-				res.status(500).send({
-					message: "Some error occurred while updating MaterialInward"
-				});
-			})
-
 		})
 		.catch(err => {
 			res.status(500).send({
@@ -130,15 +116,36 @@ exports.returnFromProduction = async (req, res) => {
 			performedBy:req.body[i]["userId"],
 			transactionType :"Return From Production",
 			remarks:req.body[i]["remarks"],
+			quantity:req.body[i]["quantity"],
 			createdBy:req.user.username,
 			updatedBy:req.user.username
 		};
-
+		let updateQuantity=0;
+		await IssueToProductionTransaction.findAll({
+			where: {
+				materialInwardId:req.body[i]["materialInwardId"],
+				projectId: req.body[i]["projectId"]
+			},
+			include: [{
+				model: MaterialInward
+			}],
+			order: [
+			['id', 'DESC'],
+			] 
+		})
+		.then(data => {
+			updateQuantity = parseInt(data[0]["dataValues"]["materialinward"]["eachPackQuantity"])+parseInt(req.body[i]["quantity"]);
+			console.log(updateQuantity);
+		})
+		.catch(err => {
+			console.log(err.message)
+		});
 		await IssueToProductionTransaction.create(stock)
 		.then(async data => {
 			returnFromProductionData.push(data);
 			let updateData = {
-				'status':true
+				'status':true,
+				'eachPackQuantity':updateQuantity,
 			}
 			await  MaterialInward.update(updateData, {
 				where: {
@@ -172,10 +179,67 @@ exports.returnFromProduction = async (req, res) => {
 
 // Retrieve all Issue To Production Transaction by date from the database.
 exports.findByDate = (req, res) => {
+	var queryString = req.query;
+	var offset = 0;
+	var limit = 100;
+
+	if(req.query.offset != null || req.query.offset != undefined){
+		offset = parseInt(req.query.offset)
+	}
+	if(req.query.limit != null || req.query.limit != undefined){
+		limit = parseInt(req.query.limit)
+	}
+	delete queryString['offset'];
+	delete queryString['limit'];
+
+	console.log(offset);
+	console.log(limit);
+	let checkString = '%'+req.site+'%'
+	if(req.site){
+		checkString = req.site
+	}
+	IssueToProductionTransaction.findAll({ 
+		where: {
+			transactionTimestamp: {
+				[Op.gte]: parseInt(req.query.createdAtStart),
+				[Op.lt]: parseInt(req.query.createdAtEnd),
+			}
+		},
+		include: [
+		{model: MaterialInward,
+			required:true,
+			where: {
+				siteId: {
+					[Op.like]: checkString
+				}
+			},
+		},
+		{model: Project},
+		{model: User,
+			as: 'doneBy'},
+			],
+			order: [
+			['id', 'DESC'],
+			],
+			offset:offset,
+			limit:limit 
+		})
+	.then(data => {
+		res.send(data);
+	})
+	.catch(err => {
+		res.status(500).send({
+			message:
+			err.message || "Some error occurred while retrieving IssueToProductionTransaction."
+		});
+	});
+};
+
+
+exports.findTransactionsBySearchQuery = async (req, res) => {
   var queryString = req.query;
   var offset = 0;
   var limit = 100;
-
   if(req.query.offset != null || req.query.offset != undefined){
     offset = parseInt(req.query.offset)
   }
@@ -184,43 +248,58 @@ exports.findByDate = (req, res) => {
   }
   delete queryString['offset'];
   delete queryString['limit'];
-  
-  console.log(offset);
-  console.log(limit);
   let checkString = '%'+req.site+'%'
   if(req.site){
-    checkString = req.site
+  	checkString = req.site
   }
-  IssueToProductionTransaction.findAll({ 
-  	where: {
-  		transactionTimestamp: {
-  			[Op.gte]: parseInt(req.query.createdAtStart),
-  			[Op.lt]: parseInt(req.query.createdAtEnd),
-  		}
-  	},
-    include: [
-    {model: MaterialInward,
-      required:true,
-      where: {
+  var responseData = [];
+  if(!req.query.partNumber){
+    req.query.partNumber="";
+  }
+  if(!req.query.barcodeSerial){
+    req.query.barcodeSerial="";
+  }
+  if(!req.query.transactionType){
+    req.query.transactionType="";
+  }
+  await IssueToProductionTransaction.findAll({
+    where: {
+      transactionType:{
+      	[Op.like]: '%'+req.query.transactionType+'%'
+      }
+    },
+    include: [{model: MaterialInward,
+      required: true,
+      where:{
+        partNumber: {
+          [Op.like]: '%'+req.query.partNumber+'%'
+        }, 
+        barcodeSerial: {
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        }, 
         siteId: {
           [Op.like]: checkString
         }
-      },
+      }
     },
     {model: Project},
     {model: User,
       as: 'doneBy'},
      ],
-    offset:offset,
-    limit:limit 
-  })
-  .then(data => {
+     order: [
+    ['id', 'DESC'],
+    ]
+  }).then(data => {
+    
     res.send(data);
-  })
-  .catch(err => {
+  }).catch(err => {
     res.status(500).send({
       message:
-      err.message || "Some error occurred while retrieving IssueToProductionTransaction."
+      err.message || "Some error occurred while retrieving PutawayTransaction count."
     });
   });
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.issueToProductionTransactionsList);
 };

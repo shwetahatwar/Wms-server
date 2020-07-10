@@ -4,7 +4,12 @@ var shelfs = require('../controllers/shelf.controller');
 var users = require('../controllers/user.controller');
 
 router.post("/", users.loginRequired,shelfs.create);
-router.get("/", users.loginRequired,shelfs.getAll);
+
+router.get("/", users.loginRequired,
+	shelfs.getAll,
+	shelfs.sendFindResponse
+	);
+
 router.get("/:id", users.loginRequired,shelfs.getById);
 router.put('/:id', users.loginRequired,shelfs.update);
 router.get('/get/findShelfsBySearchQuery', users.loginRequired,shelfs.findShelfsBySearchQuery);

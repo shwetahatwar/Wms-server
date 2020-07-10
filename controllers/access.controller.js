@@ -11,13 +11,18 @@ exports.create = async (req, res, next) => {
     return next(HTTPError(500, "Access not created, invalid url or httpMethod"))
   }
 
-  var createdAccess = await Access.create({
-    url: url,
-    httpMethod: httpMethod
-  })
+  try {
+    var createdAccess = await Access.create({
+      url: url,
+      httpMethod: httpMethod
+    })
 
-  if (!createdAccess) {
-    return next(HTTPError(500, "Access not created"))
+    if (!createdAccess) {
+      return next(HTTPError(500, "Access not created"))
+    }
+  } 
+  catch (err) {
+    return next(HTTPError(500, err["errors"][0]["message"]))
   }
 
   createdAccess = createdAccess.toJSON();
@@ -54,15 +59,20 @@ exports.update = async (req, res, next) => {
     .clause('url', url)
     .clause('httpMethod', httpMethod).toJSON();
 
-  var updatedAccess = await Access.update(whereClause,{
-    where: {
-      id: id
+    try{
+      var updatedAccess = await Access.update(whereClause,{
+        where: {
+          id: id
+        }
+      });
+      if (!updatedAccess) {
+        return next(HTTPError(500, "Access not updated"))
+      }
     }
-  });
+    catch (err) {
+      return next(HTTPError(500, err["errors"][0]["message"]))
+    }
 
-  if (!updatedAccess) {
-    return next(HTTPError(500, "Access not updated"))
-  }
   req.updatedAccess = updatedAccess;
   next();
 };
@@ -73,7 +83,7 @@ exports.getById = async (req, res, next) => {
 
   var foundAccess = await Access.findByPk(id);
   if (!foundAccess) {
-    return next(HTTPError(500, "Access not updated"))
+    return next(HTTPError(500, "Access not found"))
   }
   req.accessList = foundAccess;
   next();

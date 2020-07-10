@@ -9,6 +9,8 @@ const QCTransaction = db.qctransactions;
 const StockTransaction = db.stocktransactions;
 const Sequelize = require("sequelize");
 const Picklist = db.picklists;
+const IssueToProductionTransaction = db.issuetoproductiontransactions;
+
 // Create and Save a new MaterialInward
 exports.create = async (req, res) => {
   console.log(req.body);
@@ -172,6 +174,167 @@ res.send(dataArray);
 
 };
 
+exports.bulkUpload = async (req,res)  =>{
+  
+  if (req.body.length==0) {
+    res.status(400).send({
+      message: "Content can not be empty!"
+    });
+    return;
+  }
+  var dataArray = [];
+  console.log(req.body.length);
+  for(var a=0;a<req.body.length;a++){
+  const partNumbersId = req.body[a]["partNumberId"];
+  var materialInwardIds;  
+  // await PartNumber.findAll({
+  //   where: {id: partNumbersId}
+  // })
+  // .then(data => {
+  //   if(data.length != 0){
+  //     partsBarcode = data[0]["dataValues"]["partNumber"];
+  //     netWeightOfPacks = data[0]["dataValues"]["netWeight"];
+  //   }
+  //   else{
+  //     res.status(400).send({
+  //       message: "Part Number not found in database!"
+  //     });
+  //   }
+  // });
+  // netWeightOfPacks = netWeightOfPacks * parseInt(req.body.eachPackQuantity);
+  // console.log("Part number:",partsBarcode,netWeightOfPacks);
+  if(req.body[a]["matched"]){
+  for(var i=0; i < req.body[a]["noOfPacks"]; i++){
+    console.log(req.body[a]["noOfPacks"]);
+    // if(partsBarcode != null && partsBarcode !=undefined){
+      var serialNumberId;
+      await MaterialInward.findAll({
+        limit:1,
+        offset:0,
+        order: [
+        ['id', 'DESC'],
+        ],
+      })
+      .then(data => {
+        console.log("Data On line 43",data);
+        if(data[0] != null || data[0] != undefined){
+          serialNumberId = data[0]["dataValues"]["barcodeSerial"];
+          serialNumberId = (parseInt(serialNumberId) + 1).toString();
+          serialNumberId = '' + serialNumberId;
+          console.log("Line 50 Serial Number", serialNumberId);
+          console.log("Line 60",serialNumberId.toString().length)
+          if(serialNumberId.toString().length > 10){
+            serialNumberId = serialNumberId.substring(1);
+          }
+        }
+        else{
+          serialNumberId ="1111111111";
+        }
+      })
+      .catch(err=>{
+        serialNumberId ="1111111111";
+      });
+      if(!req.body.siteId){
+        if(req.site){
+        req.body.siteId = req.site
+      }
+      else{
+        req.body.siteId = req.siteId
+      }
+      }
+      const materialinward = {
+        partNumberId: req.body[a]["partNumberId"],
+        // shelfId: req.body.shelfId,
+        batchNumber: req.body[a]["batchNumber"],
+        barcodeSerial: serialNumberId,
+        partNumber:req.body[a]["partNumber"],
+        eachPackQuantity: req.body[a]["eachPackQuantity"],
+        invoiceReferenceNumber: req.body[a]["invoice"],
+        inwardDate: Date.now(),
+        QCStatus: 0,
+        status:1,        
+        QCRemarks: "NA",
+        siteId : req.body.siteId,
+        materialStatus : "NA",
+        createdBy:req.user.username,
+        updatedBy:req.user.username
+      };
+      console.log("Line 74",materialinward);
+    // Save MaterialInward in the database
+    await MaterialInward.create(materialinward)
+    .then(async data => {
+      dataArray.push(data);
+      materialInwardIds = data["id"];
+      const putwayTransaction = {
+        transactionTimestamp: Date.now(),
+        performedBy:req.user.username,
+        materialInwardId:materialInwardIds,
+        currentLocationId :req.body[a]["shelfId"], 
+        createdBy:req.user.username,
+        updatedBy:req.user.username
+      }
+      await PutawayTransaction.create(putwayTransaction)
+      .then(data => {
+      })
+      .catch(err => {
+        console.log(err);
+      });
+      // if(req.body.shelfId != null && req.body.shelfId != undefined){
+      //   let prevCapacityOfLocation = 0;
+      //   await Shelf.findAll({
+      //     where: {id : req.body.shelfId}
+      //   })
+      //   .then(data => {
+      //     prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
+      //   });
+      //   let netWeightOfPacksInTons = netWeightOfPacks/1000;
+      //   netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
+      //   let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
+      //   updateCapacity = updateCapacity;
+      //   var updatedData = {
+      //     'loadedCapacity': updateCapacity
+      //   };
+      //   await Shelf.update(updatedData, {
+      //     where:{
+      //       id:req.body.shelfId
+      //     }
+      //   })
+      //   .then(data => {
+      //   })
+      //   .catch(err => {
+      //     console.log(err);
+      //   });
+      // }
+    // MaterialInward transaction entry in the database
+    const inventoryTransact = {
+      transactionTimestamp: Date.now(),
+      performedBy:req.user.username,
+      transactionType:"Inward",
+      materialInwardId:materialInwardIds,
+      batchNumber: req.body[a]["batchNumber"],
+      createdBy:req.user.username,
+      updatedBy:req.user.username
+    }
+    await InventoryTransaction.create(inventoryTransact)
+    .then(data => {
+      console.log("data on line 94");
+    })
+    .catch(err => {
+      console.log(err);
+    });
+    
+  }).catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while creating the MaterialInward."
+    });
+  });
+}
+}
+}
+res.send(dataArray);
+
+};
 // Retrieve all MaterialInwards from the database.
 exports.findAll = (req, res) => {
   var queryString = req.query;
@@ -1724,6 +1887,40 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
         'transactionType':"Material QC Check",
         'materialInwardId':data[i]["dataValues"]["materialInwardId"],
         'performedBy':data[i]["dataValues"]["performedBy"]
+      }
+      responseData.push(singleJson);
+    }
+  })
+  .catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving InventoryTransaction."
+    });
+  });
+
+    await IssueToProductionTransaction.findAll({
+    include: [{model: MaterialInward,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
+    }],
+    order: [
+    ['updatedAt', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit, 
+  })
+  .then(data => {
+    for(var i=0;i<data.length;i++){
+      let singleJson = {
+        'transactionTimestamp': data[i]["dataValues"]["createdAt"],
+        'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
+        'transactionType':data[i]["dataValues"]["transactionType"],
+        'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'performedBy':data[i]["dataValues"]["updatedBy"]
       }
       responseData.push(singleJson);
     }

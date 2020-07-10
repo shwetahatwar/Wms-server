@@ -4,16 +4,75 @@ const Rack = db.racks;
 const Shelf = db.shelfs;
 const Site = db.sites;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
+
+
+//Get All Shelfs
+exports.getAll =async (req,res,next) =>{
+  var queryString = req.query;
+  var offset = 0;
+  var limit = 100;
+  console.log("Line 51", req.query);
+  if(req.query.offset != null || req.query.offset != undefined){
+    offset = parseInt(req.query.offset)
+  }
+  if(req.query.limit != null || req.query.limit != undefined){
+    limit = parseInt(req.query.limit)
+  }
+  var {description,rackId,barcodeSerial,name,status} = req.query;
+
+  var whereClause = new WhereBuilder()
+  .clause('name', name)
+  .clause('rackId', rackId)
+  .clause('barcodeSerial',barcodeSerial)
+  .clause('description', description)
+  .clause('status', status).toJSON();
+
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
+  var getAllShelves;
+  getAllShelves = await Shelf.findAll({
+    where:req.query,
+    include:[
+    {
+      model : Rack,
+      include:[{
+        model:Zone,
+        required:true,
+        where: {
+          siteId: {
+            [Op.like]: checkString
+          }
+        },
+      }]
+    }
+    ],
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  });
+
+  if (!getAllShelves) {
+    return next(HTTPError(400, "Shelfs not found"));
+  }
+  
+  req.shelfsList = getAllShelves.map ( el => { return el.get({ plain: true }) } );
+
+  next();
+};
 
 // Create and Save a new Shelf
 exports.create = async (req, res) => {
   console.log(req.body);
   // Validate request
-  if (!req.body.name) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+  var { name,rackId,description} = req.body;
+  
+  if (!name || !rackId || !description) {
+    return next(HTTPError(500, "Shelf not created,name or rack or description field is empty"))
   }
   
   var serialNumber;
@@ -173,56 +232,6 @@ exports.create = async (req, res) => {
   });
 };
 
-//Get All Shelfs
-exports.getAll = (req,res) =>{
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  console.log("Line 51", req.query);
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  let checkString = '%'+req.site+'%'
-  if(req.site){
-    checkString = req.site
-  }
-  Shelf.findAll({
-    where:req.query,
-    include:[
-    {
-      model : Rack,
-      include:[{
-        model:Zone,
-        required:true,
-        where: {
-          siteId: {
-            [Op.like]: checkString
-          }
-        },
-      }]
-    }
-    ],
-    order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
-  })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Shelfs."
-    });
-  });
-};
 
 //Update Shelf by Id
 exports.update = (req, res) => {
@@ -643,3 +652,11 @@ async function createShelf(weight,volume,responseDataArray,rackId,siteId,zoneId,
   });
 }
 
+
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.shelfsList);
+};

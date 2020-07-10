@@ -3,41 +3,49 @@ const Zone = db.zones;
 const Rack = db.racks;
 const Site = db.sites;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Create and Save a new Rack
-exports.create = async (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.name) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+exports.create = async (req, res,next) => {
+  var { name,zoneId} = req.body;
+  
+  if (!name || !zoneId) {
+    return next(HTTPError(500, "Rack not created,name or zone field is empty"))
   }
 
-  const rack = {
-    name: req.body.name,
-    status:true,
-    zoneId: req.body.zoneId,
-    createdBy:req.user.username,
-    updatedBy:req.user.username
-  };
+  var rack;
+  try {
+      rack = await Rack.create({
+        name: name,
+        status:true,
+        zoneId:zoneId,
+        createdBy:req.user.username,
+        updatedBy:req.user.username
+    })
+    if (!rack) {
+      return next(HTTPError(500, "Rack not created"))
+    }
+  } catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,
+        err["errors"][0]["message"]
+        ))
+    }
+    else{
+      return next(HTTPError(500,
+        "Internal error has occurred, while creating the rack."
+        ))
+    }
+  }
 
-  
-  Rack.create(rack)
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err["errors"][0]["message"] || "Some error occurred while creating the Rack."
-    });
-  });
+  rack = rack.toJSON();
+  req.rack = rack;
+
+  next();
 };
 
 //Get All Rack
-exports.getAll = (req,res) =>{
+exports.getAll =async (req,res,next) =>{
   var queryString = req.query;
   var offset = 0;
   var limit = 100;
@@ -48,25 +56,33 @@ exports.getAll = (req,res) =>{
   if(req.query.limit != null || req.query.limit != undefined){
     limit = parseInt(req.query.limit)
   }
-  delete queryString['offset'];
-  delete queryString['limit'];
+  var {siteId,zoneId, name,status} = req.query;
+
+  var whereClause = new WhereBuilder()
+  .clause('siteId', siteId)
+  .clause('name', name)
+  .clause('zoneId', zoneId)
+  .clause('status', status).toJSON();
+
   let checkString = '%'+req.site+'%'
   if(req.site){
     checkString = req.site
   }
-  Rack.findAll({
-    where:req.query,
+  var getAllRacks;
+  getAllRacks = await Rack.findAll({
+    where:whereClause,
     include:[
     {
       model:Zone,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
       include:[{
         model:Site,
-        required:true,
-        where: {
-          id: {
-            [Op.like]: checkString
-          }
-        }}]
+        }]
       }
       ],
       order: [
@@ -74,57 +90,69 @@ exports.getAll = (req,res) =>{
       ],
       offset:offset,
       limit:limit
-    })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Rack."
     });
-  });
+
+  if (!getAllRacks) {
+    return next(HTTPError(400, "Racks not found"));
+  }
+  
+  req.racksList = getAllRacks.map ( el => { return el.get({ plain: true }) } );
+
+  next();
 };
 
 //Update Rack by Id
-exports.update = (req, res) => {
-  const id = req.params.id;
+exports.update =async (req, res,next) => {
+   const id = req.params.id;
 
-  Rack.update(req.body, {
-    where: req.params
-  })
-  .then(num => {
-    if (num == 1) {
-      res.send({
-        message: "Rack was updated successfully."
-      });
-    } else {
-      res.send({
-        message: `Cannot update Rack with id=${id}. Maybe Rack was not found or req.body is empty!`
-      });
-    }
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error updating Rack with id=" + id
+  var { name, zoneId ,status } = req.body;
+  
+  whereClause = new WhereBuilder()
+  .clause('name', name)
+  .clause('zoneId', zoneId)
+  .clause('status', status).toJSON();
+  console.log(whereClause);
+
+  var updatedRack;
+  try {
+    updatedRack = await Rack.update(whereClause,{
+      where: {
+        id: id
+      }
     });
-  });
+
+    if (!updatedRack) {
+      return next(HTTPError(500, "Rack not updated"))
+    }
+  }catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,
+        err["errors"][0]["message"]
+        ))
+    }
+    else{
+      return next(HTTPError(500,
+        "Internal error has occurred, while updating the rack."
+        ))
+    }
+  }
+
+  req.updatedRack = updatedRack;
+  next();
+
 };
 
 //Get Rack by Id
-exports.getById = (req,res) => {
+exports.getById =async (req,res,next) => {
   const id = req.params.id;
 
-  Rack.findByPk(id)
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error retrieving Rack with id=" + id
-    });
-  });
-}
+  var rack = await Zone.findByPk(id);
+  if (!rack) {
+    return next(HTTPError(500, "Rack not found"))
+  }
+  req.racksList = rack;
+  next();
+};
 
 // get count of all Racks whose status =1 
 exports.countOfRacks = (req, res) => {
@@ -141,14 +169,15 @@ exports.countOfRacks = (req, res) => {
     include:[
     {
       model:Zone,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
       include:[{
         model:Site,
-        required:true,
-        where: {
-          id: {
-            [Op.like]: checkString
-          }
-        }}]
+        }]
       }
       ]
     })
@@ -182,14 +211,15 @@ exports.countOfRacksByZoneId = (req, res) => {
     include:[
     {
       model:Zone,
+      required:true,
+      where: {
+        siteId: {
+          [Op.like]: checkString
+        }
+      },
       include:[{
         model:Site,
-        required:true,
-        where: {
-          id: {
-            [Op.like]: checkString
-          }
-        }}]
+        }]
       }
       ]
     })
@@ -255,7 +285,10 @@ exports.findRacksBySearchQuery = (req, res) => {
       where: {
         name: {
           [Op.like]: '%'+zone+'%'
-        }
+        },
+        siteId: {
+            [Op.like]: checkString
+          }
       },
       include:[{
         model:Site,
@@ -263,9 +296,6 @@ exports.findRacksBySearchQuery = (req, res) => {
         where: {
           name: {
             [Op.like]: '%'+site+'%'
-          },
-          id: {
-            [Op.like]: checkString
           }
         },
       }]}],
@@ -296,6 +326,9 @@ exports.findRacksBySearchQuery = (req, res) => {
         where: {
           name: {
             [Op.like]: '%'+zone+'%'
+          },
+          siteId: {
+            [Op.like]: checkString
           }
         },
         include:[{
@@ -304,9 +337,6 @@ exports.findRacksBySearchQuery = (req, res) => {
           where: {
             name: {
               [Op.like]: '%'+site+'%'
-            },
-            id: {
-              [Op.like]: checkString
             }
           },
         }]}],
@@ -333,4 +363,12 @@ exports.findRacksBySearchQuery = (req, res) => {
       err.message || "Some error occurred while retrieving Locations."
     });
   });
+};
+
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.racksList);
 };

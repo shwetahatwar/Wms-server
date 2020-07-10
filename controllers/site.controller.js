@@ -1,91 +1,125 @@
 const db = require("../models");
 const Site = db.sites;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Create and Save a new Site
-exports.create = (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.name) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+exports.create = async (req, res, next) => {
+  var { name} = req.body;
+  
+  if (!name) {
+    return next(HTTPError(500, "Site not created,name field is empty"))
+  }
+  var site;
+  try {
+      site = await Site.create({
+      name: name,
+      status:true,
+      createdBy:req.user.username,
+      updatedBy:req.user.username
+    })
+    if (!site) {
+      return next(HTTPError(500, "Site not created"))
+    }
+  } catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,
+        err["errors"][0]["message"]
+        ))
+    }
+    else{
+      return next(HTTPError(500,
+        "Internal error has occurred, while creating the site."
+        ))
+    }
   }
 
-  const site = {
-    name: req.body.name,
-    status:true,
-    createdBy:req.user.username,
-    updatedBy:req.user.username
-  };
+  site = site.toJSON();
+  req.site = site;
 
+  next();
+};
+
+exports.getAll = async (req, res, next) =>{
+  if(req.site){
+    req.query.id= req.site;
+  }
+
+  var {id, name, status } = req.query;
+
+  var whereClause = new WhereBuilder()
+  .clause('id', id)
+  .clause('name', name)
+  .clause('status', status).toJSON();
+  var getAllSites;
+  getAllSites = await Site.findAll({
+    where:whereClause,
+    order: [
+    ['id', 'DESC'],
+    ],
+  });
   
-  Site.create(site)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the site."
-      });
-    });
+  if (!getAllSites) {
+    return next(HTTPError(400, "Site not found"));
+  }
+  
+  req.siteList = getAllSites.map ( el => { return el.get({ plain: true }) } );
+
+  next();
 };
 
-//Get All Sites
-exports.getAll = (req,res) =>{
-  console.log("Line 37 IN");
-  Site.findAll({
-    where:req.query
-  })
-  .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving Sites."
-      });
-    });
-};
-
-//Update Site by Id
-exports.update = (req, res) => {
-  const id = req.params.id;
-
-  Site.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "Site was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update Site with id=${id}. Maybe Site was not found or req.body is empty!`
-        });
+exports.update = async (req, res, next) => {
+  
+  const { id } = req.params;
+  var { name, status } = req.body;
+  
+  whereClause = new WhereBuilder()
+  .clause('name', name)
+  .clause('status', status).toJSON();
+   var updatedSite;
+  try {
+     updatedSite = await Site.update(whereClause,{
+      where: {
+        id: id
       }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error updating Site with id=" + id
-      });
     });
+
+    if (!updatedSite) {
+      return next(HTTPError(500, "Site not updated"))
+    }
+  }catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,
+        err["errors"][0]["message"]
+        ))
+    }
+    else{
+      return next(HTTPError(500,
+        "Internal error has occurred, while updating the Site."
+        ))
+    }
+  }
+
+  req.updatedSite = updatedSite;
+  next();
 };
 
-//Get Site by Id
-exports.getById = (req,res) => {
-  const id = req.params.id;
+exports.getById = async (req, res, next) => {
 
-  Site.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving Site with id=" + id
-      });
-    });
+  const { id } = req.params;
+
+  var foundSite = await Site.findByPk(id);
+  if (!foundSite) {
+    return next(HTTPError(500, "Site not found"))
+  }
+  req.siteList = foundSite;
+  next();
 }
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.siteList);
+};
+
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
+};

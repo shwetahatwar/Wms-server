@@ -81,6 +81,10 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
   if(!req.query.barcodeSerial){
     req.query.barcodeSerial="";
   }
+  let checkString = '%'+req.site+'%'
+  if(req.site){
+    checkString = req.site
+  }
   console.log("QC status 67",req.query.QcStatus)
   await QCTransaction.findAll({
     where: {

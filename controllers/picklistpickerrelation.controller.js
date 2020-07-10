@@ -153,13 +153,20 @@ exports.getPicklistbyUser = async (req,res) =>{
   })
   .then(async data => {
     console.log("Data: ",data.length);
+    if(req.site){
+      checkString = req.site
+    }
     for(var i = 0; i< data.length;i++){
       await Picklist.findAll({
         where :{
-          id:data[i]["dataValues"]["picklistId"]
+          id:data[i]["dataValues"]["picklistId"],
+          siteId: {
+          [Op.like]: checkString
+        }
         },
       })
       .then(picklistData => {
+        if(picklistData[0]){
         var updatedAt = picklistData[0]["dataValues"]["updatedAt"];
         if(picklistData[0]["dataValues"]["picklistStatus"] != "Completed"){
           picklistArray.push(picklistData[0]["dataValues"]);  
@@ -169,6 +176,7 @@ exports.getPicklistbyUser = async (req,res) =>{
           picklistArray.push(picklistData[0]["dataValues"]);  
           console.log("Line 185",picklistArray);
         }
+      }
       })
       .catch(err=>{
         res.status(500).send({

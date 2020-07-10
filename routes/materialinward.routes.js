@@ -22,5 +22,6 @@ router.get('/get/dashboardCountForPendingPutaway', users.loginRequired,materiali
 router.get('/get/getRecent/getRecentTransactionData', users.loginRequired,materialinwards.findRecentTransactions);
 router.get('/get/RecentTransactions/getRecentTransactions', users.loginRequired,materialinwards.findRecentTransactionsWithoutMaterialId);
 router.get('/stock/get/findMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findMaterialInwardsBySearchQueryStock);
+router.post('/post/bulkupload', users.loginRequired,materialinwards.bulkUpload);
 
 module.exports = router;
