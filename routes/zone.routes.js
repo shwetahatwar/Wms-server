@@ -23,6 +23,9 @@ router.put('/:id', users.loginRequired,
 	);
 
 router.get('/get/findZonesBySearchQuery', users.loginRequired,
-	zones.findZonesBySearchQuery);
+	zones.findZonesBySearchQuery,
+	zones.sendFindResponse
+	);
+
 
 module.exports = router;

@@ -14,26 +14,22 @@ exports.create = async (req, res,next) => {
 
   var zone;
   try {
-      zone = await Zone.create({
-        name: name,
-        status:true,
-        siteId:siteId,
-        createdBy:req.user.username,
-        updatedBy:req.user.username
+    zone = await Zone.create({
+      name: name,
+      status:true,
+      siteId:siteId,
+      createdBy:req.user.username,
+      updatedBy:req.user.username
     })
     if (!zone) {
       return next(HTTPError(500, "Zone not created"))
     }
   } catch (err) {
     if(err["errors"]){
-      return next(HTTPError(500,
-        err["errors"][0]["message"]
-        ))
+      return next(HTTPError(500,err["errors"][0]["message"]))
     }
     else{
-      return next(HTTPError(500,
-        "Internal error has occurred, while creating the zone."
-        ))
+      return next(HTTPError(500,"Internal error has occurred, while creating the zone."))
     }
   }
 
@@ -56,7 +52,6 @@ exports.getAll =async (req,res,next) =>{
   .clause('name', name)
   .clause('status', status).toJSON();
 
-  console.log(whereClause);
   var getAllZones;
   getAllZones = await Zone.findAll({
     where:whereClause,
@@ -65,7 +60,7 @@ exports.getAll =async (req,res,next) =>{
       model:Site
     }
     ],
-     order: [
+    order: [
     ['id', 'DESC'],
     ],
   });
@@ -104,14 +99,10 @@ exports.update =async (req, res,next) => {
     }
   }catch (err) {
     if(err["errors"]){
-      return next(HTTPError(500,
-        err["errors"][0]["message"]
-        ))
+      return next(HTTPError(500,err["errors"][0]["message"]))
     }
     else{
-      return next(HTTPError(500,
-        "Internal error has occurred, while updating the zone."
-        ))
+      return next(HTTPError(500,"Internal error has occurred, while updating the zone."))
     }
   }
 
@@ -131,65 +122,71 @@ exports.getById =async (req,res,next) => {
   next();
 };
 
-exports.findZonesBySearchQuery = (req, res) => {
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
+exports.findZonesBySearchQuery = async (req, res,next) => {
+  var {zone,site,offset,limit} = req.query;
+
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
   }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+  
+  if(!site){
+    site = '';
+  }
+  if(!zone){
+    zone='';
   }
 
-  var zone ='';
-  var site = '';
-  let checkString = '%'+req.site+'%'
+  var zoneWhereClause = {};
+  var siteWhereClause = {};
+  if(zone){
+    var likeClause = { [Op.like]: '%'+ zone + '%' };
+    zoneWhereClause.name = likeClause;
+  }
+
   if(req.site){
-    checkString = req.site
+    zoneWhereClause.siteId = req.site;
   }
-  if(req.query.zone != undefined){
-    zone = req.query.zone;
+  else{
+    zoneWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
   }
-  if(req.query.site != undefined){
-    site = req.query.site;
-  }
+  zoneWhereClause.status = true;
 
-  Zone.findAll({ 
-    where: {
-      status:1,
-      name: {
-        [Op.or]: {
-          [Op.like]: '%'+zone+'%',
-          [Op.eq]: '%'+zone+''
-        }
-      },
-      siteId: {
-          [Op.like]: checkString
-        }
-    },
-    include: [{model: Site,
+  if(site){
+    var likeClause = { [Op.like]: '%'+ site + '%' };
+    siteWhereClause.name = likeClause;
+  }
+  
+  var list = await Zone.findAll({ 
+    where: zoneWhereClause,
+    include: [
+    {model: Site,
       required:true,
-      where: {
-        name: {
-          [Op.like]: '%'+site+'%'
-        }
-      },
+      where: siteWhereClause
     }],
     order: [
     ['id', 'DESC'],
     ],
-    offset:offset,
-    limit:limit
-  }).then(async data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Locations."
-    });
+    offset:newOffset,
+    limit:newLimit
   });
+
+  if (!list) {
+    return next(HTTPError(400, "Zones not found"));
+  }
+  
+  req.zonesList = list.map ( el => { return el.get({ plain: true }) } );
+
+  next();
 };
+
 exports.sendCreateResponse = async (req, res, next) => {
   res.status(200).send({message: "success"});
 };

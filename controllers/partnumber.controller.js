@@ -28,14 +28,10 @@ exports.create =async (req, res,next) => {
     }
   } catch (err) {
     if(err["errors"]){
-      return next(HTTPError(500,
-        err["errors"][0]["message"]
-        ))
+      return next(HTTPError(500,err["errors"][0]["message"]))
     }
     else{
-      return next(HTTPError(500,
-        "Internal error has occurred, while creating the part number."
-        ))
+      return next(HTTPError(500,"Internal error has occurred, while creating the part number."))
     }
   }
 
@@ -95,7 +91,7 @@ exports.sendFindResponse = async (req, res, next) => {
 };
 
 //Update PartNumber by Id
-exports.update =async (req, res,next) => {
+exports.update = async (req, res,next) => {
   const id = req.params.id;
 
   var { partNumber, description , status , UOM , netWeight , netVolume } = req.body;
@@ -122,14 +118,10 @@ exports.update =async (req, res,next) => {
     }
   }catch (err) {
     if(err["errors"]){
-      return next(HTTPError(500,
-        err["errors"][0]["message"]
-        ))
+      return next(HTTPError(500,err["errors"][0]["message"]))
     }
     else{
-      return next(HTTPError(500,
-        "Internal error has occurred, while updating the part number."
-        ))
+      return next(HTTPError(500,"Internal error has occurred, while updating the part number."))
     }
   }
 

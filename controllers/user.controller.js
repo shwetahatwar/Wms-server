@@ -72,14 +72,10 @@ exports.create = async (req, res, next) => {
   }
   catch (err) {
     if(err["errors"]){
-      return next(HTTPError(500,
-        err["errors"][0]["message"]
-        ))
+      return next(HTTPError(500,err["errors"][0]["message"]))
     }
     else{
-      return next(HTTPError(500,
-         "Internal error has occurred, while creating the user."
-      ))
+      return next(HTTPError(500,"Internal error has occurred, while creating the user."))
     }     
   }
 
@@ -238,14 +234,10 @@ exports.update = async (req, res, next) => {
     }
     catch (err) {
       if(err["errors"]){
-        return next(HTTPError(500,
-          err["errors"][0]["message"]
-          ))
+        return next(HTTPError(500,err["errors"][0]["message"]))
       }
       else{
-        return next(HTTPError(500,
-          "Internal error has occurred, while updating the user."
-          ))
+        return next(HTTPError(500,"Internal error has occurred, while updating the user."))
       }     
     }
 

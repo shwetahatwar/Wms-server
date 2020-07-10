@@ -10,8 +10,7 @@ exports.create = async (req, res, next) => {
   if (!url || !httpMethod) {
     return next(HTTPError(500, "Access not created, invalid url or httpMethod"))
   }
-
-
+  
   try {
     var createdAccess = await Access.create({
       url: url,
@@ -23,20 +22,16 @@ exports.create = async (req, res, next) => {
     }
   } catch (err) {
     if(err["errors"]){
-        return next(HTTPError(500,
-          err["errors"][0]["message"]
-          ))
+        return next(HTTPError(500,err["errors"][0]["message"]))
       }
       else{
-        return next(HTTPError(500,
-          "Internal error has occurred, while creating the access."
-          ))
+        return next(HTTPError(500,"Internal error has occurred, while creating the access."))
       }
   }
 
   createdAccess = createdAccess.toJSON();
   req.createdAccess = createdAccess;
-
+  console.log("Access",req.createdAccess)
   next();
 };
 
@@ -80,14 +75,10 @@ exports.update = async (req, res, next) => {
       }
     }catch (err) {
       if(err["errors"]){
-        return next(HTTPError(500,
-          err["errors"][0]["message"]
-          ))
+        return next(HTTPError(500,err["errors"][0]["message"]))
       }
       else{
-        return next(HTTPError(500,
-          "Internal error has occurred, while updating the access."
-          ))
+        return next(HTTPError(500,"Internal error has occurred, while updating the access."))
       }
     }
 

@@ -877,7 +877,98 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
     checkString = req.site
   }
 
-  if(req.query.partNumber != undefined && req.query.partNumber != null){
+ if(req.query.barcodeSerial == undefined){
+      req.query.barcodeSerial="";
+    }
+    if(req.query.partNumber == undefined){
+      req.query.partNumber="";
+    }
+    if(!req.query.QCStatus){
+      MaterialInward.findAll({ 
+        where: {
+          status:1,
+          QCStatus:{
+            [Op.ne]:2
+          },
+          partNumber: {
+            [Op.or]: {
+              [Op.eq]: ''+req.query.partNumber+'',
+              [Op.like]: '%'+req.query.partNumber+'%'
+            }
+          },
+          barcodeSerial: {
+            [Op.or]: {
+          // [Op.like]: ''+req.query.barcodeSerial+'%',
+          [Op.eq]: ''+req.query.barcodeSerial+'',
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        },
+        siteId: {
+          [Op.like]: checkString
+        }
+      }
+    },
+    include: [{
+      model: PartNumber
+    },
+    {
+      model: Shelf
+    }],
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:offset,
+    limit:limit
+  }).then(async data => {
+    var countArray =[];
+    var responseData =[];
+    responseData.push(data);
+    console.log("responseData",responseData);
+    var total = 0;
+    await MaterialInward.count({ 
+      where: {
+        status:1,
+        QCStatus:{
+          [Op.ne]:2
+        },
+        siteId: {
+          [Op.like]: checkString
+        },
+        partNumber: {
+          [Op.or]: {
+            [Op.eq]: ''+req.query.partNumber+'',
+            [Op.like]: '%'+req.query.partNumber+'%'
+          }
+        },
+        barcodeSerial: {
+          [Op.or]: {
+          // [Op.like]: ''+req.query.barcodeSerial+'%',
+          [Op.eq]: ''+req.query.barcodeSerial+'',
+          [Op.like]: '%'+req.query.barcodeSerial+'%'
+        }
+      }
+    },
+  }).then(data => {
+    total = data;
+  }).catch(err => {
+    res.status(500).send({
+      message:
+      err.message || "Some error occurred while retrieving materialinward."
+    });
+  });
+  var totalMaterials = {
+    totalCount : total
+  }
+  countArray.push(totalMaterials);
+  responseData.push(countArray);
+  res.send(responseData);
+}).catch(err => {
+  res.status(500).send({
+    message:
+    err.message || "Some error occurred while retrieving materialinward."
+  });
+});
+    }
+    else if(req.query.partNumber != undefined && req.query.partNumber != null){
     var partNumberId;
     // await PartNumber.findAll({
     //   where: {
@@ -894,9 +985,6 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
     // });
     console.log("In Part Search");
 
-    if(req.query.barcodeSerial == undefined){
-      req.query.barcodeSerial="";
-    }
     if(req.query.partNumber != null && req.query.partNumber != undefined){
       MaterialInward.findAll({ 
         where: {

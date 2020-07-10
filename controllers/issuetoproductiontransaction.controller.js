@@ -8,62 +8,70 @@ var HTTPError = require('http-errors');
 
 // Retrieve all Issue To ProductionTransaction from the database.
 exports.findAll =async (req, res,next) => {
-	var queryString = req.query;
-	var offset = 0;
-	var limit = 100;
+ var { transactionTimestamp, performedBy, transactionType, quantity, remarks, materialInwardId, projectId, offset, limit } = req.query;
 
-	if(req.query.offset != null || req.query.offset != undefined){
-		offset = parseInt(req.query.offset)
-	}
-	if(req.query.limit != null || req.query.limit != undefined){
-		limit = parseInt(req.query.limit)
-	}
-	
-	let checkString = '%'+req.site+'%'
-	if(req.site){
-		checkString = req.site
-	}
+  var newOffset = 0;
+  var newLimit = 100;
 
-	var {transactionTimestamp,performedBy,transactionType,quantity,remarks,
-		materialInwardId, projectId} = req.query;
+  if(offset){
+    newOffset = parseInt(offset)
+  }
 
-		var whereClause = new WhereBuilder()
-		.clause('transactionTimestamp', transactionTimestamp)
-		.clause('performedBy', performedBy)
-		.clause('materialInwardId', materialInwardId)
-		.clause('quantity', quantity)
-		.clause('projectId', projectId)
-		.clause('remarks', remarks)
-		.clause('transactionType', transactionType).toJSON();
-  
-		var issueToProductionTransactions;
-		issueToProductionTransactions = await IssueToProductionTransaction.findAll({ 
-			where:whereClause,
-			include: [
-			{model: MaterialInward,
-				required:true,
-				where: {
-					siteId: {
-						[Op.like]: checkString
-					}
-				},
-			},
-			{model: Project},
-			{model: User,
-				as: 'doneBy'},
-				],
-				offset:offset,
-				limit:limit 
-			});
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+  var whereClause = new WhereBuilder()
+  .clause('transactionTimestamp', transactionTimestamp)
+  .clause('performedBy', performedBy)
+  .clause('materialInwardId', materialInwardId)
+  .clause('quantity', quantity)
+  .clause('projectId', projectId)
+  .clause('remarks', remarks)
+  .clause('transactionType', transactionType).toJSON();
+
+  var materialinwardsWhereClause = {};
+  if(req.site){
+    materialinwardsWhereClause.siteId = req.site;
+  }
+  else{
+    materialinwardsWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
+  }
+
+  var issueToProductionTransactions;
+  issueToProductionTransactions = await IssueToProductionTransaction.findAll({ 
+    where:whereClause,
+    include: [
+    { 
+      model: MaterialInward,
+      required: true,
+      where: materialInwardWhereClause,
+    },
+    {
+      model: Project
+    },
+    {
+      model: User,
+      as: 'doneBy'
+    },
+    ],
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:newOffset,
+    limit:newLimit 
+  });
 
   if (!issueToProductionTransactions) {
     return next(HTTPError(400, "Issue To Production transactions not found"));
   }
-  
+
   req.issueToProductionTransactionsList = issueToProductionTransactions.map ( el => { return el.get({ plain: true }) } );
 
   next();
-    
+
 };
 
 // Find a single IssueToProductionTransaction with an id
@@ -78,30 +86,27 @@ exports.findOne = async (req, res,next) => {
 };
 
 //Issue to Production API
-exports.issueToProduction = async (req, res) => {
-	for(var i=0; i < req.body.length; i++){
-		var issueToProductionData = [];
-		const stock = {
-			transactionTimestamp: Date.now(),
-			materialInwardId:req.body[i]["materialInwardId"],
-			projectId: req.body[i]["projectId"],
-			performedBy:req.body[i]["userId"],			
-			quantity:req.body[i]["quantity"],
-			transactionType :"Issue To Production",
-			createdBy:req.user.username,
-			updatedBy:req.user.username
-		};
+exports.issueToProduction = async (req, res,next) => {
 
-		await IssueToProductionTransaction.create(stock)
-		.then(async data => {
-			issueToProductionData.push(data);
-		})
-		.catch(err => {
-			res.status(500).send({
-				message: "Some error occurred while creating issueToProduction"
-			});
-		});
-	}
+  var issueToProductionDataArray = req.body.map(el => {
+    return {
+      transactionTimestamp: Date.now(),
+      materialInwardId: el["materialInwardId"],
+      projectId: el["projectId"],
+      performedBy: el["userId"],      
+      quantity: el["quantity"],
+      transactionType :"Issue To Production",
+      createdBy:req.user.username,
+      updatedBy:req.user.username
+    }
+  });
+
+  var issueToProductionData = await IssueToProductionTransaction.bulkCreate(issueToProductionDataArray);
+
+  if (!issueToProductionData) {
+    return next(HTTPError(500, "Issue To Production transaction not Created"))
+  }
+  
 	res.send(issueToProductionData);
 };
 

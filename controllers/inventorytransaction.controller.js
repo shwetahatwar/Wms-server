@@ -6,23 +6,28 @@ var HTTPError = require('http-errors');
 
 // Retrieve all Inventory Transaction from the database.
 exports.findAll =async (req, res,next) => {
- var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-
-  let checkString = '%'+req.site+'%'
+  var materialinwardsWhereClause = {};
   if(req.site){
-    checkString = req.site
+    materialinwardsWhereClause.siteId = req.site;
+  }
+  else{
+    materialinwardsWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
   }
 
-  var {transactionTimestamp,performedBy,transactionType,materialInwardId,batchNumber} = req.query;
+  var {transactionTimestamp,performedBy,transactionType,materialInwardId,batchNumber,offset,limit} = req.query;
+
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
+  }
+
+  if(limit){
+    newLimit = parseInt(limit)
+  }
 
    var whereClause = new WhereBuilder()
   .clause('transactionTimestamp', transactionTimestamp)
@@ -36,14 +41,10 @@ exports.findAll =async (req, res,next) => {
     where:whereClause,
     include: [{model: MaterialInward,
       required:true,
-      where: {
-        siteId: {
-          [Op.like]: checkString
-        }
-      },
+      where: materialinwardsWhereClause
     }],
-    offset:offset,
-    limit:limit 
+    offset:newOffset,
+    limit:newLimit 
   });
 
   if (!inventoryTransactions) {
