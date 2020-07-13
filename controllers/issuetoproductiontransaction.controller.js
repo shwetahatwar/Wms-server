@@ -30,12 +30,12 @@ exports.findAll =async (req, res,next) => {
   .clause('remarks', remarks)
   .clause('transactionType', transactionType).toJSON();
 
-  var materialinwardsWhereClause = {};
+  var materialInwardWhereClause = {};
   if(req.site){
-    materialinwardsWhereClause.siteId = req.site;
+    materialInwardWhereClause.siteId = req.site;
   }
   else{
-    materialinwardsWhereClause.siteId = {
+    materialInwardWhereClause.siteId = {
       [Op.like]:'%'+req.site+'%'
     };
   }
@@ -126,6 +126,9 @@ exports.returnFromProduction = async (req, res) => {
 			updatedBy:req.user.username
 		};
 		let updateQuantity=0;
+
+    // how can we use modular code for this as this is in for loop
+   //
 		await IssueToProductionTransaction.findAll({
 			where: {
 				materialInwardId:req.body[i]["materialInwardId"],
@@ -181,111 +184,71 @@ exports.returnFromProduction = async (req, res) => {
 	res.send(returnFromProductionData);
 };
 
+exports.findTransactionsBySearchQuery = async (req, res,next) => {
+  var {createdAtStart,createdAtEnd,offset,limit,partNumber,barcodeSerial,transactionType} = req.query;
 
-// Retrieve all Issue To Production Transaction by date from the database.
-exports.findByDate = (req, res) => {
-	var queryString = req.query;
-	var offset = 0;
-	var limit = 100;
+  var newOffset = 0;
+  var newLimit = 100;
 
-	if(req.query.offset != null || req.query.offset != undefined){
-		offset = parseInt(req.query.offset)
-	}
-	if(req.query.limit != null || req.query.limit != undefined){
-		limit = parseInt(req.query.limit)
-	}
-	delete queryString['offset'];
-	delete queryString['limit'];
-
-	console.log(offset);
-	console.log(limit);
-	let checkString = '%'+req.site+'%'
-	if(req.site){
-		checkString = req.site
-	}
-	IssueToProductionTransaction.findAll({ 
-		where: {
-			transactionTimestamp: {
-				[Op.gte]: parseInt(req.query.createdAtStart),
-				[Op.lt]: parseInt(req.query.createdAtEnd),
-			}
-		},
-		include: [
-		{model: MaterialInward,
-			required:true,
-			where: {
-				siteId: {
-					[Op.like]: checkString
-				}
-			},
-		},
-		{model: Project},
-		{model: User,
-			as: 'doneBy'},
-			],
-			order: [
-			['id', 'DESC'],
-			],
-			offset:offset,
-			limit:limit 
-		})
-	.then(data => {
-		res.send(data);
-	})
-	.catch(err => {
-		res.status(500).send({
-			message:
-			err.message || "Some error occurred while retrieving IssueToProductionTransaction."
-		});
-	});
-};
-
-
-exports.findTransactionsBySearchQuery = async (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
+  if(offset){
+    newOffset = parseInt(offset)
   }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
+
+  if(limit){
+    newLimit = parseInt(limit)
   }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  let checkString = '%'+req.site+'%'
+
+  var materialInwardWhereClause = {};
   if(req.site){
-  	checkString = req.site
+    materialInwardWhereClause.siteId = req.site;
   }
-  var responseData = [];
-  if(!req.query.partNumber){
-    req.query.partNumber="";
+  else{
+    materialInwardWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
   }
-  if(!req.query.barcodeSerial){
-    req.query.barcodeSerial="";
+
+  if(!partNumber){
+    partNumber="";
+  }
+  if(!barcodeSerial){
+    barcodeSerial="";
   }
   if(!req.query.transactionType){
-    req.query.transactionType="";
+    transactionType="";
   }
-  await IssueToProductionTransaction.findAll({
-    where: {
-      transactionType:{
-      	[Op.like]: '%'+req.query.transactionType+'%'
-      }
-    },
+
+  var whereClause = {};
+  if(createdAtStart && createdAtEnd){
+    whereClause.transactionTimestamp = {
+      [Op.gte]: parseInt(createdAtStart),
+      [Op.lt]: parseInt(createdAtEnd),
+    }
+  }
+
+  if(partNumber){
+    materialInwardWhereClause.partNumber = {
+      [Op.like]:'%'+partNumber+'%'
+    };
+  }
+
+  if(barcodeSerial){
+    materialInwardWhereClause.barcodeSerial = {
+      [Op.like]:'%'+barcodeSerial+'%'
+    };
+  }
+
+  if(transactionType){
+     whereClause.transactionType ={
+       [Op.like]: '%'+transactionType+'%'
+     }
+  }
+
+ var issueToProductionTransactions = await IssueToProductionTransaction.findAll({
+    where: whereClause,
     include: [{model: MaterialInward,
       required: true,
-      where:{
-        partNumber: {
-          [Op.like]: '%'+req.query.partNumber+'%'
-        }, 
-        barcodeSerial: {
-          [Op.like]: '%'+req.query.barcodeSerial+'%'
-        }, 
-        siteId: {
-          [Op.like]: checkString
-        }
-      }
+      where:materialInwardWhereClause
     },
     {model: Project},
     {model: User,
@@ -294,15 +257,15 @@ exports.findTransactionsBySearchQuery = async (req, res) => {
      order: [
     ['id', 'DESC'],
     ]
-  }).then(data => {
-    
-    res.send(data);
-  }).catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving PutawayTransaction count."
-    });
   });
+
+  if (!issueToProductionTransactions) {
+    return next(HTTPError(400, "Issue To Production transactions not found"));
+  }
+
+  req.issueToProductionTransactionsList = issueToProductionTransactions.map ( el => { return el.get({ plain: true }) } );
+
+  next();
 };
 
 exports.sendFindResponse = async (req, res, next) => {

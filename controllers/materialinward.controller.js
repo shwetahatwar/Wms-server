@@ -11,171 +11,38 @@ const Sequelize = require("sequelize");
 const Picklist = db.picklists;
 const IssueToProductionTransaction = db.issuetoproductiontransactions;
 
-// Create and Save a new MaterialInward
-exports.create = async (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.partNumberId) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+
+exports.findForMaterialInward = async (req, res, next) => {
+  var materialInward = await MaterialInward.findOne({
+    order: [
+    ['id', 'DESC'],
+    ],
+  });
+  if (materialInward) {
+    req.materialInward = materialInward.toJSON();
   }
-  var dataArray = [];
-  var partsBarcode;
-  let netWeightOfPacks;
-  const partNumbersId = req.body.partNumberId;
-  var materialInwardIds;  
-  await PartNumber.findAll({
-    where: {id: partNumbersId}
-  })
-  .then(data => {
-    if(data.length != 0){
-      partsBarcode = data[0]["dataValues"]["partNumber"];
-      netWeightOfPacks = data[0]["dataValues"]["netWeight"];
-    }
-    else{
-      res.status(400).send({
-        message: "Part Number not found in database!"
-      });
-    }
-  });
-  netWeightOfPacks = netWeightOfPacks * parseInt(req.body.eachPackQuantity);
-  console.log("Part number:",partsBarcode,netWeightOfPacks);
-  for(var i=0; i < req.body.quantity; i++){
-
-    if(partsBarcode != null && partsBarcode !=undefined){
-      var serialNumberId;
-      await MaterialInward.findAll({
-        limit:1,
-        offset:0,
-        order: [
-        ['id', 'DESC'],
-        ],
-      })
-      .then(data => {
-        console.log("Data On line 43",data);
-        if(data[0] != null || data[0] != undefined){
-          serialNumberId = data[0]["dataValues"]["barcodeSerial"];
-          serialNumberId = (parseInt(serialNumberId) + 1).toString();
-          serialNumberId = '' + serialNumberId;
-          console.log("Line 50 Serial Number", serialNumberId);
-          console.log("Line 60",serialNumberId.toString().length)
-          if(serialNumberId.toString().length > 10){
-            serialNumberId = serialNumberId.substring(1);
-          }
-        }
-        else{
-          serialNumberId ="1111111111";
-        }
-      })
-      .catch(err=>{
-        serialNumberId ="1111111111";
-      });
-      if(!req.body.siteId){
-        req.body.siteId = req.site
-      }
-      const materialinward = {
-        partNumberId: req.body.partNumberId,
-        shelfId: req.body.shelfId,
-        batchNumber: req.body.batchNumber,
-        barcodeSerial: serialNumberId,
-        partNumber:partsBarcode,
-        eachPackQuantity: req.body.eachPackQuantity,
-        invoiceReferenceNumber: req.body.invoiceReferenceNumber,
-        inwardDate: req.body.inwardDate,
-        QCStatus: 0,
-        status:1,        
-        QCRemarks: "NA",
-        siteId : req.body.siteId,
-        materialStatus : "NA",
-        createdBy:req.user.username,
-        updatedBy:req.user.username
-      };
-      console.log("Line 74",materialinward);
-    // Save MaterialInward in the database
-    await MaterialInward.create(materialinward)
-    .then(async data => {
-      dataArray.push(data);
-      materialInwardIds = data["id"];
-      const putwayTransaction = {
-        transactionTimestamp: Date.now(),
-        performedBy:req.user.username,
-        materialInwardId:materialInwardIds,
-        currentLocationId :req.body.shelfId, 
-        createdBy:req.user.username,
-        updatedBy:req.user.username
-      }
-      await PutawayTransaction.create(putwayTransaction)
-      .then(data => {
-      })
-      .catch(err => {
-        console.log(err);
-      });
-      if(req.body.shelfId != null && req.body.shelfId != undefined){
-        let prevCapacityOfLocation = 0;
-        await Shelf.findAll({
-          where: {id : req.body.shelfId}
-        })
-        .then(data => {
-          prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
-        });
-        let netWeightOfPacksInTons = netWeightOfPacks/1000;
-        netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
-        let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
-        updateCapacity = updateCapacity;
-        var updatedData = {
-          'loadedCapacity': updateCapacity
-        };
-        await Shelf.update(updatedData, {
-          where:{
-            id:req.body.shelfId
-          }
-        })
-        .then(data => {
-        })
-        .catch(err => {
-          console.log(err);
-        });
-      }
-    // MaterialInward transaction entry in the database
-    const inventoryTransact = {
-      transactionTimestamp: Date.now(),
-      performedBy:req.user.username,
-      transactionType:"Inward",
-      materialInwardId:materialInwardIds,
-      batchNumber: req.body.batchNumber,
-      createdBy:req.user.username,
-      updatedBy:req.user.username
-    }
-    await InventoryTransaction.create(inventoryTransact)
-    .then(data => {
-      console.log("data on line 94");
-    })
-    .catch(err => {
-      console.log(err);
-    });
-    
-  }).catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while creating the MaterialInward."
-    });
-  });
+  
+  next();
 }
-else{
-  res.status(400).send({
-    message: "Part Number not found in database!"
-  });
 
-}
-}
-res.send(dataArray);
 
-};
+exports.materialInwardBulkUpload = async (req, res, next) => {
+  
+  if (!req.materialInwardList) {
+    return res.status(500).send("No Material");
+  }
+  var materialInward = await MaterialInward.bulkCreate(req.materialInwardList);
+  req.materialInwardBulkUpload = materialInward.map ( el => { return el.get({ plain: true }) } );
+  
+  next();
+}
+
+exports.sendResponse = (req, res, next) => {
+  return res.status(200).send(req.materialInwardBulkUpload)
+}
+
 
 exports.bulkUpload = async (req,res)  =>{
-  
   if (req.body.length==0) {
     res.status(400).send({
       message: "Content can not be empty!"
@@ -183,30 +50,13 @@ exports.bulkUpload = async (req,res)  =>{
     return;
   }
   var dataArray = [];
-  console.log(req.body.length);
+
   for(var a=0;a<req.body.length;a++){
   const partNumbersId = req.body[a]["partNumberId"];
   var materialInwardIds;  
-  // await PartNumber.findAll({
-  //   where: {id: partNumbersId}
-  // })
-  // .then(data => {
-  //   if(data.length != 0){
-  //     partsBarcode = data[0]["dataValues"]["partNumber"];
-  //     netWeightOfPacks = data[0]["dataValues"]["netWeight"];
-  //   }
-  //   else{
-  //     res.status(400).send({
-  //       message: "Part Number not found in database!"
-  //     });
-  //   }
-  // });
-  // netWeightOfPacks = netWeightOfPacks * parseInt(req.body.eachPackQuantity);
-  // console.log("Part number:",partsBarcode,netWeightOfPacks);
   if(req.body[a]["matched"]){
   for(var i=0; i < req.body[a]["noOfPacks"]; i++){
     console.log(req.body[a]["noOfPacks"]);
-    // if(partsBarcode != null && partsBarcode !=undefined){
       var serialNumberId;
       await MaterialInward.findAll({
         limit:1,
@@ -216,13 +66,10 @@ exports.bulkUpload = async (req,res)  =>{
         ],
       })
       .then(data => {
-        console.log("Data On line 43",data);
         if(data[0] != null || data[0] != undefined){
           serialNumberId = data[0]["dataValues"]["barcodeSerial"];
           serialNumberId = (parseInt(serialNumberId) + 1).toString();
           serialNumberId = '' + serialNumberId;
-          console.log("Line 50 Serial Number", serialNumberId);
-          console.log("Line 60",serialNumberId.toString().length)
           if(serialNumberId.toString().length > 10){
             serialNumberId = serialNumberId.substring(1);
           }
@@ -244,7 +91,6 @@ exports.bulkUpload = async (req,res)  =>{
       }
       const materialinward = {
         partNumberId: req.body[a]["partNumberId"],
-        // shelfId: req.body.shelfId,
         batchNumber: req.body[a]["batchNumber"],
         barcodeSerial: serialNumberId,
         partNumber:req.body[a]["partNumber"],
@@ -259,7 +105,7 @@ exports.bulkUpload = async (req,res)  =>{
         createdBy:req.user.username,
         updatedBy:req.user.username
       };
-      console.log("Line 74",materialinward);
+
     // Save MaterialInward in the database
     await MaterialInward.create(materialinward)
     .then(async data => {
@@ -279,32 +125,7 @@ exports.bulkUpload = async (req,res)  =>{
       .catch(err => {
         console.log(err);
       });
-      // if(req.body.shelfId != null && req.body.shelfId != undefined){
-      //   let prevCapacityOfLocation = 0;
-      //   await Shelf.findAll({
-      //     where: {id : req.body.shelfId}
-      //   })
-      //   .then(data => {
-      //     prevCapacityOfLocation = data[0]["dataValues"]["loadedCapacity"];
-      //   });
-      //   let netWeightOfPacksInTons = netWeightOfPacks/1000;
-      //   netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
-      //   let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
-      //   updateCapacity = updateCapacity;
-      //   var updatedData = {
-      //     'loadedCapacity': updateCapacity
-      //   };
-      //   await Shelf.update(updatedData, {
-      //     where:{
-      //       id:req.body.shelfId
-      //     }
-      //   })
-      //   .then(data => {
-      //   })
-      //   .catch(err => {
-      //     console.log(err);
-      //   });
-      // }
+      
     // MaterialInward transaction entry in the database
     const inventoryTransact = {
       transactionTimestamp: Date.now(),
@@ -335,128 +156,121 @@ exports.bulkUpload = async (req,res)  =>{
 res.send(dataArray);
 
 };
-// Retrieve all MaterialInwards from the database.
-exports.findAll = (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
 
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
+// Retrieve all Inventory Transaction from the database.
+exports.findAll =async (req, res,next) => {
   if(req.site){
     req.query.siteId = req.site;
   }
-  MaterialInward.findAll({ 
-    where: queryString,
-    include: [{
-      model: PartNumber
-    },
-    {
-      model: Shelf
-    }],
+
+  var {partNumberId,shelfId,barcodeSerial,partNumber,status,QCStatus,QCRemarks,
+    materialStatus,
+    siteId,offset,limit} = req.query;
+
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
+  }
+
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+   var whereClause = new WhereBuilder()
+  .clause('partNumberId', partNumberId)
+  .clause('shelfId', shelfId)
+  .clause('barcodeSerial', barcodeSerial)
+  .clause('partNumber', partNumber)
+  .clause('QCStatus', QCStatus)
+  .clause('status', status)
+  .clause('QCRemarks', QCRemarks)
+  .clause('siteId', siteId)
+  .clause('materialStatus', materialStatus).toJSON();
+  
+  var materialinwards;
+  materialinwards = await MaterialInward.findAll({ 
+    where:whereClause,
     order: [
     ['id', 'DESC'],
     ],
-    offset:offset,
-    limit:limit
-  })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving materialinwards."
-    });
+    offset:newOffset,
+    limit:newLimit 
   });
+
+  if (!materialinwards) {
+    return next(HTTPError(400, "Material Inwards not found"));
+  }
+  
+  req.materialInwardsList = materialinwards.map ( el => { return el.get({ plain: true }) } );
+
+  next();
+    
 };
 
-// Find a single MaterialInward with an id
-exports.findOne = (req, res) => {
+// Find a single Inventory Transaction with an id
+exports.findOne =async (req, res,next) => {
   const id = req.params.id;
+  var materialinward = await MaterialInward.findByPk(id);
+  if (!materialinward) {
+    return next(HTTPError(500, "Material Inward not found with id=" + id))
+  }
+  req.materialInwardsList = materialinward;
+  next();
+};
 
-  MaterialInward.findByPk(id)
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error retrieving MaterialInward with id=" + id
-    });
-  });
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.materialInwardsList);
 };
 
 // Update a MaterialInward by the id in the request
-exports.update = (req, res) => {
+exports.update = async (req, res,next) => {
   const id = req.params.id;
 
-  MaterialInward.update(req.body, {
-    where: req.params
-  })
-  .then(num => {
-    if (num == 1) {
-      res.send({
-        message: "MaterialInward was updated successfully."
-      });
-    } else {
-      res.send({
-        message: `Cannot update MaterialInward with id=${id}. Maybe MaterialInward was not found or req.body is empty!`
-      });
-    }
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error updating MaterialInward with id=" + id
+var {partNumberId,shelfId,barcodeSerial,partNumber,eachPackQuantity,status,QCStatus,QCRemarks,
+    materialStatus,
+    siteId} = req.body;
+
+   var whereClause = new WhereBuilder()
+  .clause('partNumberId', partNumberId)
+  .clause('shelfId', shelfId)
+  .clause('barcodeSerial', barcodeSerial)
+  .clause('partNumber', partNumber)
+  .clause('QCStatus', QCStatus)
+  .clause('status', status)
+  .clause('QCRemarks', QCRemarks)
+  .clause('siteId', siteId)
+  .clause('eachPackQuantity', eachPackQuantity)
+  .clause('materialStatus', materialStatus).toJSON();
+  console.log("whereClause",whereClause)
+  var updatedMaterialInward;
+  try {
+     updatedMaterialInward = await MaterialInward.update(whereClause,{
+      where: {
+        id: id
+      }
     });
-  });
+     console.log("updatedMaterialInward",updatedMaterialInward)
+    if (!updatedMaterialInward) {
+      return next(HTTPError(500, "Material Inward not updated"))
+    }
+  }catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while updating the Site."))
+    }
+  }
+
+  req.updatedMaterialInward = updatedMaterialInward;
+  next();
 };
 
-// Delete a MaterialInward with the specified id in the request
-exports.delete = (req, res) => {
-  const id = req.params.id;
-
-  MaterialInward.destroy({
-    where: { id: id }
-  })
-  .then(num => {
-    if (num == 1) {
-      res.send({
-        message: "MaterialInward was deleted successfully!"
-      });
-    } else {
-      res.send({
-        message: `Cannot delete MaterialInward with id=${id}. Maybe MaterialInward was not found!`
-      });
-    }
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Could not delete MaterialInward with id=" + id
-    });
-  });
-};
-
-// Delete all MaterialInwards from the database.
-exports.deleteAll = (req, res) => {
-  MaterialInward.destroy({
-    where: {},
-    truncate: false
-  })
-  .then(nums => {
-    res.send({ message: `${nums} MaterialInwards were deleted successfully!` });
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while removing all materialinwards."
-    });
-  });
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
 };
 
 //Update QC status & transaction of the same

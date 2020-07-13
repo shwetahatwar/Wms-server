@@ -13,15 +13,15 @@ exports.create =async (req, res,next) => {
 
   var partNumber;
   try {
-      partNumber = await PartNumber.create({
-        partNumber: partNumber,
-        description: description,
-        UOM: UOM,
-        netWeight: netWeight,
-        netVolume: netVolume,
-        status:true,
-        createdBy:req.user.username,
-        updatedBy:req.user.username
+    partNumber = await PartNumber.create({
+      partNumber: partNumber,
+      description: description,
+      UOM: UOM,
+      netWeight: netWeight,
+      netVolume: netVolume,
+      status:true,
+      createdBy:req.user.username,
+      updatedBy:req.user.username
     })
     if (!partNumber) {
       return next(HTTPError(500, "Part Number not created"))
@@ -135,141 +135,110 @@ exports.getById =async (req,res,next) => {
   const id = req.params.id;
   var partNumber = await PartNumber.findByPk(id);
   if (!partNumber) {
-    return next(HTTPError(500, "Zone not found"))
+    return next(HTTPError(500, "Part Number not found"))
   }
   req.partsList = partNumber;
   next();
 }
 
+exports.getPartNumber=async (req,res,next) => {
+  var {partNumberId} = req.body;
+  console.log("id",partNumberId);
+  var partNumber = await PartNumber.findByPk(partNumberId);
+  if (!partNumber) {
+    return next(HTTPError(500, "Part Number not found"))
+  }
+  req.partNumber = partNumber;
+  next();
+};
+
 //search query
-exports.findPartNumbersBySearchQuery = (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
+exports.findPartNumbersBySearchQuery = async (req, res,next) => {
 
-  var partNumber ='';
-  var UOM ='';
-  var description ='';
-
-  if(req.query.partNumber != undefined){
-    partNumber = req.query.partNumber;
-  }
-  if(req.query.description != undefined){
-    description = req.query.description;
-  }
-  if(req.query.UOM != undefined){
-    UOM = req.query.UOM;
+  var {partNumber,UOM,description,status,offset,limit} = req.query;
+  var newOffset = 0;
+  var newLimit = 100;
+  if(offset){
+    newOffset = parseInt(offset)
   }
 
-  PartNumber.findAll({ 
-    where: {
-      status:1,
-      partNumber: {
-        [Op.or]: {
-          [Op.like]: '%'+partNumber+'%',
-          [Op.eq]: ''+partNumber+''
-        }
-      },
-      description: {
-        [Op.or]: {
-          [Op.like]: '%'+description+'%',
-          [Op.eq]: ''+description+''
-        }
-      },
-      UOM: {
-        [Op.or]: {
-          [Op.like]: '%'+UOM+'%',
-          [Op.eq]: ''+UOM+''
-        }
-      }
-    },
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+  if(!partNumber){
+    partNumber ='';
+  }
+  if(!UOM){
+    UOM ='';
+  }
+  if(!description){
+    description = '';
+  }
+
+  var whereClause = {};
+  whereClause.status = true;
+  if(partNumber){
+    whereClause.partNumber = {
+      [Op.like]:'%'+partNumber+'%'
+    };
+  }
+  if(description){
+    whereClause.description = {
+      [Op.like]:'%'+description+'%'
+    };
+  }
+  if(partNumber){
+    whereClause.UOM = {
+      [Op.like]:'%'+UOM+'%'
+    };
+  }
+
+  var data = await PartNumber.findAll({ 
+    where: whereClause,
     order: [
     ['id', 'DESC'],
     ],
     offset:offset,
     limit:limit
-  })
-  .then(async data => {
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
-
-    var total = 0;
-    await PartNumber.count({ 
-      where: {
-        status:1,
-        partNumber: {
-          [Op.or]: {
-            [Op.like]: '%'+partNumber+'%',
-            [Op.eq]: ''+partNumber+''
-          }
-        },
-        description: {
-          [Op.or]: {
-            [Op.like]: '%'+description+'%',
-            [Op.eq]: ''+description+''
-          }
-        },
-        UOM: {
-          [Op.or]: {
-            [Op.like]: '%'+UOM+'%',
-            [Op.eq]: ''+UOM+''
-          }
-        }
-      },
-    })
-    .then(data => {
-      total = data;
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-        err.message || "Some error occurred while retrieving PartNumbers."
-      });
-    });
-    var totalParts = {
-      totalCount : total
-    }
-    countArray.push(totalParts);
-    responseData.push(countArray);
-    res.send(responseData);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving PartNumbers."
-    });
   });
+
+  if(!data){
+    return next(HTTPError(500, "No data found"))
+  }
+
+  var responseData =[];
+  responseData.push(data);
+
+  var total = await PartNumber.count({ 
+    where: whereClause
+  });
+
+  var countArray=[];
+  var totalParts = {
+    totalCount : total
+  }
+  countArray.push(totalParts);
+  responseData.push(countArray);
+
+  res.status(200).send(responseData);
 };
+
 
 // get count of all part numbers whose status =1 
-exports.countOfPartNumbers = (req, res) => {
-  var total = 0
-  PartNumber.count({
-    where :
-    {
-      status :1
-    }
+exports.countOfPartNumbers = async (req, res) => {
+  var whereClause = {};
+  whereClause.status = true;
+  var total = await PartNumber.count({
+    where :whereClause
   })
-  .then(data => {
-    total = data;
-    var totalCount = {
-      totalParts : total 
-    }
-     res.send(totalCount);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Parts count."
-    });
-  });
-};
+
+  if(!total){
+    return next(HTTPError(500, "Internal error has occurred, while getting count of parts"))
+  }
+
+  var totalCount = {
+    totalParts : total 
+  }
+  res.status(200).send(totalCount);
+}

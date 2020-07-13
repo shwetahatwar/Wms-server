@@ -6,7 +6,6 @@ const Site = db.sites;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
 
-
 //Get All Shelfs
 exports.getAll =async (req,res,next) =>{
   var queryString = req.query;

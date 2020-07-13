@@ -4,6 +4,33 @@ const MaterialInward = db.materialinwards;
 const PartNumber = db.partnumbers;
 const Op = db.Sequelize.Op;
 
+
+//create transaction
+exports.create = async (req,res,next) =>{
+  var id = req.params.id;
+  var { prevQCStatus,currentQCStatus } = req.body;
+  const statusChange = {
+    transactionTimestamp :Date.now(), 
+    materialInwardId: req.params.id,
+    prevQCStatus:prevQCStatus,
+    currentQCStatus:currentQCStatus,
+    performedBy:req.user.username,
+    createdBy:req.user.username,
+    updatedBy:req.user.username,
+  };
+
+  var qcTransaction =await QCTransaction.create(statusChange);
+
+  if(!qcTransaction){
+    return next(HTTPError(500, "QC Transaction not created"))
+  }
+
+  qcTransaction = qcTransaction.toJSON();
+  req.qcTransaction = qcTransaction;
+
+  next();
+};
+
 //Get All QC transactions
 exports.getAll = (req,res) =>{
   var queryString = req.query;
@@ -121,106 +148,4 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
       err.message || "Some error occurred while retrieving PutawayTransaction count."
     });
   });
-  // if(req.query.partNumber != undefined && req.query.partNumber != null){
-  //  await MaterialInward.findAll({
-  //     where: {
-  //       partNumber: {
-  //         [Op.or]: {
-  //           [Op.eq]: ''+req.query.partNumber+'',
-  //           [Op.iLike]: '%'+req.query.partNumber+'%'
-  //         }
-  //       },
-  //       status : true, 
-  //     }
-  //   }).then(async data => {
-  //     for(var i=0;i<data.length;i++){
-  //       await QCTransaction.findAll({
-  //         where: {
-  //           materialInwardId: data[i]["dataValues"]["id"],
-  //           currentQCStatus:req.query.QcStatus
-  //         },
-  //         include: [{model: MaterialInward}],
-  //       }).then(data => {
-  //         if(data.length != 0){
-  //           responseData.push(data);
-  //         }
-  //       });
-  //     }
-  //     let count = {
-  //       'totalCount':responseData.length
-  //     };
-  //     let dataCount = [];
-  //     dataCount.push(count);
-  //     responseData.push(dataCount);
-  //     res.send(responseData);
-  //   });
-  // }
-  //  else if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
-  //  await MaterialInward.findAll({
-  //     where: {
-  //       barcodeSerial: {
-  //         [Op.or]: {
-  //           [Op.eq]: ''+req.query.barcodeSerial+'',
-  //           [Op.iLike]: '%'+req.query.barcodeSerial+'%'
-  //         }
-  //       },
-  //       status : true 
-  //     }
-  //   }).then(async data => {
-  //     for(var i=0;i<data.length;i++){
-  //       await QCTransaction.findAll({
-  //         where: {
-  //           materialInwardId: data[i]["dataValues"]["id"],
-  //           currentQCStatus:req.query.QcStatus
-  //         },
-  //         include: [{model: MaterialInward}],
-  //       }).then(data => {
-  //         if(data.length != 0){
-  //           responseData.push(data);
-  //         }
-  //       });
-  //     }
-  //     let count = {
-  //       'totalCount':responseData.length
-  //     };
-  //     let dataCount = [];
-  //     dataCount.push(count);
-  //     responseData.push(dataCount);
-  //     res.send(responseData);
-  //   });
-  // }
-  // else{
-  //   var partNumberId;
-  //       await QCTransaction.findAll({
-  //         where:{
-  //           currentQCStatus:req.query.QcStatus
-  //         },
-  //         include: [{model: MaterialInward,
-  //           required:true,
-  //           where: {
-  //             partNumber: {
-  //                 [Op.iLike]: '%'+req.query.partNumber+'%'
-  //               }
-  //             },
-  //         }],
-  //         offset:offset,
-  //         limit:limit 
-  //       }).then(data => {
-  //         for(var a=0;a<data.length;a++){
-  //           if(data.length != 0){
-  //             responseData.push(data[a]["dataValues"]);
-  //           }
-  //         }
-  //       });
-  //     let count = {
-  //       'totalCount':responseData.length
-  //     };
-  //     let dataCount = [];
-  //     let dataList = [];
-  //     dataList.push(responseData);
-  //     dataCount.push(count);
-  //     dataList.push(dataCount);
-  //     console.log("IN part Search");
-  //     res.send(dataList);
-  //     }
 };

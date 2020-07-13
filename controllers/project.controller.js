@@ -134,134 +134,97 @@ exports.getById =async (req,res,next) => {
 };
 
 //search query
-exports.findProjectsBySearchQuery = (req, res) => {
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  let checkString = '%'+req.site+'%'
+exports.findProjectsBySearchQuery = async (req, res,next) => {
   if(req.site){
-    checkString = req.site
+    req.query.siteId = req.site
   }
-  var name ='';
-  var description ='';
-
-  if(req.query.name != undefined){
-    name = req.query.name;
-  }
-  if(req.query.description != undefined){
-    description = req.query.description;
+  var {name,description,status,siteId,offset,limit} = req.query;
+  var newOffset = 0;
+  var newLimit = 100;
+  if(offset){
+    newOffset = parseInt(offset)
   }
 
-  Project.findAll({ 
-    where: {
-      status:true,
-      name: {
-        [Op.or]: {
-          [Op.like]: '%'+name+'%',
-          [Op.eq]: ''+name+''
-        }
-      },
-      description: {
-        [Op.or]: {
-          [Op.like]: '%'+description+'%',
-          [Op.eq]: ''+description+''
-        }
-      },
-      siteId: {
-        [Op.like]: checkString
-      }
-    },
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+  if(!name){
+    name ='';
+  }
+
+  if(!description){
+    description = '';
+  }
+
+  var whereClause = {};
+  whereClause.status = true;
+  if(name){
+    whereClause.name = {
+      [Op.like]:'%'+name+'%'
+    };
+  }
+  if(description){
+    whereClause.description = {
+      [Op.like]:'%'+description+'%'
+    };
+  }
+  if(siteId){
+    whereClause.siteId = siteId
+  }
+
+  var data = await Project.findAll({ 
+    where: whereClause,
     order: [
     ['id', 'DESC'],
     ],
     offset:offset,
     limit:limit
-  })
-  .then(async data => {
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
-
-    var total = 0;
-    await Project.count({ 
-      where: {
-        status:true,
-        name: {
-          [Op.or]: {
-            [Op.like]: '%'+name+'%',
-            [Op.eq]: ''+name+''
-          }
-        },
-        description: {
-          [Op.or]: {
-            [Op.like]: '%'+description+'%',
-            [Op.eq]: ''+description+''
-          }
-        },
-        siteId: {
-          [Op.like]: checkString
-        }
-      },
-    })
-    .then(data => {
-      total = data;
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-        err.message || "Some error occurred while retrieving Project."
-      });
-    });
-    var totalProjects = {
-      totalCount : total
-    }
-    countArray.push(totalProjects);
-    responseData.push(countArray);
-    res.send(responseData);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Projects."
-    });
   });
+
+  if(!data){
+    return next(HTTPError(500, "No data found"))
+  }
+
+  var responseData =[];
+  responseData.push(data);
+
+  var total = await Project.count({ 
+    where: whereClause
+  });
+
+  var countArray=[];
+  var totalProjects = {
+    totalCount : total
+  }
+  countArray.push(totalProjects);
+  responseData.push(countArray);
+
+  res.status(200).send(responseData);
+  
 };
 
 // get count of all Project whose status =1 
-exports.countOfProjects = (req, res) => {
-  var total = 0;
-  let checkString = '%'+req.site+'%'
+exports.countOfProjects =async (req, res) => {
+  var whereClause = {};
+  whereClause.status = true;
   if(req.site){
-    checkString = req.site
+    whereClause.siteId = req.site;
+  }
+  var total = await Project.count({
+    where :whereClause
+  })
+
+  if(!total){
+    return next(HTTPError(500, "Internal error has occurred, while getting count of projects"))
   }
 
-  Project.count({
-    where :
-    {
-      status :true,
-      siteId: {
-        [Op.like]: checkString
-      }
-    }
-  })
-  .then(data => {
-    total = data;
-    var totalCount = {
-      totalProjects : total 
-    }
-    res.send(totalCount);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Project count."
-    });
-  });
+  var totalCount = {
+    totalParts : total 
+  }
+
+  res.status(200).send(totalCount);
+  
 };
 
 exports.sendCreateResponse = async (req, res, next) => {

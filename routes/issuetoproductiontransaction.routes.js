@@ -14,8 +14,12 @@ router.get("/:id", users.loginRequired,
   );
 
 router.post("/post/issuetoproduction", users.loginRequired,issuetoproductiontransactions.issueToProduction);
+
 router.post("/post/returnfromproduction", users.loginRequired,issuetoproductiontransactions.returnFromProduction);
-// router.get("/get/getbydate", users.loginRequired,issuetoproductiontransactions.findByDate);
-router.get("/get/findbysearchquery", users.loginRequired,issuetoproductiontransactions.findTransactionsBySearchQuery);
+
+router.get("/get/findbysearchquery", users.loginRequired,
+	issuetoproductiontransactions.findTransactionsBySearchQuery,	
+  	issuetoproductiontransactions.sendFindResponse
+	);
 
 module.exports = router;

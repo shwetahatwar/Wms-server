@@ -4,6 +4,31 @@ const InventoryTransaction = db.inventorytransactions;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
 
+
+exports.materialInventoryTransactions=async (req, res,next) => {
+  if (!req.materialInwardBulkUpload) {
+    return res.status(500).send("No Material Inwarded");
+  }
+  var { batchNumber } = req.body;
+  var TransactMaterial = req.materialInwardBulkUpload.map(el => {
+    return {
+      transactionTimestamp: Date.now(),
+      performedBy:req.user.username,
+      transactionType:"Inward",
+      materialInwardId:el["id"],
+      batchNumber: batchNumber,
+      createdBy:req.user.username,
+      updatedBy:req.user.username 
+    }
+  });
+
+  var transactionsList = await InventoryTransaction.bulkCreate(TransactMaterial);
+  transactionsList = transactionsList.map ( el => { return el.get({ plain: true }) } );
+ 
+  next();
+}
+
+
 // Retrieve all Inventory Transaction from the database.
 exports.findAll =async (req, res,next) => {
   var materialinwardsWhereClause = {};
@@ -43,6 +68,9 @@ exports.findAll =async (req, res,next) => {
       required:true,
       where: materialinwardsWhereClause
     }],
+    order: [
+    ['id', 'DESC'],
+    ],
     offset:newOffset,
     limit:newLimit 
   });

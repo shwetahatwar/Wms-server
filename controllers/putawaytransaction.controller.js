@@ -4,6 +4,30 @@ const PutawayTransaction = db.putawaytransactions;
 const Shelf = db.shelfs;
 const Op = db.Sequelize.Op;
 
+//Create Putaway Transaction
+exports.putawayTransaction = async (req,res,next) =>{
+  if (!req.materialInwardBulkUpload) {
+    return res.status(500).send("No Material Inwarded");
+  }
+  var { shelfId } = req.body;
+  var putawayTransactMaterial = req.materialInwardBulkUpload.map(el => {
+    return {
+      transactionTimestamp: Date.now(),
+        performedBy:req.user.username,
+        materialInwardId:el["id"],
+        currentLocationId :shelfId, 
+        createdBy:req.user.username,
+        updatedBy:req.user.username 
+    }
+  });
+
+  var putawayTransactionsList = await PutawayTransaction.bulkCreate(putawayTransactMaterial);
+  putawayTransactionsList = putawayTransactionsList.map ( el => { return el.get({ plain: true }) } );
+  console.log(putawayTransactionsList);
+
+  next();
+}
+
 // Retrieve all Putaway Transaction from the database.
 exports.findAll = (req, res) => {
  var queryString = req.query;
