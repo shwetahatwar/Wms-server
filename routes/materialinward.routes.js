@@ -7,11 +7,11 @@ const putawaytransactions = require('../controllers/putawaytransaction.controlle
 const inventorytransactions = require('../controllers/inventorytransaction.controller');
 var partnumbers = require('../controllers/partnumber.controller');
 var qctransactions = require('../controllers/qctransaction.controller');
+var serialNumberFinder = require('../functions/serialNumberFinder');
 
 router.post("/", users.loginRequired,
   partnumbers.getPartNumber,	
-  materialinwards.findForMaterialInward,
-  serialNumberHelper.getSerialNumbers,
+  serialNumberFinder.getLastSerialNumber,
   materialinwards.materialInwardBulkUpload,
   putawaytransactions.putawayTransaction,
   inventorytransactions.materialInventoryTransactions,
@@ -53,6 +53,9 @@ router.get('/get/dashboardCountForPendingPutaway', users.loginRequired,materiali
 router.get('/get/getRecent/getRecentTransactionData', users.loginRequired,materialinwards.findRecentTransactions);
 router.get('/get/RecentTransactions/getRecentTransactions', users.loginRequired,materialinwards.findRecentTransactionsWithoutMaterialId);
 router.get('/stock/get/findMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findMaterialInwardsBySearchQueryStock);
-router.post('/post/bulkupload', users.loginRequired,materialinwards.bulkUpload);
+
+router.post('/post/bulkupload', users.loginRequired,
+  serialNumberFinder.getLastSerialNumber,
+  materialinwards.bulkUpload);
 
 module.exports = router;
