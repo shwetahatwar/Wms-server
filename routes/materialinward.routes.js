@@ -55,7 +55,6 @@ router.get('/get/RecentTransactions/getRecentTransactions', users.loginRequired,
 router.get('/stock/get/findMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findMaterialInwardsBySearchQueryStock);
 
 router.post('/post/bulkupload', users.loginRequired,
-  serialNumberFinder.getLastSerialNumber,
   materialinwards.bulkUpload);
 
 module.exports = router;

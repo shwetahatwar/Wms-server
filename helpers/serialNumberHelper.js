@@ -39,26 +39,24 @@
 //   next();
 // };
 
-exports.getSerialNumbers = (materialInwardDetial) => {
-  var { partNumberId, batchNumber, quantity, shelfId, eachPackQuantity, invoiceReferenceNumber, siteId, inwardDate, partNumber } = materialInwardDetial;
-
-  if (!partNumber) {
-    partNumber = req.partNumber["partNumber"]
-  }
-
-  if (!req.materialInward) {
+exports.getSerialNumbers = (materialInwardDetail,partNumber,reqMaterialInward,username) => {
+  var { partNumberId, batchNumber, quantity, shelfId, eachPackQuantity, invoiceReferenceNumber, siteId, inwardDate} = materialInwardDetail;
+  console.log("materialInwardDetail",materialInwardDetail)
+  if (!reqMaterialInward) {
     serialNumberId ="1111111111";
   }
   else {
-    serialNumberId = req.materialInward["barcodeSerial"];
+    serialNumberId = reqMaterialInward["barcodeSerial"];
   }
   var materialInward = [];
-
+  console.log("IN line 52",quantity);
   for (var i = 0; i < parseInt(quantity); i++) {
     serialNumberId = (parseInt(serialNumberId) + 1).toString();
     serialNumberId = '' + serialNumberId;
     console.log("serialNumberId",serialNumberId)
-
+    if(!inwardDate){
+      inwardDate = Date.now();
+    }
     materialInward[i] = {
       partNumberId: partNumberId,
       shelfId: shelfId,
@@ -73,8 +71,8 @@ exports.getSerialNumbers = (materialInwardDetial) => {
       QCRemarks: "NA",
       siteId :siteId,
       materialStatus : "NA",
-      createdBy:req.user.username,
-      updatedBy:req.user.username
+      createdBy:username,
+      updatedBy:username
     }
   }
 

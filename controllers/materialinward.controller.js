@@ -11,13 +11,14 @@ const Sequelize = require("sequelize");
 const Picklist = db.picklists;
 const IssueToProductionTransaction = db.issuetoproductiontransactions;
 const serialNumberHelper = require('../helpers/serialNumberHelper');
+const serialNumberFinder = require('../functions/serialNumberFinder');
 
 exports.materialInwardBulkUpload = async (req, res, next) => {
 
-  if (!req.materialInwardList) {
+  if (!req.materialInward) {
     return res.status(500).send("No Material");
   }
-  var materialInward = serialNumberHelper.getSerialNumbers(req.materialInwardList);
+  var materialInward = serialNumberHelper.getSerialNumbers(req.body,req.partNumber["partNumber"],req.materialInward,req.user.username);
   materialInward = await MaterialInward.bulkCreate(materialInward);
   req.materialInwardBulkUpload = materialInward.map ( el => { return el.get({ plain: true }) } );
   
@@ -40,14 +41,14 @@ exports.bulkUpload = async (req,res)  =>{
 
   var outputArray = partNumberArray.map(async el => {
     if (el["matched"]) {
-      var materialInwardArray = el.map(newElement => {
-        var materialInwardSerial = serialNumberHelper.getSerialNumbers(newElement);
-        return {
-          materialInwardSerial
-        }
-      });
-      var materialInward = await MaterialInward.bulkCreate(materialInwardArray);
-      console.log(materialInward);
+      var latestMaterial = await serialNumberFinder.getLatestSerialNumber();
+      console.log("latestMaterial",latestMaterial)
+      var materialInwardSerial = await serialNumberHelper.getSerialNumbers(el,el["partNumber"],latestMaterial,req.user.username);
+      
+      var materialInward = await MaterialInward.bulkCreate(materialInwardSerial);
+      return{
+        materialInward
+      }
     }
   });
 
