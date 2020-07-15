@@ -14,11 +14,15 @@ exports.getLastSerialNumber = async (req, res, next) => {
   next();
 };
 
-exports.getLatestSerialNumber = async () =>{
+exports.getLatestSerialNumber = async () => {
+  var materialInward = "";
 	var materialInward = await MaterialInward.findOne({
 		order: [
 		['id', 'DESC'],
-		],
+		]
 	});
+  
+  if (!materialInward)
+    return materialInward
 	return materialInward.toJSON();
 }
