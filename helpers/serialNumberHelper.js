@@ -39,21 +39,24 @@
 //   next();
 // };
 
-exports.getSerialNumbers = (materialInwardDetail,partNumber,reqMaterialInward,username) => {
+const db = require("../models");
+const MaterialInward = db.materialinwards;
+
+exports.getSerialNumbers = async (materialInwardDetail, partNumber, reqMaterialInward, username, serialNumberId) => {
   var { partNumberId, batchNumber, quantity, shelfId, eachPackQuantity, invoiceReferenceNumber, siteId, inwardDate} = materialInwardDetail;
-  console.log("materialInwardDetail",materialInwardDetail)
-  if (!reqMaterialInward) {
+  
+  if (!serialNumberId) {
     serialNumberId ="1111111111";
   }
   else {
-    serialNumberId = reqMaterialInward["barcodeSerial"];
+    serialNumberId = serialNumberId;
   }
   var materialInward = [];
-  console.log("IN line 52",quantity);
+  
   for (var i = 0; i < parseInt(quantity); i++) {
     serialNumberId = (parseInt(serialNumberId) + 1).toString();
     serialNumberId = '' + serialNumberId;
-    console.log("serialNumberId",serialNumberId)
+    
     if(!inwardDate){
       inwardDate = Date.now();
     }
@@ -76,5 +79,5 @@ exports.getSerialNumbers = (materialInwardDetail,partNumber,reqMaterialInward,us
     }
   }
 
-  return materialInward;
+  return {materialInward,serialNumberId};
 }

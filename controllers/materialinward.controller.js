@@ -38,17 +38,24 @@ exports.bulkUpload = async (req,res)  =>{
 
   var partNumberArray = req.body;
   var dataArray = [];
-
-  var outputArray = partNumberArray.map(async el => {
+  var serialNumberId;
+  var outputArray = await partNumberArray.map(async el => {
     if (el["matched"]) {
-      var latestMaterial = await serialNumberFinder.getLatestSerialNumber();
-      console.log("latestMaterial",latestMaterial)
-      var materialInwardSerial = await serialNumberHelper.getSerialNumbers(el,el["partNumber"],latestMaterial,req.user.username);
       
-      var materialInward = await MaterialInward.bulkCreate(materialInwardSerial);
-      return{
-        materialInward
+      var latestMaterial = await serialNumberFinder.getLatestSerialNumber();
+      if (!serialNumberId) {
+        serialNumberId = latestMaterial["barcodeSerial"]
       }
+      materialInwardSerial = await serialNumberHelper.getSerialNumbers(el, el["partNumber"], latestMaterial, req.user.username, serialNumberId);
+      
+      serialNumberId = materialInwardSerial["serialNumberId"];
+      materialInward = await MaterialInward.bulkCreate(materialInwardSerial["materialInward"]);
+      // console.log("materialInward", materialInward);
+      // while (materialInward) {
+      //   return {
+      //     materialInward
+      //   }
+      // }
     }
   });
 
