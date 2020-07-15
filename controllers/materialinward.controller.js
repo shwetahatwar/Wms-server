@@ -1721,6 +1721,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
         'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
         'transactionType':"Material Inward",
         'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'barcodeSerial':data[i]["dataValues"]["materialinward"]["barcodeSerial"],
         'performedBy':data[i]["dataValues"]["performedBy"]
       }
       responseData.push(singleJson);
@@ -1755,6 +1756,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
         'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
         'transactionType':"Material Putaway",
         'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'barcodeSerial':data[i]["dataValues"]["materialinward"]["barcodeSerial"],
         'performedBy':data[i]["dataValues"]["performedBy"]
       }
       responseData.push(singleJson);
@@ -1789,6 +1791,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
         'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
         'transactionType':"Material QC Check",
         'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'barcodeSerial':data[i]["dataValues"]["materialinward"]["barcodeSerial"],
         'performedBy':data[i]["dataValues"]["performedBy"]
       }
       responseData.push(singleJson);
@@ -1823,6 +1826,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
         'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
         'transactionType':data[i]["dataValues"]["transactionType"],
         'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'barcodeSerial':data[i]["dataValues"]["materialinward"]["barcodeSerial"],
         'performedBy':data[i]["dataValues"]["updatedBy"]
       }
       responseData.push(singleJson);
@@ -1857,6 +1861,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
         'partNumber':data[i]["dataValues"]["materialinward"]["partNumber"],
         'transactionType':"Stock Transfer",
         'materialInwardId':data[i]["dataValues"]["materialInwardId"],
+        'barcodeSerial':data[i]["dataValues"]["materialinward"]["barcodeSerial"],
         'performedBy':data[i]["dataValues"]["createdBy"]
       }
       responseData.push(singleJson);
