@@ -1,90 +1,117 @@
 const db = require("../models");
 const UOM = db.uoms;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Create and Save a new UOM
-exports.create = (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.name) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+exports.create = async (req, res,next) => {
+  var { name} = req.body;
+  
+  if (!name) {
+    return next(HTTPError(500, "UOM not created,name field is empty"))
   }
 
-  const uomData = {
-    name: req.body.name,
-    status:true,
-    createdBy:req.user.username,
-    updatedBy:req.user.username
-  };
-
-  
-  UOM.create(uomData)
-    .then(data => {
-      res.send(data);
+  var uom;
+  try {
+    uom = await UOM.create({
+      name: name,
+      status:true,
+      createdBy:req.user.username,
+      updatedBy:req.user.username
     })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the UOM."
-      });
-    });
+    if (!uom) {
+      return next(HTTPError(500, "UOM not created"))
+    }
+  } catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while creating the uom."))
+    }
+  }
+
+  uom = uom.toJSON();
+  req.uom = uom;
+
+  next();
 };
 
-//Get All UOMS
-exports.getAll = (req,res) =>{
-  UOM.findAll({
-    where:req.query
-  })
-  .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving UOMS."
-      });
-    });
+//Get All UOM
+exports.getAll =async (req,res,next) =>{
+  var {name,status} = req.query;
+
+  var whereClause = new WhereBuilder()
+  .clause('name', name)
+  .clause('status', status).toJSON();
+
+  var getAllUOM;
+  getAllUOM = await UOM.findAll({
+    where:whereClause,
+    order: [
+    ['id', 'DESC'],
+    ],
+  });
+  
+  if (!getAllUOM) {
+    return next(HTTPError(400, "UOM's not found"));
+  }
+  
+  req.uomsList = getAllUOM.map ( el => { return el.get({ plain: true }) } );
+
+  next();
 };
 
 //Update UOM by Id
-exports.update = (req, res) => {
+exports.update =async (req, res,next) => {
   const id = req.params.id;
 
-  UOM.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "UOM was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update UOM with id=${id}. Maybe UOM was not found or req.body is empty!`
-        });
+  var { name,status } = req.body;
+  
+  whereClause = new WhereBuilder()
+  .clause('name', name)
+  .clause('status', status).toJSON();
+
+  var updatedUOM;
+  try {
+    updatedUOM = await UOM.update(whereClause,{
+      where: {
+        id: id
       }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error updating UOM with id=" + id
-      });
     });
+
+    if (!updatedUOM) {
+      return next(HTTPError(500, "UOM not updated"))
+    }
+  }catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while updating the uom."))
+    }
+  }
+
+  req.updatedUOM = updatedUOM;
+  next();
 };
 
 //Get UOM by Id
-exports.getById = (req,res) => {
+exports.getById =async (req,res,next) => {
   const id = req.params.id;
 
-  UOM.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving UOM with id=" + id
-      });
-    });
-}
+  var uom = await UOM.findByPk(id);
+  if (!uom) {
+    return next(HTTPError(500, "UOM not found"))
+  }
+  req.uomsList = uom;
+  next();
+};
+
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.uomsList);
+};

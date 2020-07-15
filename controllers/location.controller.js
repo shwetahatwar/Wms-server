@@ -1,3 +1,4 @@
+//NOT IN USE
 const db = require("../models");
 const Location = db.locations;
 const Site = db.sites;

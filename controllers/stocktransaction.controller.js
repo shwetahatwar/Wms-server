@@ -6,86 +6,59 @@ const PartNumber = db.partnumbers;
 const User = db.users;
 const Site = db.sites;
 const Op = db.Sequelize.Op;
-
+var HTTPError = require('http-errors');
+const updateMaterialInwardFunction = require('../functions/materialInwardUpdate');
 
 // Create all Stock transfer Transaction from the database.
-exports.transferOut = async (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.materialInwardId) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+exports.transferOut = async (req, res, next) => {
+  var { materialInwardId , siteId , toSiteId , userId } = req.body;
+  
+  if (!materialInwardId) {
+    return next(HTTPError(500, "Content can not be empty!"))
   }
   
   var transferOutData = [];
   const stock = {
     transactionTimestamp: Date.now(),
-    materialInwardId:req.body.materialInwardId,
-    fromSiteId: req.body.siteId,
-    toSiteId:req.body.toSiteId,
+    materialInwardId: materialInwardId,
+    fromSiteId: siteId,
+    toSiteId: toSiteId,
     status:true,
-    transferOutUserId:req.body.userId,
+    transferOutUserId: userId,
     transactionType :"Transfer Out",
     createdBy:req.user.username,
     updatedBy:req.user.username
   };
+
+  var stockTransit = await StockTransit.create(stock);
+
+  if(!stockTransit){
+    return next(HTTPError(500, "Internal error has occurred, while creating the transaction."))
+  }
+  req.transferOutData = stockTransit;
+  var stocktransaction = await StockTransaction.create(stock);
   
-  await StockTransit.create(stock)
-  .then(async data => {
-    transferOutData.push(data);
-    await StockTransaction.create(stock)
-    .then(async data => {
-
-    });
-    var updateMaterial = {
-      siteId : 1,
-      materialStatus : "In Transit"
-    };
-    await MaterialInward.update(updateMaterial, {
-      where: {
-        id:req.body.materialInwardId
-      }
-    }).then(num => {
-      if (num == 1) {
-
-      } else {
-        res.send({
-          message: `Some error occurred while data updating!`
-        });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Some error occurred while data updating"
-      });
-    });
-    res.send(transferOutData);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while stock transfering out"
-    });
-  });
+  var updateMaterial = {
+    siteId : 1,
+    materialStatus : "In Transit"
+  };
+  var updatedData = await updateMaterialInwardFunction.updateMaterialInward(updateMaterial,materialInwardId)
+  next();
 };
 
-exports.transferIn = async (req, res) => {
-  console.log(req.body);
-  if (!req.body.materialInwardId) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+exports.transferIn = async (req, res, next) => {
+  var { materialInwardId , siteId , userId } = req.body;
+  
+  if (!materialInwardId) {
+    return next(HTTPError(500, "Content can not be empty!"))
   }
   
   var transferOutData = [];
   const stock = {
     transactionTimestamp: Date.now(),
-    materialInwardId:req.body.materialInwardId,
-    toSiteId: req.body.siteId,
-    transferInUserId:req.body.userId,
+    materialInwardId: materialInwardId,
+    toSiteId: siteId,
+    transferInUserId: userId,
     transactionType :"Transfer In",
     createdBy:req.user.username,
     updatedBy:req.user.username
@@ -94,8 +67,8 @@ exports.transferIn = async (req, res) => {
   var responseId= 0;
   await StockTransit.findAll({
     where: { 
-      materialInwardId : req.body.materialInwardId,
-      toSiteId: req.body.siteId,
+      materialInwardId : materialInwardId,
+      toSiteId: siteId,
     },
     limit:10,
     offset:0,
@@ -104,317 +77,161 @@ exports.transferIn = async (req, res) => {
     ],
   })
   .then(async data => {
-    console.log("Data On line 105",data);
     if(data[0] != null || data[0] != undefined){
       const stockTransitData = {
-        transferInUserId:req.body.userId,
+        transferInUserId:userId,
         status:false,
       };
       await StockTransit.update(stockTransitData, {
         where: {
           id: data[0]["dataValues"]["id"]
         }
-      }).then(num => {
-        if (num == 1) {
-
-        } else {
-          res.send({
-            message: `Some error occurred while data updating!`
-          });
-        }
+      }).then({
       })
       .catch(err => {
-        res.status(500).send({
-          message: "Some error occurred while data updating" 
-        });
+        console.log("error",err);
+        return next(HTTPError(500, "Some error occurred while stock transfering out"))
       });
     }
   }).catch(err=>{
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while stock transfering out"
-    });
+    console.log("error",err);
+    return next(HTTPError(500, "Some error occurred while stock transfering out"))
   });
+
+  var stocktransaction = await StockTransaction.create(stock);
+  req.transferOutData = stocktransaction;
+  var updateMaterial = {
+    siteId : siteId,
+    materialStatus : "Available"
+  };
+  var updatedData = await updateMaterialInwardFunction.updateMaterialInward(updateMaterial,materialInwardId)
   
-  await StockTransaction.create(stock)
-  .then(async data => {
-    transferOutData.push(data);
-    var updateMaterial = {
-      siteId : req.body.siteId,
-      materialStatus : "Available"
-    };
-    await MaterialInward.update(updateMaterial, {
-      where: {
-        id: req.body.materialInwardId
-      }
-    }).then(num => {
-      if (num == 1) {
-        // res.send({
-        //   message: "data was updated successfully."
-        // });
-      } else {
-        res.send({
-          message: `Some error occurred while data updating!`
-        });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Some error occurred while data updating" 
-      });
-    });
-    res.send(transferOutData);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while stock transfering out"
-    });
-  });
+  next();
+  
 };
 
-// Retrieve all Stock transfer Transaction from the database.
-exports.findAll = (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
+// get all stock transactions
+exports.findAll = async (req, res,next) => {
+  var { transactionType , fromSiteId, toSiteId , transactionTimestamp , transferOutUserId , transferInUserId , materialInwardId , status , offset , limit } = req.query;
 
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  
-  console.log(offset);
-  console.log(limit);
-  let checkString = '%'+req.site+'%'
-  if(req.site){
-    checkString = req.site
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
   }
 
-  StockTransaction.findAll({ 
-    where: req.query,
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+  var whereClause = new WhereBuilder()
+  .clause('fromSiteId', fromSiteId)
+  .clause('toSiteId', toSiteId)
+  .clause('toSiteId', toSiteId)
+  .clause('transactionType', transactionType)
+  .clause('transactionTimestamp', transactionTimestamp)
+  .clause('transferInUserId', transferInUserId)
+  .clause('materialInwardId', materialInwardId)
+  .clause('status', status).toJSON();
+  console.log(whereClause)
+  var stockData =  await StockTransaction.findAll({ 
+    where: whereClause,
     include: [
-    {model: MaterialInward
-    },
-    {model: Site,
-      as: 'fromSite'},
-      {model: Site,
-        as: 'toSite'},
-        {model: User,
-      as: 'transferOutUser'},
-      {model: User,
-        as: 'transferInUser'}],
-    offset:offset,
-    limit:limit 
-  })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving StockTransaction."
-    });
-  });
-};
-
-// Find a single Stock transfer Transaction with an id
-exports.findOne = (req, res) => {
-  const id = req.params.id;
-
-  StockTransaction.findByPk(id)
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error retrieving StockTransaction with id=" + id
-    });
-  });
-};
-
-// Find a Stock transfer Transaction date wise
-exports.findAllDatewise = (req, res) => {
- var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  
-  let checkString = '%'+req.site+'%'
-  if(req.site){
-    checkString = req.site
-  }
-
-  StockTransaction.findAll({ 
-    where: {
-      createdAt: {
-        [Op.gte]: parseInt(req.query.createdAtStart),
-        [Op.lt]: parseInt(req.query.createdAtEnd),
-      }
-    },
-   include: [
     {model: MaterialInward},
     {model: Site,
       as: 'fromSite'},
       {model: Site,
         as: 'toSite'},
         {model: User,
-      as: 'transferOutUser'},
-      {model: User,
-        as: 'transferInUser'}],
-    offset:offset,
-    limit:limit 
-  })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving StockTransaction."
-      });
-    });
+          as: 'transferOutUser'},
+          {model: User,
+            as: 'transferInUser'}
+            ],
+            offset:newOffset,
+            limit:newLimit 
+          });
+
+  if (!stockData) {
+    return next(HTTPError(400, "Stock transactions not found"));
+  }
+  
+  req.responseList = stockData.map ( el => { return el.get({ plain: true }) } );
+
+  next();
+  
 };
 
-exports.findBySearchQuery = async (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  var responseData = [];
-  let checkString = '%'+req.site+'%'
-  if(req.site){
-    checkString = req.site
-  }
-  if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null && 
-    req.query.partNumber != undefined && req.query.partNumber != null){
-        await StockTransaction.findAll({
-          include: [
-          {model: MaterialInward,
-            where: {
-              barcodeSerial: {
-                  [Op.like]: '%'+req.query.barcodeSerial+'%'
-                },
-                siteId: {
-          [Op.like]: checkString
-        }
-              },
-              required:true
-            },
-          {model: Site,
-            as: 'fromSite'},
-            {model: Site,
-              as: 'toSite'},
-              {model: User,
-                as: 'transferOutUser'},
-                {model: User,
-                  as: 'transferInUser'}],
-        }).then(data => {
-          if(data.length != 0){
-            for(var a=0;a<data.length;a++){
-              responseData.push(data[a]["dataValues"]);
-            }
-          }
-        });
+// Find a single Stock transaction  with an id
+exports.findOne = async (req, res, next) => {
+  const { id } = req.params;
 
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      let dataList = [];
-      dataList.push(responseData);
-      dataCount.push(count);
-      dataList.push(dataCount);
-      console.log("IN barcodeSerial & PartNumber Search");
-      res.send(dataList);
+  var stocktransit = await StockTransaction.findByPk(id);
+  if (!stocktransit) {
+    return next(HTTPError(500, "Stock Transactions not found"))
   }
-  else if(req.query.barcodeSerial != undefined && req.query.barcodeSerial != null){
-    await MaterialInward.findAll({
-      where: {
-        barcodeSerial: {
-          [Op.or]: {
-            [Op.eq]: ''+req.query.barcodeSerial+'',
-            [Op.like]: '%'+req.query.barcodeSerial+'%'
-          }
-        },
-        status : 1,
-        siteId: {
-          [Op.like]: checkString
-        } 
-      },
-      offset:offset,
-      limit:limit 
-    }).then(async data => {
-      for(var i=0;i<data.length;i++){
-        await StockTransaction.findAll({
-          where: {
-            materialInwardId: data[i]["dataValues"]["id"]
-          },
-          include: [
-          {model: MaterialInward},
-          {model: Site,
-            as: 'fromSite'},
-            {model: Site,
-              as: 'toSite'},
-              {model: User,
-                as: 'transferOutUser'},
-                {model: User,
-                  as: 'transferInUser'}],
-        }).then(data => {
-          if(data.length != 0){
-            if(data.length != 0){
-              for(var a=0;a<data.length;a++){
-                responseData.push(data[a]["dataValues"]);
-              }
-            }
-          }
-        });
-      }
-      let count = {
-        'totalCount':responseData.length
-      };
-      let dataCount = [];
-      let dataList = [];
-      dataList.push(responseData);
-      dataCount.push(count);
-      dataList.push(dataCount);
-      console.log("IN barcodeSerial Search");
-      res.send(dataList);
-    });
+  req.responseList = stocktransit;
+  next();
+};
+
+
+exports.findBySearchQuery = async (req, res) => {
+  var { createdAtStart , createdAtEnd , offset , limit , partNumber , barcodeSerial } = req.query;
+
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
   }
-  else if(req.query.partNumber != undefined && req.query.partNumber != null){
-    await StockTransaction.findAll({
-      include: [
-      {model: MaterialInward,
-        where: {
-          partNumber: {
-            [Op.like]: '%'+req.query.partNumber+'%'
-          },
-          siteId: {
-          [Op.like]: checkString
-        }
-        },
-        required:true
-      },
+
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+  var materialInwardWhereClause = {};
+  if(req.site){
+    materialInwardWhereClause.siteId = req.site;
+  }
+  else{
+    materialInwardWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
+  }
+
+  if(!partNumber){
+    partNumber="";
+  }
+  if(!barcodeSerial){
+    barcodeSerial="";
+  }
+
+  var whereClause = {};
+  if(createdAtStart && createdAtEnd){
+    whereClause.createdAt = {
+      [Op.gte]: parseInt(createdAtStart),
+      [Op.lt]: parseInt(createdAtEnd),
+    }
+  }
+
+  if(partNumber){
+    materialInwardWhereClause.partNumber = {
+      [Op.like]:'%'+partNumber+'%'
+    };
+  }
+
+  if(barcodeSerial){
+    materialInwardWhereClause.barcodeSerial = {
+      [Op.like]:'%'+barcodeSerial+'%'
+    };
+  }
+
+  var responseData = await StockTransaction.findAll({ 
+    where: whereClause,
+    include: [
+    {model: MaterialInward,
+      required: true,
+      where:materialInwardWhereClause},
       {model: Site,
         as: 'fromSite'},
         {model: Site,
@@ -423,26 +240,45 @@ exports.findBySearchQuery = async (req, res) => {
             as: 'transferOutUser'},
             {model: User,
               as: 'transferInUser'}],
-              offset:offset,
-              limit:limit
-            }).then(data => {
-              if(data.length != 0){
-                for(var a=0;a<data.length;a++){
-                  responseData.push(data[a]["dataValues"]);
-                }
-              }
+              offset:newOffset,
+              limit:newLimit 
             });
 
-            let count = {
-              'totalCount':responseData.length
-            };
-            let dataCount = [];
-            let dataList = [];
-            dataList.push(responseData);
-            dataCount.push(count);
-            dataList.push(dataCount);
-            console.log("IN part Search");
-            res.send(dataList);
-          }
+  if(createdAtStart && createdAtEnd){
+    res.status(200).send(responseData);
+    return;
+  }
+  var countData = await StockTransaction.count({ 
+    where: whereClause,
+    include: [
+    {model: MaterialInward,
+      required: true,
+      where:materialInwardWhereClause},
+      {model: Site,
+        as: 'fromSite'},
+        {model: Site,
+          as: 'toSite'},
+          {model: User,
+            as: 'transferOutUser'},
+            {model: User,
+              as: 'transferInUser'}]
+            });
+  let count = {
+    'totalCount':countData
+  };
+  let dataCount = [];
+  let dataList = [];
+  dataList.push(responseData);
+  dataCount.push(count);
+  dataList.push(dataCount);
+  res.status(200).send(dataList);
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.responseList);
+};
+
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send(req.transferOutData);
 };
 

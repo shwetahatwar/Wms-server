@@ -213,6 +213,12 @@ exports.findAll =async (req, res,next) => {
     var materialinwards;
     materialinwards = await MaterialInward.findAll({ 
       where:whereClause,
+      include: [{
+        model: PartNumber
+      },
+      {
+        model: Shelf
+      }],
       order: [
       ['id', 'DESC'],
       ],
