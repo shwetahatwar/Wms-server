@@ -55,6 +55,7 @@ router.get('/get/RecentTransactions/getRecentTransactions', users.loginRequired,
 router.get('/stock/get/findMaterialInwardsBySearchQuery', users.loginRequired,materialinwards.findMaterialInwardsBySearchQueryStock);
 
 router.post('/post/bulkupload', users.loginRequired,
-  materialinwards.bulkUpload);
+  materialinwards.bulkUpload,
+  materialinwards.sendBulkUploadResponse);
 
 module.exports = router;

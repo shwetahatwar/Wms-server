@@ -12,6 +12,7 @@ const Picklist = db.picklists;
 const IssueToProductionTransaction = db.issuetoproductiontransactions;
 const serialNumberHelper = require('../helpers/serialNumberHelper');
 const serialNumberFinder = require('../functions/serialNumberFinder');
+const createTransaction = require('../functions/materialTransaction');
 
 exports.materialInwardBulkUpload = async (req, res, next) => {
 
@@ -30,7 +31,7 @@ exports.sendResponse = (req, res, next) => {
 }
 
 
-exports.bulkUpload = async (req,res)  =>{
+exports.bulkUpload = async (req,res,next)  =>{
   if (req.body.length == 0) {
     res.status(400).send({message: "Content can not be empty!"});
     return;
@@ -39,6 +40,7 @@ exports.bulkUpload = async (req,res)  =>{
   var partNumberArray = req.body;
   var dataArray = [];
   var serialNumberId;
+  req.materialInwardBulkUploadResponse = [];
   var outputArray = await partNumberArray.map(async el => {
     if (el["matched"]) {
       
@@ -49,16 +51,27 @@ exports.bulkUpload = async (req,res)  =>{
       materialInwardSerial = await serialNumberHelper.getSerialNumbers(el, el["partNumber"], latestMaterial, req.user.username, serialNumberId);
       
       serialNumberId = materialInwardSerial["serialNumberId"];
-      materialInward = await MaterialInward.bulkCreate(materialInwardSerial["materialInward"]);
-      // console.log("materialInward", materialInward);
-      // while (materialInward) {
-      //   return {
-      //     materialInward
-      //   }
-      // }
-    }
-  });
+      var materialInward = await MaterialInward.bulkCreate(materialInwardSerial["materialInward"]);
+      for(var j=0;j<materialInward.length;j++){
+        req.materialInwardBulkUploadResponse.push(materialInward[j]["dataValues"])
+      }
+      var putawayTransactionList = await createTransaction.createPutawayTransaction(materialInward,req.user.username);
+      var inventoryTransactionList = await createTransaction.createInventoryTransaction(materialInward,req.user.username);
 
+      }
+  });
+  if (!req.materialInwardBulkUploadResponse) {
+    return next(HTTPError(400, "Material not inwarded"));
+  }
+
+  console.log("materialInwardBulkUploadResponse 67",req.materialInwardBulkUploadResponse)
+  
+  next();
+}
+
+exports.sendBulkUploadResponse = (req, res, next) => {
+  return res.status(200).send(req.materialInwardBulkUploadResponse)
+}
 //   for(var a=0;a<req.body.length;a++){
 //     const partNumbersId = req.body[a]["partNumberId"];
 //     var materialInwardIds;  
@@ -160,10 +173,10 @@ exports.bulkUpload = async (req,res)  =>{
 //   });
 // }
 // }
-// }
-res.send(dataArray);
+// // }
+// res.send(dataArray);
 
-};
+// };
 
 // Retrieve all Inventory Transaction from the database.
 exports.findAll =async (req, res,next) => {

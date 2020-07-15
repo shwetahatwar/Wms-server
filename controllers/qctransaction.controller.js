@@ -4,7 +4,6 @@ const MaterialInward = db.materialinwards;
 const PartNumber = db.partnumbers;
 const Op = db.Sequelize.Op;
 
-
 //create transaction
 exports.create = async (req,res,next) =>{
   var id = req.params.id;
