@@ -42,17 +42,18 @@ exports.create = async (req, res,next) => {
 
 //Get All Rack
 exports.getAll =async (req,res,next) =>{
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  console.log("Line 51", req.query);
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
+  
+  var {siteId,zoneId, name,status,offset,limit} = req.query;
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
   }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
+
+  if(limit){
+    newLimit = parseInt(limit)
   }
-  var {siteId,zoneId, name,status} = req.query;
 
   var whereClause = new WhereBuilder()
   .clause('siteId', siteId)
@@ -60,9 +61,14 @@ exports.getAll =async (req,res,next) =>{
   .clause('zoneId', zoneId)
   .clause('status', status).toJSON();
 
-  let checkString = '%'+req.site+'%'
+  var zoneWhereClause = {};
   if(req.site){
-    checkString = req.site
+    zoneWhereClause.siteId = req.site;
+  }
+  else{
+    zoneWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
   }
   var getAllRacks;
   getAllRacks = await Rack.findAll({
@@ -71,11 +77,7 @@ exports.getAll =async (req,res,next) =>{
     {
       model:Zone,
       required:true,
-      where: {
-        siteId: {
-          [Op.like]: checkString
-        }
-      },
+      where:zoneWhereClause,
       include:[{
         model:Site,
         }]
@@ -84,8 +86,8 @@ exports.getAll =async (req,res,next) =>{
       order: [
       ['id', 'DESC'],
       ],
-      offset:offset,
-      limit:limit
+      offset:newOffset,
+      limit:newLimit
     });
 
   if (!getAllRacks) {
@@ -106,6 +108,7 @@ exports.update =async (req, res,next) => {
   whereClause = new WhereBuilder()
   .clause('name', name)
   .clause('zoneId', zoneId)
+  .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
   console.log(whereClause);
 
@@ -120,7 +123,8 @@ exports.update =async (req, res,next) => {
     if (!updatedRack) {
       return next(HTTPError(500, "Rack not updated"))
     }
-  }catch (err) {
+  }
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }
@@ -147,214 +151,182 @@ exports.getById =async (req,res,next) => {
 };
 
 // get count of all Racks whose status =1 
-exports.countOfRacks = (req, res) => {
+exports.countOfRacks = async (req, res) => {
   var total = 0;
-  let checkString = '%'+req.site+'%'
+  var zoneWhereClause = {};
+  var whereClause = {};
+
+  whereClause.status = true;
+
   if(req.site){
-    checkString = req.site
+    zoneWhereClause.siteId = req.site;
   }
-  Rack.count({
-    where :
-    {
-      status :1
-    },
+  else{
+    zoneWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
+  }
+
+  total = await Rack.count({
+    where :whereClause,
     include:[
     {
       model:Zone,
       required:true,
-      where: {
-        siteId: {
-          [Op.like]: checkString
-        }
-      },
-      include:[{
-        model:Site,
-        }]
-      }
-      ]
-    })
-  .then(data => {
-    total = data;
-    var totalCount = {
-      totalRacks : total 
+      where: zoneWhereClause
     }
-    res.send(totalCount);
+    ]
   })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Racks count."
-    });
-  });
+
+  if (!total) {
+    return next(HTTPError(500, "Internal error has occurred, while calculating the rack count"))
+  } 
+
+  total = data;
+  var totalCount = {
+    totalRacks : total 
+  }
+  res.send(totalCount);
 };
 
 // get count of all Racks by Zone 
-exports.countOfRacksByZoneId = (req, res) => {
+exports.countOfRacksByZoneId = async (req, res) => {
   var total = 0;
-  let checkString = '%'+req.site+'%'
+  var { zoneId } = req.query;
+  var zoneWhereClause = {};
+  var whereClause={};
+  whereClause.zoneId = zoneId;
   if(req.site){
-    checkString = req.site
+    zoneWhereClause.siteId = req.site;
   }
-  Rack.count({
-    where :
-    {
-      zoneId :req.query.zoneId
-    },
+  else{
+    zoneWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
+  }
+
+  var total = await Rack.count({
+    where :whereClause,
     include:[
     {
       model:Zone,
       required:true,
-      where: {
-        siteId: {
-          [Op.like]: checkString
-        }
-      },
+      where:zoneWhereClause,
       include:[{
         model:Site,
-        }]
-      }
-      ]
-    })
-  .then(data => {
-    total = data;
-    var totalCount = {
-      totalRacks : total 
+      }]
     }
-    res.send(totalCount);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Racks count."
-    });
+    ]
   });
+
+  if (!total) {
+    return next(HTTPError(500, "Internal error has occurred, while calculating the rack count"))
+  }
+  
+  var totalCount = {
+    totalRacks : total 
+  }
+
+  res.status(200).send(totalCount);
 };
 
 //search query
-exports.findRacksBySearchQuery = (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
+exports.findRacksBySearchQuery = async(req, res) => {
+  var {name,zone,site,offset,limit} = req.query;
+  if(!name){
+    name ='';
   }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
+  if(!site){
+    site ='';
   }
-  delete queryString['offset'];
-  delete queryString['limit'];
+  if(!zone){
+    zone ='';
+  }
 
-  var name ='';
-  var zone ='';
-  var site = '';
+  var newOffset = 0;
+  var newLimit = 100;
 
-  if(req.query.name != undefined){
-    name = req.query.name;
+  if(offset){
+    newOffset = parseInt(offset)
   }
-  if(req.query.zone != undefined){
-    zone = req.query.zone;
+
+  if(limit){
+    newLimit = parseInt(limit)
   }
-  if(req.query.site != undefined){
-    site = req.query.site;
-  }
-  let checkString = '%'+req.site+'%'
+  var whereClause = {};
+  var siteWhereClause = {};
+  var zoneWhereClause = {};
+
   if(req.site){
-    checkString = req.site
+    zoneWhereClause.siteId = req.site;
+  }
+  else{
+    zoneWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
   }
 
-  Rack.findAll({ 
-    where: {
-      status:1,
-      name: {
-        [Op.or]: {
-          [Op.like]: '%'+name+'%',
-          [Op.eq]: '%'+name+''
-        }
-      }
-    },
+  if(zone){
+    zoneWhereClause.name = {
+      [Op.like]:'%'+zone+'%'
+    };
+  }
+
+  if(name){
+    whereClause.name = {
+      [Op.like] : '%'+name+'%'
+    }
+  }
+
+  if(site){
+    siteWhereClause.name = {
+      [Op.like]:'%'+site+'%'
+    };
+  }
+
+  whereClause.status = true;
+
+  var rackData = await Rack.findAll({ 
+    where: whereClause,
     include: [{model: Zone,
       required:true,
-      where: {
-        name: {
-          [Op.like]: '%'+zone+'%'
-        },
-        siteId: {
-            [Op.like]: checkString
-          }
-      },
+      where: zoneWhereClause,
       include:[{
         model:Site,
         required:true,
-        where: {
-          name: {
-            [Op.like]: '%'+site+'%'
-          }
-        },
+        where:siteWhereClause,
       }]}],
       order: [
       ['id', 'DESC'],
       ],
-      offset:offset,
-      limit:limit
-    })
-  .then(async data => {
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
+      offset:newOffset,
+      limit:newLimit
+    });
 
-    var total = 0;
-    await Rack.count({ 
-      where: {
-        status:1,
-        name: {
-          [Op.or]: {
-            [Op.like]: '%'+name+'%',
-            [Op.eq]: ''+name+''
-          }
-        }
-      },
-      include: [{model: Zone,
+  var responseData =[];
+  responseData.push(rackData);
+
+  var total = 0;
+  total = await Rack.count({ 
+    where: whereClause,
+    include: [{model: Zone,
+      required:true,
+      where: zoneWhereClause,
+      include:[{
+        model:Site,
         required:true,
-        where: {
-          name: {
-            [Op.like]: '%'+zone+'%'
-          },
-          siteId: {
-            [Op.like]: checkString
-          }
-        },
-        include:[{
-          model:Site,
-          required:true,
-          where: {
-            name: {
-              [Op.like]: '%'+site+'%'
-            }
-          },
-        }]}],
-      })
-    .then(data => {
-      total = data;
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-        err.message || "Some error occurred while retrieving Locations."
-      });
+        where:siteWhereClause,
+      }]}]
     });
-    var totalRacks = {
-      totalCount : total
-    }
-    countArray.push(totalRacks);
-    responseData.push(countArray);
-    res.send(responseData);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Locations."
-    });
-  });
+
+  var totalRacks = {
+    totalCount : total
+  }
+  let countArray = [];
+  countArray.push(totalRacks);
+  responseData.push(countArray);
+
+  res.status(200).send(responseData);
 };
 
 exports.sendCreateResponse = async (req, res, next) => {

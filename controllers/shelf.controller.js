@@ -5,20 +5,23 @@ const Shelf = db.shelfs;
 const Site = db.sites;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
+const serialNumberFinder = require('../functions/serialNumberFinder');
 
 //Get All Shelfs
 exports.getAll =async (req,res,next) =>{
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  console.log("Line 51", req.query);
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
+
+  var {description,rackId,barcodeSerial,name,status,limit,offset} = req.query;
+
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
   }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
+
+  if(limit){
+    newLimit = parseInt(limit)
   }
-  var {description,rackId,barcodeSerial,name,status} = req.query;
 
   var whereClause = new WhereBuilder()
   .clause('name', name)
@@ -27,10 +30,16 @@ exports.getAll =async (req,res,next) =>{
   .clause('description', description)
   .clause('status', status).toJSON();
 
-  let checkString = '%'+req.site+'%'
+  var zoneWhereClause = {};
   if(req.site){
-    checkString = req.site
+    zoneWhereClause.siteId = req.site;
   }
+  else{
+    zoneWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
+  }
+
   var getAllShelves;
   getAllShelves = await Shelf.findAll({
     where:req.query,
@@ -40,19 +49,15 @@ exports.getAll =async (req,res,next) =>{
       include:[{
         model:Zone,
         required:true,
-        where: {
-          siteId: {
-            [Op.like]: checkString
-          }
-        },
+        where: zoneWhereClause,
       }]
     }
     ],
     order: [
     ['id', 'DESC'],
     ],
-    offset:offset,
-    limit:limit
+    offset:newOffset,
+    limit:newLimit
   });
 
   if (!getAllShelves) {
@@ -65,398 +70,276 @@ exports.getAll =async (req,res,next) =>{
 };
 
 // Create and Save a new Shelf
-exports.create = async (req, res) => {
-  console.log(req.body);
-  // Validate request
-  var { name,rackId,description} = req.body;
+exports.create = async (req, res, next) => {
+  var { name,rackId,description,vertical,capacity,volume} = req.body;
   
   if (!name || !rackId || !description) {
     return next(HTTPError(500, "Shelf not created,name or rack or description field is empty"))
+  }
+
+  if(!vertical){
+    vertical = "001";
   }
   
   var serialNumber;
   var zoneId;
   var siteId;
-  var rackId=req.body.rackId;
-  await Shelf.findAll({
-    where: { 
-      rackId: req.body.rackId
-    },
-    include:[{
-      model:Rack
-    }],
-    limit:1,
-    offset:0,
-    order: [
-    ['id', 'DESC'],
-    ],
-  })
-  .then(async data => {
-    console.log("Data On line 43",data);
-    if(data[0] != null || data[0] != undefined){
-      console.log("In If");
-      serialNumber = data[0]["dataValues"]["barcodeSerial"];
-      zoneId = data[0]["dataValues"]["rack"]["zoneId"];
-      serialNumber = serialNumber.substring(10,13);
-      serialNumber = (parseInt(serialNumber) + 1).toString();
-      var str = serialNumber;
-      if(str.length == 1) {
-        str = '00' + str;
-      }
-      else if(str.length == 2) {
-        str = '0' + str;
-      }
+  var rackId=rackId;
 
-      await Zone.findAll({
-        where: { 
-          id: zoneId
-        },
-      })
-      .then(async data => {
-        console.log("Data On line 43",data);
-        if(data[0] != null || data[0] != undefined){
-          siteId = data[0]["dataValues"]["siteId"]
-        }
-      })
-      .catch(err=>{
-        res.status(500).send({
-          message:
-          err.message || "Some error occurred while creating Shelf."
-        });
-      });
-
-      if(siteId.toString().length < 2) {
-        serialNumber = '0' + siteId;
-      }
-      else{
-        serialNumber = siteId;
-      }
-      if(zoneId.toString().length < 2) {
-        serialNumber = serialNumber + "-" + '0' + zoneId;
-      }
-      else{
-        serialNumber = serialNumber + "-" + zoneId;
-      }
-      if(rackId.toString().length == 1) {
-        serialNumber = serialNumber + "-" + '00' + rackId;
-      }
-      else if(rackId.toString().length == 2) {
-        serialNumber = serialNumber + "-" +'0' + rackId;
-      }
-      else{
-        serialNumber = serialNumber + "-" + rackId;
-      }
-
-      serialNumber = serialNumber + "-" + str + "-" + req.body.vertical;
-      console.log("Line 50 Serial Number", serialNumber);
-    }
-    else{
-      await Rack.findAll({
-        where: { 
-          id: req.body.rackId,
-        },
-        include: [{
-          model: Zone
-        }],
-      })
-      .then(async data => {
-        console.log("Data On line 105",data);
-        if(data[0] != null || data[0] != undefined){
-          zoneId = data[0]["dataValues"]["zoneId"];
-          siteId = data[0]["dataValues"]["zone"]["siteId"];
-        }
-      })
-      .catch(err=>{
-        res.status(500).send({
-          message:
-          err.message || "Some error occurred while creating Shelf."
-        });
-      });
-      console.log("Site Id",siteId);
-      if(siteId.toString().length < 2) {
-        serialNumber = '0' + siteId;
-      }
-      else{
-        serialNumber = siteId;
-      }
-      if(zoneId.toString().length < 2) {
-        serialNumber = serialNumber + "-" + '0' + zoneId;
-      }
-      else{
-        serialNumber = serialNumber + "-" + zoneId;
-      }
-      if(rackId.toString().length == 1) {
-        serialNumber = serialNumber + "-" + '00' + rackId;
-      }
-      else if(rackId.toString().length == 2) {
-        serialNumber =serialNumber +"-" +  '0' + rackId;
-      }
-      else{
-        serialNumber = serialNumber + "-" + rackId;
-      }
-      serialNumber = serialNumber + "-" + "001" + "-" + req.body.vertical;
-      console.log("Line 50 Serial Number", serialNumber);
-    }
-  })
-  .catch(err=>{
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while creating Shelf."
-    });
-  });
-
+  var shelfData = await serialNumberFinder.getShelfSerialNumber(rackId);
+  
+  console.log("shelfData",shelfData)
+  serialNumber = await generateSerialNumber(shelfData,rackId,zoneId,siteId,vertical); 
   const shelf = {
-    name: req.body.name,
+    name: name,
     status:true,
-    description: req.body.description,
+    description: description,
     barcodeSerial:serialNumber,
-    rackId: req.body.rackId,
-    capacity: req.body.capacity,
+    rackId: rackId,
+    capacity: capacity,
     loadedCapacity: 0,
-    volume: req.body.volume,
+    volume: volume,
     loadedVolume: 0,
     createdBy:req.user.username,
     updatedBy:req.user.username
   };
-  
-  Shelf.create(shelf)
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err["errors"][0]["message"] || "Some error occurred while creating the Shelf."
-    });
-  });
+
+  var shelfCreated;
+  try {
+    shelfCreated = await Shelf.create(shelf);
+
+    if (!shelfCreated) {
+      return next(HTTPError(500, "Shelf not created"))
+    }
+  } catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while creating the shelf."))
+    }
+  }
+
+  req.shelfCreated = shelfCreated.toJSON();
+  next();
 };
 
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send(req.shelfCreated);
+};
 
 //Update Shelf by Id
-exports.update = (req, res) => {
+exports.update = async(req, res,next) => {
   const id = req.params.id;
 
-  Shelf.update(req.body, {
-    where: req.params
-  })
-  .then(num => {
-    if (num == 1) {
-      res.send({
-        message: "Shelf was updated successfully."
+  var { name , rackId , description , capacity , loadedCapacity , volume , loadedVolume ,
+    status , updatedBy} = req.body;
+
+    whereClause = new WhereBuilder()
+    .clause('name', name)
+    .clause('rackId', rackId)
+    .clause('description', description)
+    .clause('capacity', capacity)
+    .clause('loadedCapacity', loadedCapacity)
+    .clause('volume', volume)
+    .clause('updatedBy', req.user.username)  
+    .clause('loadedVolume', loadedVolume)
+    .clause('status', status).toJSON();
+
+    var updatedShelf;
+    try {
+      updatedShelf = await Shelf.update(whereClause,{
+        where: {
+          id: id
+        }
       });
-    } else {
-      res.send({
-        message: `Cannot update Shelf with id=${id}. Maybe Shelf was not found or req.body is empty!`
-      });
+
+      if (!updatedShelf) {
+        return next(HTTPError(500, "Shelf not updated"))
+      }
+    }catch (err) {
+      if(err["errors"]){
+        return next(HTTPError(500,err["errors"][0]["message"]))
+      }
+      else{
+        return next(HTTPError(500,"Internal error has occurred, while updating the shelf."))
+      }
     }
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error updating Shelf with id=" + id
-    });
-  });
-};
+
+    req.updatedShelf = updatedShelf;
+    next();
+  };
+
+  exports.sendUpdateResponse = async (req, res, next) => {
+    res.status(200).send({message: "success"});
+  };
 
 //Get Shelf by Id
-exports.getById = (req,res) => {
+exports.getById = async (req,res,next) => {
   const id = req.params.id;
 
-  Shelf.findByPk(id)
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error retrieving Shelf with id=" + id
-    });
-  });
-}
+  var shelf = await Shelf.findByPk(id);
+  if (!shelf) {
+    return next(HTTPError(500, "shelf not found"))
+  }
+  req.shelfsList = shelf;
+  next();
+};
 
-exports.findShelfsBySearchQuery = (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
+exports.findShelfsBySearchQuery = async(req, res,next) => {
 
-  var name ='';
-  var zone ='';
-  var rack ='';
-  var site ='';
+  var { name, zone , rack , site , status , offset , limit } = req.query;
 
-  if(req.query.name != undefined){
-    name = req.query.name;
-  }
-  if(req.query.zone != undefined){
-    zone = req.query.zone;
-  }
-  if(req.query.site != undefined){
-    site = req.query.site;
-  }
-  if(req.query.rack != undefined){
-    rack = req.query.rack;
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
   }
 
-  let checkString = '%'+req.site+'%'
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+  if(!name){
+    name ='';
+  }
+  if(!zone){
+    zone = '';
+  }
+  if(!site){
+    site = '';
+  }
+  if(!rack){
+    rack = '';
+  }
+
+  var whereClause = {};
+  var siteWhereClause = {};
+  var zoneWhereClause = {};
+  var rackWhereClause = {};
+
+  if(name){
+    whereClause.name = {
+      [Op.like] : '%'+name+'%'
+    }
+  }
+
+  whereClause.status = true;
+
+  if(rack){
+    rackWhereClause.name = {
+      [Op.like]:'%'+rack+'%'
+    };
+  }
+
+  if(site){
+    siteWhereClause.name = {
+      [Op.like]:'%'+site+'%'
+    };
+  }
+
+  if(zone){
+    zoneWhereClause.name = {
+      [Op.like]:'%'+zone+'%'
+    };
+  }
+
   if(req.site){
-    checkString = req.site
+    zoneWhereClause.siteId = req.site;
+  }
+  else{
+    zoneWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
   }
 
-  Shelf.findAll({ 
-    where: {
-      status:1,
-      name: {
-        [Op.or]: {
-          [Op.like]: '%'+name+'%',
-          [Op.eq]: '%'+name+''
-        }
-      }
-    },
+  var data = await Shelf.findAll({ 
+    where: whereClause,
     include: [{model: Rack,
       required:true,
-      where: {
-        name: {
-          [Op.like]: '%'+rack+'%'
-        }
-      },
+      where: rackWhereClause,
       include:[{
         model:Zone,
         required:true,
-        where: {
-          name: {
-            [Op.like]: '%'+zone+'%'
-          },
-          siteId: {
-            [Op.like]: checkString
-          }
-        },
+        where: zoneWhereClause,
         include:[{
           model:Site,
           required:true,
-          where: {
-            name: {
-              [Op.like]: '%'+site+'%'
-            }
-          },
+          where: siteWhereClause,
         }]
       }]}],
       order: [
       ['id', 'DESC'],
       ],
-      offset:offset,
-      limit:limit
-    })
-  .then(async data => {
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
+      offset:newOffset,
+      limit:newLimit
+    });
+  
+  var countArray =[];
+  var responseData =[];
+  responseData.push(data);
 
-    var total = 0;
-    await Shelf.count({ 
-      where: {
-        status:1,
-        name: {
-          [Op.or]: {
-            [Op.like]: '%'+name+'%',
-            [Op.eq]: ''+name+''
-          }
-        }
-      },
-      include: [{model: Rack,
+  var total = 0;
+
+  total = await Shelf.count({ 
+    where: whereClause,
+    include: [{model: Rack,
+      required:true,
+      where: rackWhereClause,
+      include:[{
+        model:Zone,
         required:true,
-        where: {
-          name: {
-            [Op.like]: '%'+rack+'%'
-          }
-        },
+        where: zoneWhereClause,
         include:[{
-          model:Zone,
+          model:Site,
           required:true,
-          where: {
-            name: {
-              [Op.like]: '%'+zone+'%'
-            },
-            siteId: {
-              [Op.like]: checkString
-            }
-          },
-          include:[{
-            model:Site,
-            required:true,
-            where: {
-              name: {
-                [Op.like]: '%'+site+'%'
-              }
-            },
-          }]
-        }]}],
-      })
-    .then(data => {
-      total = data;
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-        err.message || "Some error occurred while retrieving Shelf."
-      });
+          where: siteWhereClause,
+        }]
+      }]}]
     });
-    var totalLocations = {
-      totalCount : total
-    }
-    countArray.push(totalLocations);
-    responseData.push(countArray);
-    res.send(responseData);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Shelf."
-    });
-  });
+
+  var totalLocations = {
+    totalCount : total
+  }
+
+  countArray.push(totalLocations);
+  responseData.push(countArray);
+
+  res.status(200).send(responseData);
 };
 
 // get count of all shelfs whose status =1 
-exports.countOfShelfs = (req, res) => {
+exports.countOfShelfs = async (req, res) => {
   var total = 0;
-  let checkString = '%'+req.site+'%'
+  var zoneWhereClause = {};
+
   if(req.site){
-    checkString = req.site
+    zoneWhereClause.siteId = req.site;
   }
-  Shelf.count({
-    where :
-    {
-      status :1
-    },
+  else{
+    zoneWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
+  }
+  var whereClause = {};
+  whereClause.status =  true;
+
+  total = await Shelf.count({
+    where :whereClause,
     include: [{model: Rack,
       include:[{
         model:Zone,
         required:true,
-        where: {
-          siteId: {
-            [Op.like]: checkString
-          }
-        }
+        where: zoneWhereClause
       }]}]
     })
-  .then(data => {
-    total = data;
-    var totalCount = {
-      totalLocations : total 
-    }
-    res.send(totalCount);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Shelf count."
-    });
-  });
+  
+  var totalCount = {
+    totalLocations : total 
+  }
+
+  res.status(200).send(totalCount);
 };
 
 // Bulk upload of Shelf's
@@ -533,88 +416,102 @@ exports.BulkUpload = async (req, res) => {
   }
 };
 
+async function generateSerialNumber(shelfData,rackId,zoneId,siteId,vertical){
+    let serialNumber;
+    if(shelfData){
+    serialNumber = shelfData["barcodeSerial"];
+    zoneId = shelfData["rack"]["zoneId"];
+    siteId = shelfData["rack"]["zone"]["siteId"];
+    serialNumber = serialNumber.substring(10,13);
+    serialNumber = (parseInt(serialNumber) + 1).toString();
+    var str = serialNumber;
+    if(str.length == 1) {
+      str = '00' + str;
+    }
+    else if(str.length == 2) {
+      str = '0' + str;
+    }
+
+    if(siteId.toString().length < 2) {
+      serialNumber = '0' + siteId;
+    }
+    else{
+      serialNumber = siteId;
+    }
+    if(zoneId.toString().length < 2) {
+      serialNumber = serialNumber + "-" + '0' + zoneId;
+    }
+    else{
+      serialNumber = serialNumber + "-" + zoneId;
+    }
+    if(rackId.toString().length == 1) {
+      serialNumber = serialNumber + "-" + '00' + rackId;
+    }
+    else if(rackId.toString().length == 2) {
+      serialNumber = serialNumber + "-" +'0' + rackId;
+    }
+    else{
+      serialNumber = serialNumber + "-" + rackId;
+    }
+    serialNumber = serialNumber + "-" + str + "-" + vertical;
+
+  }
+  else{
+    if(!zoneId || !siteId){
+      var rackData = await Rack.findOne({
+        where: { 
+          id: rackId,
+        },
+        include: [{
+          model: Zone
+        }],
+      });
+
+      if(!rackData){
+        return next(HTTPError(500, "Shelf not created,invalid rack"))
+      }
+
+      if(rackData){
+        rackData = rackData.toJSON();
+        zoneId = rackData["zoneId"];
+        siteId = rackData["zone"]["siteId"]
+      }
+    }
+
+    if(siteId.toString().length < 2) {
+      serialNumber = '0' + siteId;
+    }
+    else{
+      serialNumber = siteId;
+    }
+    if(zoneId.toString().length < 2) {
+      serialNumber = serialNumber + "-" + '0' + zoneId;
+    }
+    else{
+      serialNumber = serialNumber + "-" + zoneId;
+    }
+    if(rackId.toString().length == 1) {
+      serialNumber = serialNumber + "-" + '00' + rackId;
+    }
+    else if(rackId.toString().length == 2) {
+      serialNumber =serialNumber +"-" +  '0' + rackId;
+    }
+    else{
+      serialNumber = serialNumber + "-" + rackId;
+    }
+    serialNumber = serialNumber + "-" + "001" + "-" + vertical;
+
+  }
+  console.log("serialNumber",serialNumber);
+  return serialNumber
+}
 
 async function createShelf(weight,volume,responseDataArray,rackId,siteId,zoneId,verticalBarcode,siteName,zoneName,rackName,username,req,res){
   var serialNumber;
-  await Shelf.findAll({
-    where: { 
-      rackId: rackId
-    },
-    limit:1,
-    offset:0,
-    order: [
-    ['id', 'DESC'],
-    ],
-  })
-  .then(async data => {
-    if(data[0] != null || data[0] != undefined){
-      serialNumber = data[0]["dataValues"]["barcodeSerial"];
-      serialNumber = serialNumber.substring(10,13);
-      console.log("Line 464",serialNumber,parseInt(serialNumber))
-      if(verticalBarcode=="01"){
-        serialNumber = (parseInt(serialNumber) + 1).toString();
-      }
-      console.log("Line 464",serialNumber)
-      var str = serialNumber;
-      if(str.length == 1) {
-        str = '00' + str;
-      }
-      else if(str.length == 2) {
-        str = '0' + str;
-      }
 
-      if(siteId.toString().length < 2) {
-        serialNumber = '0' + siteId;
-      }
-      else{
-        serialNumber = siteId;
-      }
-      if(zoneId.toString().length < 2) {
-        serialNumber = serialNumber + "-" + '0' + zoneId;
-      }
-      else{
-        serialNumber = serialNumber + "-" + zoneId;
-      }
-      if(rackId.toString().length == 1) {
-        serialNumber = serialNumber + "-" + '00' + rackId;
-      }
-      else if(rackId.toString().length == 2) {
-        serialNumber = serialNumber+ "-" + '0' + rackId;
-      }
-      else{
-        serialNumber = serialNumber + "-" + rackId;
-      }
-
-      serialNumber = serialNumber + "-" + str + "-" + verticalBarcode;
-      console.log("Line 495 Serial Number", serialNumber);
-    }
-    else{
-      console.log("Line 496", siteId,siteId.toString().length,zoneId.toString().length,zoneId,rackId,siteName,zoneName,rackName,username);
-      if(siteId.toString().length < 2) {
-        serialNumber = '0' + siteId;
-      }
-      else{
-        serialNumber = siteId;
-      }
-      if(zoneId.toString().length < 2) {
-        serialNumber = serialNumber + "-" + '0' + zoneId;
-      }
-      else{
-        serialNumber = serialNumber + "-" + zoneId;
-      }
-      if(rackId.toString().length == 1) {
-        serialNumber = serialNumber + "-" + '00' + rackId;
-      }
-      else if(rackId.toString().length == 2) {
-        serialNumber = serialNumber+ "-"  + '0' + rackId;
-      }
-      else{
-        serialNumber = serialNumber + "-" + rackId;
-      }
-      serialNumber = serialNumber + "-" + "001" + "-" + verticalBarcode;
-      console.log("Line 518 Serial Number", serialNumber);
-    }
-    console.log("522",serialNumber,siteName + "-" +zoneName+"-"+rackName)
+  var shelfData = await serialNumberFinder.getShelfSerialNumber(rackId);
+  
+    serialNumber = await generateSerialNumber(shelfData,rackId,zoneId,siteId,verticalBarcode);   
     const shelf = {
       name: "SH-"+serialNumber+"",
       status:true,
@@ -628,33 +525,25 @@ async function createShelf(weight,volume,responseDataArray,rackId,siteId,zoneId,
       createdBy:username,
       updatedBy:username
     };
-    console.log("line 573",shelf);
-    await Shelf.create(shelf)
-    .then(data => {
-      console.log("shelf created",data);
-      responseDataArray.push(data);
-    })
-    .catch(err => {
-      console.log("Error",err)
-      res.status(500).send({
-        message:
-        err.message || "Error occurred while creating shelfs"
-      });
-    });
-  })
-  .catch(err=>{
-    res.status(500).send({
-      message:
-      err.message || "Error occurred while get shelfs"
-    });
-    console.log("error",err)
-  });
+
+     var shelfCreated;
+     try {
+       shelfCreated = await Shelf.create(shelf);
+
+       if (!shelfCreated) {
+         return next(HTTPError(500, "Shelf not created"))
+       }
+     } 
+     catch (err) {
+       if(err["errors"]){
+         return next(HTTPError(500,err["errors"][0]["message"]))
+       }
+       else{
+         return next(HTTPError(500,"Internal error has occurred, while creating the shelf."))
+       }
+     }
+     responseDataArray.push(shelfCreated);
 }
-
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
 
 exports.sendFindResponse = async (req, res, next) => {
   res.status(200).send(req.shelfsList);

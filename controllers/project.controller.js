@@ -96,6 +96,7 @@ exports.update =async (req, res,next) => {
   whereClause = new WhereBuilder()
   .clause('name', name)
   .clause('description', description)
+  .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
   var updatedProject;
   try {

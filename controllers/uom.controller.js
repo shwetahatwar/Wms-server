@@ -70,6 +70,7 @@ exports.update =async (req, res,next) => {
   
   whereClause = new WhereBuilder()
   .clause('name', name)
+  .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
 
   var updatedUOM;

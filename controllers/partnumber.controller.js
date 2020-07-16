@@ -102,6 +102,7 @@ exports.update = async (req, res,next) => {
   .clause('UOM', UOM)
   .clause('netWeight', netWeight)
   .clause('netVolume', netVolume)
+  .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
   console.log(whereClause);
 

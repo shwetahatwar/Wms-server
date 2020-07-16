@@ -40,6 +40,7 @@ exports.transferOut = async (req, res, next) => {
   
   var updateMaterial = {
     siteId : 1,
+    updatedBy:req.user.username,
     materialStatus : "In Transit"
   };
   var updatedData = await updateMaterialInwardFunction.updateMaterialInward(updateMaterial,materialInwardId)
@@ -102,7 +103,8 @@ exports.transferIn = async (req, res, next) => {
   req.transferOutData = stocktransaction;
   var updateMaterial = {
     siteId : siteId,
-    materialStatus : "Available"
+    materialStatus : "Available",
+    updatedBy: req.user.username
   };
   var updatedData = await updateMaterialInwardFunction.updateMaterialInward(updateMaterial,materialInwardId)
   

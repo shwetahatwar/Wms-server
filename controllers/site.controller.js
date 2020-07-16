@@ -46,6 +46,7 @@ exports.getAll = async (req, res, next) =>{
   var whereClause = new WhereBuilder()
   .clause('id', id)
   .clause('name', name)
+  .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
   var getAllSites;
   getAllSites = await Site.findAll({

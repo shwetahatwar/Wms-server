@@ -21,8 +21,13 @@ router.put('/:id', users.loginRequired,
 	racks.update,
 	racks.sendCreateResponse
 	);
-router.get('/get/countOfRacks', users.loginRequired,racks.countOfRacks);
-router.get('/get/findRacksBySearchQuery', users.loginRequired,racks.findRacksBySearchQuery);
+
+router.get('/get/countOfRacks', users.loginRequired,
+ racks.countOfRacks);
+
+router.get('/get/findRacksBySearchQuery', users.loginRequired,
+	racks.findRacksBySearchQuery);
+
 router.get('/count/zone/countOfRacksByZoneId', users.loginRequired,racks.countOfRacksByZoneId);
 
 module.exports = router;

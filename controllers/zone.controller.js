@@ -83,6 +83,7 @@ exports.update =async (req, res,next) => {
   whereClause = new WhereBuilder()
   .clause('name', name)
   .clause('siteId', siteId)
+  .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
   console.log(whereClause);
 

@@ -61,6 +61,7 @@ exports.update = async (req, res, next) => {
   
   whereClause = new WhereBuilder()
     .clause('url', url)
+    .clause('updatedBy', req.user.username) 
     .clause('httpMethod', httpMethod).toJSON();
 
     try{

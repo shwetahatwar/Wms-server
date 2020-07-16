@@ -154,6 +154,7 @@ exports.returnFromProduction = async (req, res) => {
 			let updateData = {
 				'status':true,
 				'eachPackQuantity':updateQuantity,
+        'updatedBy':req.user.username
 			}
 			await  MaterialInward.update(updateData, {
 				where: {

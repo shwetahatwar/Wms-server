@@ -219,6 +219,7 @@ exports.update = async (req, res, next) => {
     .clause('username', username)
     .clause('password', password)
     .clause('roleId', role)
+    .clause('updatedBy', req.user.username) 
     .clause('siteId', site).toJSON();
 
     try{
