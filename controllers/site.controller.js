@@ -12,7 +12,7 @@ exports.create = async (req, res, next) => {
   }
   var site;
   try {
-      site = await Site.create({
+    site = await Site.create({
       name: name,
       status:true,
       createdBy:req.user.username,
@@ -21,7 +21,8 @@ exports.create = async (req, res, next) => {
     if (!site) {
       return next(HTTPError(500, "Site not created"))
     }
-  } catch (err) {
+  } 
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }
@@ -73,9 +74,9 @@ exports.update = async (req, res, next) => {
   whereClause = new WhereBuilder()
   .clause('name', name)
   .clause('status', status).toJSON();
-   var updatedSite;
+  var updatedSite;
   try {
-     updatedSite = await Site.update(whereClause,{
+    updatedSite = await Site.update(whereClause,{
       where: {
         id: id
       }
@@ -84,7 +85,8 @@ exports.update = async (req, res, next) => {
     if (!updatedSite) {
       return next(HTTPError(500, "Site not updated"))
     }
-  }catch (err) {
+  }
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }

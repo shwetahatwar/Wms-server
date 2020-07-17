@@ -15,17 +15,18 @@ exports.create = async (req, res,next) => {
 
   var rack;
   try {
-      rack = await Rack.create({
-        name: name,
-        status:true,
-        zoneId:zoneId,
-        createdBy:req.user.username,
-        updatedBy:req.user.username
+    rack = await Rack.create({
+      name: name,
+      status:true,
+      zoneId:zoneId,
+      createdBy:req.user.username,
+      updatedBy:req.user.username
     })
     if (!rack) {
       return next(HTTPError(500, "Rack not created"))
     }
-  } catch (err) {
+  } 
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }
@@ -80,15 +81,15 @@ exports.getAll =async (req,res,next) =>{
       where:zoneWhereClause,
       include:[{
         model:Site,
-        }]
-      }
-      ],
-      order: [
-      ['id', 'DESC'],
-      ],
-      offset:newOffset,
-      limit:newLimit
-    });
+      }]
+    }
+    ],
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:newOffset,
+    limit:newLimit
+  });
 
   if (!getAllRacks) {
     return next(HTTPError(400, "Racks not found"));
@@ -101,7 +102,7 @@ exports.getAll =async (req,res,next) =>{
 
 //Update Rack by Id
 exports.update =async (req, res,next) => {
-   const id = req.params.id;
+  const id = req.params.id;
 
   var { name, zoneId ,status } = req.body;
   

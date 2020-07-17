@@ -26,7 +26,8 @@ exports.create =async (req, res,next) => {
     if (!partNumber) {
       return next(HTTPError(500, "Part Number not created"))
     }
-  } catch (err) {
+  }
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }
@@ -43,18 +44,17 @@ exports.create =async (req, res,next) => {
 
 //Get All PartNumbers
 exports.getAll =async (req,res,next) =>{
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  console.log("Line 51", req.query);
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
+  var {partNumber,description,UOM,status,offset,limit} = req.query;
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
   }
 
-  var {partNumber,description,UOM,status} = req.query;
+  if(limit){
+    newLimit = parseInt(limit)
+  }
 
   var whereClause = new WhereBuilder()
   .clause('partNumber', partNumber)
@@ -68,8 +68,8 @@ exports.getAll =async (req,res,next) =>{
     order: [
     ['id', 'DESC'],
     ],
-    offset:offset,
-    limit:limit
+    offset:newOffset,
+    limit:newLimit
   });
 
   if (!getAllParts) {
@@ -79,7 +79,6 @@ exports.getAll =async (req,res,next) =>{
   req.partsList = getAllParts.map ( el => { return el.get({ plain: true }) } );
 
   next();
-  
 };
 
 exports.sendCreateResponse = async (req, res, next) => {
@@ -93,7 +92,6 @@ exports.sendFindResponse = async (req, res, next) => {
 //Update PartNumber by Id
 exports.update = async (req, res,next) => {
   const id = req.params.id;
-
   var { partNumber, description , status , UOM , netWeight , netVolume } = req.body;
   
   whereClause = new WhereBuilder()
@@ -117,7 +115,8 @@ exports.update = async (req, res,next) => {
     if (!updatedPart) {
       return next(HTTPError(500, "Part Number not updated"))
     }
-  }catch (err) {
+  }
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }
@@ -200,8 +199,8 @@ exports.findPartNumbersBySearchQuery = async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:offset,
-    limit:limit
+    offset:newOffset,
+    limit:newLimit
   });
 
   if(!data){

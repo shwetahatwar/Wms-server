@@ -22,7 +22,8 @@ exports.create = async (req, res,next) => {
     if (!uom) {
       return next(HTTPError(500, "UOM not created"))
     }
-  } catch (err) {
+  }
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }
@@ -84,7 +85,8 @@ exports.update =async (req, res,next) => {
     if (!updatedUOM) {
       return next(HTTPError(500, "UOM not updated"))
     }
-  }catch (err) {
+  }
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }

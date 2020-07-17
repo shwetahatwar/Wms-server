@@ -161,7 +161,6 @@ exports.findAll = async (req, res,next) => {
   req.responseList = stockData.map ( el => { return el.get({ plain: true }) } );
 
   next();
-  
 };
 
 // Find a single Stock transaction  with an id

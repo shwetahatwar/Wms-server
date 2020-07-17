@@ -3,55 +3,60 @@ const UserSiteRelation =  db.usersiterelations
 const User = db.users;
 const Site = db.sites;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
-exports.findAll = (req, res) => {
- var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
+exports.findAll = async (req, res, next) => {
+  var {offset,limit,userId,siteId} = req.query;
 
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
   }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  
-  console.log(offset);
-  console.log(limit);
 
-  UserSiteRelation.findAll({ 
-    where: req.query,
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+  var whereClause = new WhereBuilder()
+  .clause('userId', userId)
+  .clause('siteId', siteId).toJSON();
+
+  var getData;
+  getData = await UserSiteRelation.findAll({ 
+    where: whereClause,
     include: [
     {model: Site},
-    // {model: User},
     ],
-    offset:offset,
-    limit:limit 
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:newOffset,
+    limit:newLimit 
   })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving UserSiteRelation."
-      });
-    });
+  
+  if (!getData) {
+    return next(HTTPError(400, "User site relation not found"));
+  }
+  
+  req.dataList = getData.map ( el => { return el.get({ plain: true }) } );
+
+  next();
 };
 
 // Find a single User Site Relation with an id
-exports.findOne = (req, res) => {
+exports.findOne = async(req, res,next) => {
   const id = req.params.id;
 
-  StockTransit.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving UserSiteRelation with id=" + id
-      });
-    });
+  var data = await UserSiteRelation.findByPk(id);
+  if (!data) {
+    return next(HTTPError(500, "User site relation not found"))
+  }
+  req.dataList = data;
+  next();
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.dataList);
 };

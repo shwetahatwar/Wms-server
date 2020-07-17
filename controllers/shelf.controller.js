@@ -417,8 +417,8 @@ exports.BulkUpload = async (req, res) => {
 };
 
 async function generateSerialNumber(shelfData,rackId,zoneId,siteId,vertical){
-    let serialNumber;
-    if(shelfData){
+  let serialNumber;
+  if(shelfData){
     serialNumber = shelfData["barcodeSerial"];
     zoneId = shelfData["rack"]["zoneId"];
     siteId = shelfData["rack"]["zone"]["siteId"];
@@ -511,38 +511,38 @@ async function createShelf(weight,volume,responseDataArray,rackId,siteId,zoneId,
 
   var shelfData = await serialNumberFinder.getShelfSerialNumber(rackId);
   
-    serialNumber = await generateSerialNumber(shelfData,rackId,zoneId,siteId,verticalBarcode);   
-    const shelf = {
-      name: "SH-"+serialNumber+"",
-      status:true,
-      description: ""+siteName + "-" +zoneName+"-"+rackName+"",
-      barcodeSerial:serialNumber,
-      rackId: rackId,
-      capacity: weight,
-      loadedCapacity: 0,
-      volume: volume,
-      loadedVolume: 0,
-      createdBy:username,
-      updatedBy:username
-    };
+  serialNumber = await generateSerialNumber(shelfData,rackId,zoneId,siteId,verticalBarcode);   
+  const shelf = {
+    name: "SH-"+serialNumber+"",
+    status:true,
+    description: ""+siteName + "-" +zoneName+"-"+rackName+"",
+    barcodeSerial:serialNumber,
+    rackId: rackId,
+    capacity: weight,
+    loadedCapacity: 0,
+    volume: volume,
+    loadedVolume: 0,
+    createdBy:username,
+    updatedBy:username
+  };
 
-     var shelfCreated;
-     try {
-       shelfCreated = await Shelf.create(shelf);
+  var shelfCreated;
+  try {
+    shelfCreated = await Shelf.create(shelf);
 
-       if (!shelfCreated) {
-         return next(HTTPError(500, "Shelf not created"))
-       }
-     } 
-     catch (err) {
-       if(err["errors"]){
-         return next(HTTPError(500,err["errors"][0]["message"]))
-       }
-       else{
-         return next(HTTPError(500,"Internal error has occurred, while creating the shelf."))
-       }
-     }
-     responseDataArray.push(shelfCreated);
+    if (!shelfCreated) {
+      return next(HTTPError(500, "Shelf not created"))
+    }
+  } 
+  catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while creating the shelf."))
+    }
+  }
+  responseDataArray.push(shelfCreated);
 }
 
 exports.sendFindResponse = async (req, res, next) => {

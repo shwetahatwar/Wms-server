@@ -27,7 +27,8 @@ exports.create = async (req, res, next) => {
     if (!project) {
       return next(HTTPError(500, "Project not created"))
     }
-  } catch (err) {
+  } 
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }
@@ -45,22 +46,21 @@ exports.create = async (req, res, next) => {
 
 //Get All Project
 exports.getAll = async (req,res,next) =>{
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-
   if(req.site){
     req.query.siteId = req.site
   }
 
-  var {siteId, name, description,status} = req.query;
+  var {siteId, name, description,status,offset,limit} = req.query;
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
+  }
+
+  if(limit){
+    newLimit = parseInt(limit)
+  }
 
   var whereClause = new WhereBuilder()
   .clause('siteId', siteId)
@@ -73,8 +73,8 @@ exports.getAll = async (req,res,next) =>{
     order: [
     ['id', 'DESC'],
     ],
-    limit:limit,
-    offset:offset
+    limit:newLimit,
+    offset:newOffset
   });
   
   if (!getAllProjects) {
@@ -109,7 +109,8 @@ exports.update =async (req, res,next) => {
     if (!updatedProject) {
       return next(HTTPError(500, "Project not updated"))
     }
-  }catch (err) {
+  }
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }

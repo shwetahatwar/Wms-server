@@ -20,13 +20,14 @@ exports.create = async (req, res, next) => {
     if (!createdAccess) {
       return next(HTTPError(500, "Access not created"))
     }
-  } catch (err) {
+  }
+  catch (err) {
     if(err["errors"]){
-        return next(HTTPError(500,err["errors"][0]["message"]))
-      }
-      else{
-        return next(HTTPError(500,"Internal error has occurred, while creating the access."))
-      }
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while creating the access."))
+    }
   }
 
   createdAccess = createdAccess.toJSON();
@@ -39,8 +40,8 @@ exports.getAll = async (req, res, next) =>{
   var { url, httpMethod } = req.query;
 
   var whereClause = new WhereBuilder()
-    .clause('url', url)
-    .clause('httpMethod', httpMethod).toJSON();
+  .clause('url', url)
+  .clause('httpMethod', httpMethod).toJSON();
 
   var getAllAccess = await Access.findAll({
     where:whereClause
@@ -60,28 +61,29 @@ exports.update = async (req, res, next) => {
   var { url, httpMethod } = req.body;
   
   whereClause = new WhereBuilder()
-    .clause('url', url)
-    .clause('updatedBy', req.user.username) 
-    .clause('httpMethod', httpMethod).toJSON();
+  .clause('url', url)
+  .clause('updatedBy', req.user.username) 
+  .clause('httpMethod', httpMethod).toJSON();
 
-    try{
-      var updatedAccess = await Access.update(whereClause,{
-        where: {
-          id: id
-        }
-      });
+  try{
+    var updatedAccess = await Access.update(whereClause,{
+      where: {
+        id: id
+      }
+    });
 
-      if (!updatedAccess) {
-        return next(HTTPError(500, "Access not updated"))
-      }
-    }catch (err) {
-      if(err["errors"]){
-        return next(HTTPError(500,err["errors"][0]["message"]))
-      }
-      else{
-        return next(HTTPError(500,"Internal error has occurred, while updating the access."))
-      }
+    if (!updatedAccess) {
+      return next(HTTPError(500, "Access not updated"))
     }
+  }
+  catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while updating the access."))
+    }
+  }
 
   req.updatedAccess = updatedAccess;
   next();

@@ -4,7 +4,6 @@ const InventoryTransaction = db.inventorytransactions;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
 
-
 exports.materialInventoryTransactions=async (req, res,next) => {
   if (!req.materialInwardBulkUpload) {
     return res.status(500).send("No Material Inwarded");
@@ -24,7 +23,7 @@ exports.materialInventoryTransactions=async (req, res,next) => {
 
   var transactionsList = await InventoryTransaction.bulkCreate(TransactMaterial);
   transactionsList = transactionsList.map ( el => { return el.get({ plain: true }) } );
- 
+  
   next();
 }
 
@@ -54,7 +53,7 @@ exports.findAll =async (req, res,next) => {
     newLimit = parseInt(limit)
   }
 
-   var whereClause = new WhereBuilder()
+  var whereClause = new WhereBuilder()
   .clause('transactionTimestamp', transactionTimestamp)
   .clause('performedBy', performedBy)
   .clause('materialInwardId', materialInwardId)
@@ -82,7 +81,7 @@ exports.findAll =async (req, res,next) => {
   req.inventoryTransactionsList = inventoryTransactions.map ( el => { return el.get({ plain: true }) } );
 
   next();
-    
+  
 };
 
 // Find a single Inventory Transaction with an id

@@ -7,7 +7,7 @@ const Op = db.Sequelize.Op;
 //create transaction
 exports.create = async (req,res,next) =>{
   var id = req.params.id;
-  var { prevQCStatus,currentQCStatus } = req.body;
+  var { prevQCStatus , currentQCStatus } = req.body;
   const statusChange = {
     transactionTimestamp :Date.now(), 
     materialInwardId: req.params.id,
@@ -31,120 +31,157 @@ exports.create = async (req,res,next) =>{
 };
 
 //Get All QC transactions
-exports.getAll = (req,res) =>{
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
+exports.getAll = async(req,res,next) =>{
+  var { transactionTimestamp, performedBy, materialInwardId, prevQCStatus, currentQCStatus , offset , limit } = req.query;
 
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
+  var newOffset = 0;
+  var newLimit = 100;
 
-  let checkString = '%'+req.site+'%'
+  if(offset){
+    newOffset = parseInt(offset)
+  }
+
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+  var whereClause = new WhereBuilder()
+  .clause('transactionTimestamp', transactionTimestamp)
+  .clause('performedBy', performedBy)
+  .clause('materialInwardId', materialInwardId)
+  .clause('prevQCStatus', prevQCStatus)
+  .clause('currentQCStatus', currentQCStatus).toJSON();
+
+  var materialInwardWhereClause = {};
   if(req.site){
-    checkString = req.site
+    materialInwardWhereClause.siteId = req.site;
+  }
+  else{
+    materialInwardWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
   }
 
-  QCTransaction.findAll({ 
-    where: req.query,
+  var qcTransaction = await QCTransaction.findAll({ 
+    where: whereClause,
     include: [{model: MaterialInward,
       required:true,
-      where: {
-        siteId: {
-          [Op.like]: checkString
-        }
-      }}],
-      offset:offset,
-      limit:limit 
-    })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving ScrapandRecover."
-    });
+      where: materialInwardWhereClause
+    }],
+    order: [
+    ['id', 'DESC'],
+    ],
+    offset:newOffset,
+    limit:newLimit 
   });
+
+  if (!qcTransaction) {
+    return next(HTTPError(400, "QC transactions not found"));
+  }
+  
+  req.qcTransactionsList = qcTransaction.map ( el => { return el.get({ plain: true }) } );
+
+  next();
 };
 
 // Find a single QC Transaction with an id
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res,next) => {
   const id = req.params.id;
 
-  InventoryTransaction.findByPk(id)
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error retrieving InventoryTransaction with id=" + id
-    });
-  });
+  var qcTransaction = await QCTransaction.findByPk(id);
+
+  if (!qcTransaction) {
+    return next(HTTPError(500, "QC transaction not found with id=" + id))
+  }
+  req.qcTransactionsList = qcTransaction;
+  next();
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.qcTransactionsList);
 };
 
 exports.findQCTransactionsBySearchQuery = async (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
+  var { partNumber, barcodeSerial, QcStatus , offset , limit } = req.query;
+
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
   }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
+
+  if(limit){
+    newLimit = parseInt(limit)
   }
-  delete queryString['offset'];
-  delete queryString['limit'];
   var responseData = [];
-  if(!req.query.partNumber){
-    req.query.partNumber="";
-  }
-  if(!req.query.barcodeSerial){
-    req.query.barcodeSerial="";
-  }
-  let checkString = '%'+req.site+'%'
+
+  var materialInwardWhereClause = {};
   if(req.site){
-    checkString = req.site
+    materialInwardWhereClause.siteId = req.site;
   }
-  console.log("QC status 67",req.query.QcStatus)
-  await QCTransaction.findAll({
-    where: {
-      currentQCStatus:req.query.QcStatus
-    },
+  else{
+    materialInwardWhereClause.siteId = {
+      [Op.like]:'%'+req.site+'%'
+    };
+  }
+
+  if(!partNumber){
+    partNumber="";
+  }
+  if(!barcodeSerial){
+    barcodeSerial="";
+  }
+
+  if(partNumber){
+    materialInwardWhereClause.partNumber = {
+      [Op.like]:'%'+partNumber+'%'
+    };
+  }
+
+  if(barcodeSerial){
+    materialInwardWhereClause.barcodeSerial = {
+      [Op.like]:'%'+barcodeSerial+'%'
+    };
+  }
+
+  var whereClause = {};
+  whereClause.currentQCStatus = QcStatus;
+
+  var qcData = await QCTransaction.findAll({
+    where: whereClause,
     include: [{model: MaterialInward,
       required: true,
-      where:{
-        partNumber: {
-          [Op.like]: '%'+req.query.partNumber+'%'
-        }, 
-        barcodeSerial: {
-          [Op.like]: '%'+req.query.barcodeSerial+'%'
-        }, 
-        siteId: {
-          [Op.like]: checkString
-        }
-      }
+      where:materialInwardWhereClause
     }],
-  }).then(data => {
-    if(data.length != 0){
-      responseData.push(data);
-    }
-    let count = {
-      'totalCount':responseData.length
-    };
-    let dataCount = [];
-    dataCount.push(count);
-    responseData.push(dataCount);
-    res.send(responseData);
-  }).catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving PutawayTransaction count."
-    });
+    order: [
+    ['id', 'DESC'],
+    ],
+    limit:newLimit,
+    offset:newOffset
   });
+
+  if (!qcData) {
+    return next(HTTPError(500, "Searched Data not found"))
+  }
+
+  responseData.push(qcData);
+
+  var total = await QCTransaction.count({
+    where: whereClause,
+    include: [{model: MaterialInward,
+      required: true,
+      where:materialInwardWhereClause
+    }]
+  });
+
+  let count = {
+    'totalCount':total
+  };
+
+  let dataCount = [];
+  dataCount.push(count);
+  responseData.push(dataCount);
+  
+  res.status(200).send(responseData);
 };

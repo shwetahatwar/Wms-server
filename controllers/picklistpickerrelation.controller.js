@@ -3,131 +3,143 @@ const PicklistPickerRelation = db.picklistpickerrelations;
 const Picklist = db.picklists;
 const Op = db.Sequelize.Op;
 const User = db.users;
+var HTTPError = require('http-errors');
 
 // Create and Save a new Picklist Picker Relations
-exports.create = async (req, res) => {
+exports.create = async (req, res,next) => {
   console.log(req.body);
   // Validate request
-  if (!req.body.picklistId) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+  var { picklistId , userId } =  req.body;
+  if (!picklistId) {
+    return next(HTTPError(500,"Content can not be empty!"))
   }
   
   // Create a Picklist Picker Relations
   const picklistpickerrelation = {
-    picklistId: req.body.picklistId,
-    userId:req.body.userId,
+    picklistId: picklistId,
+    userId: userId,
     createdBy:req.user.username,
     updatedBy:req.user.username
   };
 
   // Save Picklist Picker Relations in the database
-  PicklistPickerRelation.create(picklistpickerrelation)
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while creating the Picklist Picker Relation."
-    });
-  });
+  var picklistPickerData = await PicklistPickerRelation.create(picklistpickerrelation)
+  
+  if(!picklistPickerData){
+    return res.status(500).send("Picker is not assigned to picklist");
+  }
+
+  req.picklistPickerData = picklistPickerData;  
+
+  next();
+};
+
+exports.sendCreateResponse = async (req, res, next) => {
+  res.status(200).send(req.picklistPickerData);
 };
 
 //Get Picklist Picker Relations list
-exports.getAll = (req,res) =>{
-  if(req.query.serialNumber){
-    req.query.serialNumber = req.query.serialNumber.trim();
-  }
-  PicklistPickerRelation.findAll({
-    where:req.query
-  })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Picklist Picker Relation."
-    });
+exports.getAll = async (req,res,next) =>{
+  var { picklistId , userId } = req.query;
+
+  var whereClause = new WhereBuilder()
+  .clause('picklistId', picklistId)
+  .clause('userId', userId).toJSON();
+
+  var getAllPicklistData;
+  getAllPicklistData = await PicklistPickerRelation.findAll({
+    where:whereClause,
+    order: [
+    ['id', 'DESC'],
+    ]
   });
+  
+  if (!getAllPicklistData) {
+    return next(HTTPError(400, "Picklist Picker not found"));
+  }
+  
+  req.picklistPickerList = getAllPicklistData.map ( el => { return el.get({ plain: true }) } );
+
+  next();
 };
 
 //Get Picklist Picker Relations by Id
-exports.getById = (req,res) => {
+exports.getById = async (req,res,next) => {
   const id = req.params.id;
 
-  PicklistPickerRelation.findByPk(id)
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error retrieving Picklist Picker Relation with id=" + id
-    });
-  });
-};
-
-//Update Picklist Picker Relations by Id
-exports.update = (req, res) => {
-  const id = req.params.id;
-  if(req.body.serialNumber){
-    req.body.serialNumber = req.body.serialNumber.trim();
+  var picklistPickerData = await PicklistPickerRelation.findByPk(id);
+  if (!picklistPickerData) {
+    return next(HTTPError(500, "Error retrieving Picklist Picker Relation with id=" + id))
   }
-  PicklistPickerRelation.update(req.body, {
-    where: req.params
-  })
-  .then(num => {
-    if (num == 1) {
-      res.send({
-        message: "Picklist Picker Relation was updated successfully."
-      });
-    } else {
-      res.send({
-        message: `Cannot update Picklist Picker Relation with id=${id}. Maybe Picklist Picker Relation was not found or req.body is empty!`
-      });
-    }
-  })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error updating Picklist Picker Relation with id=" + id
-    });
-  });
+  req.picklistPickerList = picklistPickerData;
+  next();  
 };
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.picklistPickerList);
+};
+
+//Update Picklist Picker Relations by Id --- currently not in use
+exports.update = async (req, res,next) => {
+  const id = req.params.id;
+  var { userId, picklistId } = req.body;
+  
+  whereClause = new WhereBuilder()
+  .clause('userId', userId)
+  .clause('picklistId', picklistId).toJSON();
+  
+  var updatedPicklistData;
+  try {
+    updatedPicklistData = await PicklistPickerRelation.update(whereClause,{
+      where: {
+        id: id
+      }
+    });
+
+    if (!updatedPicklistData) {
+      return next(HTTPError(500, "Picklist picker not updated"))
+    }
+  }
+  catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while updating the Picklist picker."))
+    }
+  }
+
+  req.updatedPicklistData = updatedPicklistData;
+  next();
+};
+
 
 //Get User by Picklist Id
-exports.getUsersbyPicklist = (req,res) =>{
+exports.getUsersbyPicklist = async (req,res) =>{
   var userListArray=[];
-  PicklistPickerRelation.findAll({
+
+  var picklistPickerData = [];
+  picklistPickerData = await PicklistPickerRelation.findAll({
     where:req.params
-  })
-  .then(async data => {
-    for(var i = 0; i< data.length;i++){
-      await User.findAll({
-        where:{
-          id:data[i]["dataValues"]["userId"]
-        }
-      })
-      .then(userData=>{
-        userListArray.push(userData[0]["dataValues"]);
-      })
-      .catch(err => {
-        res.status(500).send({
-          message:
-          err.message || "Some error occurred while retrieving Picklist Picker Relation."
-        });
-      })
-    }
-    res.send(userListArray);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Picklist Picker Relation."
-    });
   });
+
+  console.log("picklistPickerData",picklistPickerData);
+
+  if(picklistPickerData){
+    for(var i = 0; i< picklistPickerData.length;i++){
+      var userData =  await User.findAll({
+        where:{
+          id:picklistPickerData[i]["dataValues"]["userId"]
+        }
+      });
+
+      if(userData){
+        userListArray.push(userData[0]["dataValues"]);
+      }
+    }
+  }
+
+  res.send(userListArray);
 };
 
 //Get Picklist by User
@@ -147,36 +159,38 @@ exports.getPicklistbyUser = async (req,res) =>{
 
   var newDateTimeNow = newMonth + " " + newDay + " " + newYear;
 
+  var whereClause = {};
+  if(req.site){
+    whereClause.siteId = req.site;
+  }
+  // else{
+  //   whereClause.siteId = {
+  //     [Op.like]:'%'+req.site+'%'
+  //   };
+  // }
+
   var picklistArray=[];
   PicklistPickerRelation.findAll({
     where:req.params
   })
   .then(async data => {
-    console.log("Data: ",data.length);
-    if(req.site){
-      checkString = req.site
-    }
     for(var i = 0; i< data.length;i++){
+      whereClause.id = data[i]["dataValues"]["picklistId"];
       await Picklist.findAll({
-        where :{
-          id:data[i]["dataValues"]["picklistId"],
-          siteId: {
-          [Op.like]: checkString
-        }
-        },
+        where :whereClause
       })
       .then(picklistData => {
         if(picklistData[0]){
-        var updatedAt = picklistData[0]["dataValues"]["updatedAt"];
-        if(picklistData[0]["dataValues"]["picklistStatus"] != "Completed"){
-          picklistArray.push(picklistData[0]["dataValues"]);  
-          console.log("Line 182",picklistArray);
+          var updatedAt = picklistData[0]["dataValues"]["updatedAt"];
+          if(picklistData[0]["dataValues"]["picklistStatus"] != "Completed"){
+            picklistArray.push(picklistData[0]["dataValues"]);  
+            console.log("Line 182",picklistArray);
+          }
+          else if(picklistData[0]["dataValues"]["picklistStatus"] == "Completed" && updatedAt.toString().includes(newDateTimeNow)){
+            picklistArray.push(picklistData[0]["dataValues"]);  
+            console.log("Line 185",picklistArray);
+          }
         }
-        else if(picklistData[0]["dataValues"]["picklistStatus"] == "Completed" && updatedAt.toString().includes(newDateTimeNow)){
-          picklistArray.push(picklistData[0]["dataValues"]);  
-          console.log("Line 185",picklistArray);
-        }
-      }
       })
       .catch(err=>{
         res.status(500).send({

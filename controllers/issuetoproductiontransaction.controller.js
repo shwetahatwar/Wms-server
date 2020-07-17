@@ -8,7 +8,7 @@ var HTTPError = require('http-errors');
 
 // Retrieve all Issue To ProductionTransaction from the database.
 exports.findAll =async (req, res,next) => {
- var { transactionTimestamp, performedBy, transactionType, quantity, remarks, materialInwardId, projectId, offset, limit } = req.query;
+  var { transactionTimestamp, performedBy, transactionType, quantity, remarks, materialInwardId, projectId, offset, limit } = req.query;
 
   var newOffset = 0;
   var newLimit = 100;
@@ -107,7 +107,7 @@ exports.issueToProduction = async (req, res,next) => {
     return next(HTTPError(500, "Issue To Production transaction not Created"))
   }
   
-	res.send(issueToProductionData);
+  res.send(issueToProductionData);
 };
 
 //Return from Production API
@@ -129,60 +129,60 @@ exports.returnFromProduction = async (req, res) => {
 
     // how can we use modular code for this as this is in for loop
    //
-		await IssueToProductionTransaction.findAll({
-			where: {
-				materialInwardId:req.body[i]["materialInwardId"],
-				projectId: req.body[i]["projectId"]
-			},
-			include: [{
-				model: MaterialInward
-			}],
-			order: [
-			['id', 'DESC'],
-			] 
-		})
-		.then(data => {
-			updateQuantity = parseInt(data[0]["dataValues"]["materialinward"]["eachPackQuantity"])+parseInt(req.body[i]["quantity"]);
-			console.log(updateQuantity);
-		})
-		.catch(err => {
-			console.log(err.message)
-		});
-		await IssueToProductionTransaction.create(stock)
-		.then(async data => {
-			returnFromProductionData.push(data);
-			let updateData = {
-				'status':true,
-				'eachPackQuantity':updateQuantity,
-        'updatedBy':req.user.username
-			}
-			await  MaterialInward.update(updateData, {
-				where: {
-					id: req.body[i]["materialInwardId"]
-				}
-			}).then(num => {
-				if (num == 1) {
+   await IssueToProductionTransaction.findAll({
+     where: {
+       materialInwardId:req.body[i]["materialInwardId"],
+       projectId: req.body[i]["projectId"]
+     },
+     include: [{
+       model: MaterialInward
+     }],
+     order: [
+     ['id', 'DESC'],
+     ] 
+   })
+   .then(data => {
+     updateQuantity = parseInt(data[0]["dataValues"]["materialinward"]["eachPackQuantity"])+parseInt(req.body[i]["quantity"]);
+     console.log(updateQuantity);
+   })
+   .catch(err => {
+     console.log(err.message)
+   });
+   await IssueToProductionTransaction.create(stock)
+   .then(async data => {
+     returnFromProductionData.push(data);
+     let updateData = {
+       'status':true,
+       'eachPackQuantity':updateQuantity,
+       'updatedBy':req.user.username
+     }
+     await  MaterialInward.update(updateData, {
+       where: {
+         id: req.body[i]["materialInwardId"]
+       }
+     }).then(num => {
+       if (num == 1) {
 
-				} else {
-					res.send({
-						message: `Some error occurred while updating MaterialInward!`
-					});
-				}
-			})
-			.catch(err => {
-				res.status(500).send({
-					message: "Some error occurred while updating MaterialInward"
-				});
-			})
+       } else {
+         res.send({
+           message: `Some error occurred while updating MaterialInward!`
+         });
+       }
+     })
+     .catch(err => {
+       res.status(500).send({
+         message: "Some error occurred while updating MaterialInward"
+       });
+     })
 
-		})
-		.catch(err => {
-			res.status(500).send({
-				message: "Some error occurred while creating issueToProduction"
-			});
-		});
-	}
-	res.send(returnFromProductionData);
+   })
+   .catch(err => {
+     res.status(500).send({
+       message: "Some error occurred while creating issueToProduction"
+     });
+   });
+ }
+ res.send(returnFromProductionData);
 };
 
 exports.findTransactionsBySearchQuery = async (req, res,next) => {
@@ -215,7 +215,7 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
   if(!barcodeSerial){
     barcodeSerial="";
   }
-  if(!req.query.transactionType){
+  if(!transactionType){
     transactionType="";
   }
 
@@ -240,12 +240,12 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
   }
 
   if(transactionType){
-     whereClause.transactionType ={
-       [Op.like]: '%'+transactionType+'%'
-     }
+    whereClause.transactionType ={
+      [Op.like]: '%'+transactionType+'%'
+    }
   }
 
- var issueToProductionTransactions = await IssueToProductionTransaction.findAll({
+  var issueToProductionTransactions = await IssueToProductionTransaction.findAll({
     where: whereClause,
     include: [{model: MaterialInward,
       required: true,
@@ -254,11 +254,13 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
     {model: Project},
     {model: User,
       as: 'doneBy'},
-     ],
-     order: [
-    ['id', 'DESC'],
-    ]
-  });
+      ],
+      order: [
+      ['id', 'DESC'],
+      ],
+      offset:newOffset,
+      limit:newLimit
+    });
 
   if (!issueToProductionTransactions) {
     return next(HTTPError(400, "Issue To Production transactions not found"));
