@@ -3,25 +3,77 @@ var router = express.Router();
 var picklists = require('../controllers/picklist.controller');
 var users = require('../controllers/user.controller');
 
-router.post("/", users.loginRequired,picklists.create);
-router.get("/", users.loginRequired,picklists.findAll);
-router.get("/:id", users.loginRequired,picklists.findOne);
-router.put("/:id", users.loginRequired,picklists.update);
-router.post("/post/picklistsmaterialcount", users.loginRequired,picklists.getCountForPicklist);
+router.post("/", users.loginRequired,
+	picklists.create);
+
+router.get("/", users.loginRequired,
+	picklists.findAll,
+	picklists.sendFindResponse);
+
+router.get("/:id", users.loginRequired,
+	picklists.findOne,
+	picklists.sendFindResponse);
+
+router.put("/:id", users.loginRequired,
+	picklists.update,
+	picklists.updateResponse);
+
+router.post("/post/picklistsmaterialcount",
+    users.loginRequired,
+    picklists.getCountForPicklist);
 
 
-router.get("/:picklistId/picklistmaterials", users.loginRequired,picklists.getPicklistMaterialLists);
-router.post("/:picklistId/picklistmaterials", users.loginRequired,picklists.postPicklistMaterialLists);
-router.get("/:picklistId/picklistmaterials/:id", users.loginRequired,picklists.getPicklistMaterialList);
-router.put("/:picklistId/picklistmaterials/:id", users.loginRequired,picklists.putPicklistMaterialList);
+router.get("/:picklistId/picklistmaterials",
+ 	users.loginRequired,
+ 	picklists.getPicklistMaterialLists,
+ 	picklists.sendPicklistMaterialResponse
+ );
 
-router.get("/:picklistId/picklistpickedmaterials", users.loginRequired,picklists.getPicklistPickingMaterialLists);
-router.post("/:picklistId/picklistpickedmaterials", users.loginRequired,picklists.postPicklistPickingMaterialLists);
-router.get("/:picklistId/picklistpickedmaterials/:id", users.loginRequired,picklists.getPicklistPickingMaterialList);
-router.put("/:picklistId/picklistpickedmaterials/:id", users.loginRequired,picklists.putPicklistPickingMaterialList);
+router.post("/:picklistId/picklistmaterials",
+ 	users.loginRequired,
+ 	picklists.postPicklistMaterialLists,
+ 	picklists.updateResponse);
 
-router.get("/dashboard/count", users.loginRequired,picklists.getPicklistCountDashboard);
-router.get("/get/getbydate", users.loginRequired,picklists.getPicklistByDate);
-router.get("/get/picklistbyname", users.loginRequired,picklists.findPicklistByName);
+router.get("/:picklistId/picklistmaterials/:id",
+	 users.loginRequired,
+	 picklists.getPicklistMaterialList,	 
+ 	picklists.sendPicklistMaterialResponse);
+
+router.put("/:picklistId/picklistmaterials/:id", 
+	users.loginRequired,
+	picklists.putPicklistMaterialList,
+	picklists.updateResponse);
+
+router.get("/:picklistId/picklistpickedmaterials", 
+	users.loginRequired,
+	picklists.getPicklistPickingMaterialLists,
+	picklists.sendPicklistPickingMaterialResponse);
+
+router.post("/:picklistId/picklistpickedmaterials", 
+	users.loginRequired,
+	picklists.postPicklistPickingMaterialLists);
+
+router.get("/:picklistId/picklistpickedmaterials/:id", 
+	users.loginRequired,
+	picklists.getPicklistPickingMaterialList,
+	picklists.sendPicklistPickingMaterialResponse);
+
+router.put("/:picklistId/picklistpickedmaterials/:id", 
+	users.loginRequired,
+	picklists.putPicklistPickingMaterialList,
+	picklists.updateResponse);
+
+router.get("/dashboard/count", users.loginRequired,
+	picklists.getPicklistCountDashboard);
+
+router.get("/get/getbydate",
+ 	users.loginRequired,
+ 	picklists.findPicklistByName,
+	picklists.sendFindResponse);
+
+router.get("/get/picklistbyname", 
+	users.loginRequired,
+	picklists.findPicklistByName,
+	picklists.sendFindResponse);
 
 module.exports = router;

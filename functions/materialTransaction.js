@@ -19,7 +19,7 @@ exports.createPutawayTransaction = async(materialInward,username)=> {
   putawayTransactionsList = putawayTransactionsList.map(el => { return el.get({ plain: true }) } );
   console.log(putawayTransactionsList);
   return putawayTransactionsList;
-}
+};
 
 exports.createInventoryTransaction = async(materialInward,username)=> {
 
@@ -39,4 +39,4 @@ exports.createInventoryTransaction = async(materialInward,username)=> {
   transactionsList = transactionsList.map ( el => { return el.get({ plain: true }) } );
  
   return transactionsList;
-}
+};

@@ -14,4 +14,4 @@ exports.updateMaterialInward = async(materialInwardData,id)=> {
 	}
 
   return updatedData;
-}
+};
