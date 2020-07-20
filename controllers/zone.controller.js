@@ -98,7 +98,8 @@ exports.update =async (req, res,next) => {
     if (!updatedZone) {
       return next(HTTPError(500, "Zone not updated"))
     }
-  }catch (err) {
+  }
+  catch (err) {
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }

@@ -11,7 +11,7 @@ exports.create = async (req, res,next) => {
   // Validate request
   var { picklistId , userId } =  req.body;
   if (!picklistId) {
-    return next(HTTPError(500,"Content can not be empty!"))
+    return next(HTTPError(400,"Content can not be empty!"))
   }
   
   // Create a Picklist Picker Relations

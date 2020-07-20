@@ -102,113 +102,118 @@ exports.create =async (req, res) => {
 };
 
 //Get All RoleAccessRelation
-exports.getAll = (req,res) =>{
-  RoleAccessRelation.findAll({
-    where:req.query,
-    include: [{
-      model: Role
-    },
-    {
-      model: Access
-    }],
+exports.getAll = async(req,res,next) =>{
+
+var { roleId , accessId , status } = req.query;
+
+  var whereClause = new WhereBuilder()
+  .clause('roleId', roleId)
+  .clause('accessId', accessId)
+  .clause('status', status).toJSON();
+
+  var getAllRoleAccessRelations;
+  getAllRoleAccessRelations = await RoleAccessRelation.findAll({
+    where:whereClause,
     order: [
     ['id', 'DESC'],
     ],
-  })
-  .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving RoleAccessRelation."
-      });
-    });
+  });
+  
+  if (!getAllRoleAccessRelations) {
+    return next(HTTPError(400, "Role access relations not found"));
+  }
+  
+  req.getAllRoleAccessRelationsList = getAllRoleAccessRelations.map ( el => { return el.get({ plain: true }) } );
+
+  next();
+};
+
+exports.sendFindResponse = async (req, res, next) => {
+  res.status(200).send(req.getAllRoleAccessRelationsList);
 };
 
 //Update RoleAccessRelation by Id
-exports.update = (req, res) => {
+exports.update = async (req, res,next) => {
   const id = req.params.id;
+  var { roleId , accessId , status } = req.body;
 
-  RoleAccessRelation.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "RoleAccessRelation was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update RoleAccessRelation with id=${id}. Maybe RoleAccessRelation was not found or req.body is empty!`
-        });
-      }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error updating RoleAccessRelation with id=" + id
-      });
+  var whereClause = new WhereBuilder()
+  .clause('roleId', roleId)
+  .clause('accessId', accessId)
+  .clause('status', status).toJSON();
+
+  var updateData;
+
+  try {
+    updateData = await RoleAccessRelation.update(whereClause,{
+      where: req.params
     });
+
+    if (!updateData) {
+      return next(HTTPError(500, "Role access relation not updated"))
+    }
+  }
+  catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while updating the Role access relation."))
+    }
+  }
+
+  req.updateData = updateData;
+  next();
+};
+
+exports.sendUpdateResponse = async (req, res, next) => {
+  res.status(200).send({message: "success"});
 };
 
 //Get RoleAccessRelation by Id
-exports.getById = (req,res) => {
+exports.getById = async(req,res,next) => {
   const id = req.params.id;
 
-  RoleAccessRelation.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving RoleAccessRelation with id=" + id
-      });
-    });
+  var roleAccessRelation = await RoleAccessRelation.findByPk(id);
+  if (!roleAccessRelation) {
+    return next(HTTPError(500, "Role access relation not found"))
+  }
+  req.getAllRoleAccessRelationsList = roleAccessRelation;
+  next();
 }
 
 exports.validateAccessUrl = async (req,res) =>{
-  console.log("req",req.query)
-  await Access.findAll({ 
-    where: {
-      url: req.query.accessUrl 
+  var {accessUrl , roleId} = req.query;
+  var whereClause = {};
+  if(accessUrl){
+    whereClause.url = accessUrl;
+  }
+  var accessList = await Access.findAll({ 
+    where: whereClause
+  });
+  
+  if(accessList.length !=0){
+    let accessId = accessList[0]["dataValues"]["id"];
+    var roleAccessRelationWhereClause={};
+    roleAccessRelationWhereClause.status=true;
+    if(roleId){
+      roleAccessRelationWhereClause.roleId = roleId
     }
-  })
-  .then(async data => {
-    if(data.length !=0){
-      let accessId =data[0]["dataValues"]["id"];
-
-      await RoleAccessRelation.findAll({
-        where:{
-          roleId: req.query.roleId,
-          accessId: data[0]["dataValues"]["id"],
-          status:true
-        }
-      })
-      .then(async data => {
-        if(data.length !=0){
-          res.send(data);
-        }
-        else{
-          let data = [];
-          res.status(200).send(data);
-        }
-      })
-      .catch(err => {
-        console.log("Error on 192",err)
-        res.status(500).send({
-          message: "Error retrieving RoleAccessRelation"
-        });
-      })
+    roleAccessRelationWhereClause.accessId = accessId;
+    roleAccessData = await RoleAccessRelation.findAll({
+      where:roleAccessRelationWhereClause
+    });
+    if(roleAccessData.length != 0){
+      res.status(200).send(roleAccessData)
     }
     else{
-      let data = [];
-       res.status(200).send(data);
+      roleAccessData = [];
+      res.status(200).send(roleAccessData)
     }
-  })
-  .catch(err => {
-    console.log("Error on 199",err)
-    res.status(500).send({
-      message: "Error retrieving RoleAccessRelation"
-    });
-  });
+  }
+  else{
+    var roleAccessData = [];
+    res.status(200).send(roleAccessData)
+  }
+
 };

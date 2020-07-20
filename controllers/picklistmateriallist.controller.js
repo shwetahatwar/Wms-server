@@ -10,10 +10,7 @@ exports.create = async (req, res,next) => {
   var { picklistId , batchNumber , purchaseOrderNumber , numberOfPacks , PartNumber , location} =req.body;
   // Validate request
   if (!picklistId) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+    return next(HTTPError(500,"Content can not be empty!"))
   }
 
   // Create a Picklist Material List

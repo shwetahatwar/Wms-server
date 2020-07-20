@@ -351,23 +351,15 @@ exports.BulkUpload = async (req, res) => {
   var siteId;
   var rackId;
 
-  await Zone.findAll({
+  var zoneData = await Zone.findAll({
     where: { 
       name: req.body.zoneName
     },
-  })
-  .then(async data => {
-    if(data[0] != null || data[0] != undefined){
-      siteId = data[0]["dataValues"]["siteId"];
-      zoneId = data[0]["dataValues"]["id"];
-    }
-  })
-  .catch(err=>{
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred."
-    });
   });
+  if(zoneData[0]){
+    siteId = zoneData[0]["dataValues"]["siteId"];
+    zoneId = zoneData[0]["dataValues"]["id"];
+  }
 
   if(zoneId != null && zoneId != undefined && siteId != null && siteId != undefined){
     console.log("Line 398",req.body.locations.length);

@@ -677,52 +677,52 @@ exports.getPicklistCountDashboard = async (req, res) => {
   });
 };
 
-//Get Picklist Between Dates
-exports.getPicklistByDate = (req, res) => {
-  // console.log();
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  console.log("queryString",queryString);
-  let checkString = '%'+req.site+'%'
-  if(req.site){
-    checkString = req.site
-  }
+// //Get Picklist Between Dates
+// exports.getPicklistByDate = (req, res) => {
+//   // console.log();
+//   var queryString = req.query;
+//   var offset = 0;
+//   var limit = 100;
+//   if(req.query.offset != null || req.query.offset != undefined){
+//     offset = parseInt(req.query.offset)
+//   }
+//   if(req.query.limit != null || req.query.limit != undefined){
+//     limit = parseInt(req.query.limit)
+//   }
+//   delete queryString['offset'];
+//   delete queryString['limit'];
+//   console.log("queryString",queryString);
+//   let checkString = '%'+req.site+'%'
+//   if(req.site){
+//     checkString = req.site
+//   }
 
-  Picklist.findAll({ 
-    where: {
-      createdAt: {
-        [Op.gte]: parseInt(req.query.createdAtStart),
-        [Op.lt]: parseInt(req.query.createdAtEnd),
-      },
-      siteId: {
-        [Op.like]: checkString
-      }
-    },
-    order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
-  })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving picklists."
-    });
-  });
-};
+//   Picklist.findAll({ 
+//     where: {
+//       createdAt: {
+//         [Op.gte]: parseInt(req.query.createdAtStart),
+//         [Op.lt]: parseInt(req.query.createdAtEnd),
+//       },
+//       siteId: {
+//         [Op.like]: checkString
+//       }
+//     },
+//     order: [
+//     ['id', 'DESC'],
+//     ],
+//     offset:offset,
+//     limit:limit
+//   })
+//   .then(data => {
+//     res.send(data);
+//   })
+//   .catch(err => {
+//     res.status(500).send({
+//       message:
+//       err.message || "Some error occurred while retrieving picklists."
+//     });
+//   });
+// };
 
 //get by picklist name
 exports.findPicklistByName = async (req, res,next) => {
@@ -762,7 +762,7 @@ exports.findPicklistByName = async (req, res,next) => {
   var picklistData = await Picklist.findAll({ 
     where:whereClause,
     order: [
-    ['id', 'ASC'],
+    ['id', 'DESC'],
     ],
     offset:newOffset,
     limit:newLimit

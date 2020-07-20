@@ -12,7 +12,7 @@ exports.create = async (req, res,next) => {
   // Validate request
   var { picklistId , userId , material } = req.body;
   if (!picklistId) {
-    return next(HTTPError(500,"Content can not be empty"))
+    return next(HTTPError(400,"Content can not be empty"))
   }
 
   console.log(material.length);
