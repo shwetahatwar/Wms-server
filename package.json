@@ -10,6 +10,7 @@
   "author": "BRiOT Technologies Pvt. Ltd.",
   "license": "ISC",
   "dependencies": {
+    "@sendgrid/mail": "^7.2.1",
     "app-root-path": "^3.0.0",
     "bcrypt-nodejs": "^0.0.3",
     "bluebird": "^3.7.2",

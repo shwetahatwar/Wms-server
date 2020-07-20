@@ -12,7 +12,7 @@ var nodemailer = require ('nodemailer');
 var HTTPError = require('http-errors'); 
 const materialQuantityFunction = require('../functions/materialInwardQuantity');
 const serialNumberFinder = require('../functions/serialNumberFinder');
-
+const sgMail = require('@sendgrid/mail');
 // Create and Save a new Picklist
 exports.create = async (req, res) => {
   if (!req.body.material) {
@@ -159,6 +159,21 @@ exports.create = async (req, res) => {
 
 // Get all Picklists from the database.
 exports.findAll = async (req, res,next) => {
+
+//   const msg = {
+//   to: 'sagar@briot.in',
+//   from: 'sagar@briot.in',
+//   subject: 'Sending with SendGrid is Fun',
+//   text: 'and easy to do anywhere, even with Node.js',
+//   html: '<strong>and easy to do anywhere, even with Node.js</strong>',
+// }
+
+// try{
+//   sgMail.send(msg)
+// }
+// catch(err){
+//   console.log("line 176",err)
+// }
   var { picklistName , status , picklistStatus , offset , limit } = req.query;
 
   var newOffset = 0;
