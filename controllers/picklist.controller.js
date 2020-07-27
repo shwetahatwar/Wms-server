@@ -12,7 +12,9 @@ var nodemailer = require ('nodemailer');
 var HTTPError = require('http-errors'); 
 const materialQuantityFunction = require('../functions/materialInwardQuantity');
 const serialNumberFinder = require('../functions/serialNumberFinder');
+const fifoViolationFunction = require('../functions/fifoViolation');
 const sgMail = require('@sendgrid/mail');
+
 // Create and Save a new Picklist
 exports.create = async (req, res) => {
   if (!req.body.material) {
@@ -413,6 +415,10 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
 
   console.log(req.body.materials.length);
   for(var i=0;i<req.body.materials.length;i++){
+      let violatedData;
+      if(req.body.materials[i]["isViolated"]){
+        violatedData = req.body.materials[i];
+      }
       picklistpickingmateriallist = {
       picklistId: req.params.picklistId,
       userId:1,
@@ -428,7 +434,9 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
     await PicklistPickingMaterialList.create(picklistpickingmateriallist)
     .then(async data => {
       let eachPackQuantity = 0;
-      console.log("PicklistPickingMaterialList",data);
+      if(req.body.materials[i]["isViolated"]){
+        var fifoViolation = await fifoViolationFunction.createFifoViolation(violatedData,req.params.picklistId,req.user.username);
+      }
       await MaterialInward.findAll({ 
         where: {
           barcodeSerial:req.body.materials[i].serialNumber
