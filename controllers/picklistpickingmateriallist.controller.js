@@ -52,7 +52,7 @@ exports.sendCreateResponse = async (req, res, next) => {
 
 //Get Picklist Picking Material List
 exports.getAll = async (req,res,next) =>{
-  var { picklistId , partNumber , batchNumber , serialNumber , quantityPicked , userId } = req.query;
+  var { picklistId , partNumber , batchNumber , isMaterialIssuedToProduction , serialNumber , quantityPicked , userId } = req.query;
 
   var whereClause = new WhereBuilder()
   .clause('picklistId', picklistId)
@@ -60,6 +60,7 @@ exports.getAll = async (req,res,next) =>{
   .clause('serialNumber', serialNumber)
   .clause('quantityPicked', quantityPicked)
   .clause('userId', userId)
+  .clause('isMaterialIssuedToProduction', isMaterialIssuedToProduction)
   .clause('partNumber', partNumber).toJSON();
 
   var picklistData = await PicklistPickingMaterialList.findAll({

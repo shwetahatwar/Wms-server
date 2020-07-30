@@ -51,6 +51,7 @@ exports.create = async (req, res) => {
     const picklistData = {
       picklistName: serialNumberId,
       status:true,
+      isIssuedToProduction:false,
       picklistStatus:"Pending",
       siteId :siteId,
       createdBy:req.user.username,
@@ -176,7 +177,7 @@ exports.findAll = async (req, res,next) => {
 // catch(err){
 //   console.log("line 176",err)
 // }
-  var { picklistName , status , picklistStatus , offset , limit } = req.query;
+  var { picklistName , status , isIssuedToProduction , picklistStatus , offset , limit } = req.query;
 
   var newOffset = 0;
   var newLimit = 100;
@@ -192,6 +193,7 @@ exports.findAll = async (req, res,next) => {
   var whereClause = new WhereBuilder()
   .clause('picklistName', picklistName)
   .clause('status', status)
+  .clause('isIssuedToProduction', isIssuedToProduction)
   .clause('picklistStatus', picklistStatus).toJSON();
 
   if(req.site){
@@ -427,7 +429,8 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
       partNumber:req.body.materials[i].partNumber,
       batchNumber:req.body.materials[i].batchNumber,
       serialNumber:req.body.materials[i].serialNumber,
-      quantityPicked:req.body.materials[i].quantity
+      quantityPicked:req.body.materials[i].quantity,
+      isMaterialIssuedToProduction:false
     };
 
     // Save materials of picklist in the database

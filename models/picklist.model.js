@@ -14,6 +14,10 @@ module.exports = (sequelize, DataTypes) => {
       type:DataTypes.STRING,
       allowNull:false
     },
+    isIssuedToProduction:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false
+    },
     createdBy:{
       type:DataTypes.STRING,
       allowNull:true

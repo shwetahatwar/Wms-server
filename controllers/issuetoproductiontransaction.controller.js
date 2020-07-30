@@ -3,8 +3,10 @@ const MaterialInward = db.materialinwards;
 const Project = db.projects;
 const IssueToProductionTransaction = db.issuetoproductiontransactions;
 const User = db.users;
+const Picklist = db.picklists;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
+const PicklistPickingMaterialList = db.picklistpickingmateriallists;
 
 // Retrieve all Issue To ProductionTransaction from the database.
 exports.findAll =async (req, res,next) => {
@@ -106,7 +108,27 @@ exports.issueToProduction = async (req, res,next) => {
   if (!issueToProductionData) {
     return next(HTTPError(500, "Issue To Production transaction not Created"))
   }
-  
+  for(var i=0;i<req.body.length;i++){
+    let updatePicklistMaterialData = {
+      'isMaterialIssuedToProduction':true
+    }
+    var picklistMaterialUpdated = await PicklistPickingMaterialList.update(updatePicklistMaterialData,{
+      where: {
+        picklistId: req.body[i]["picklistId"],
+        serialNumber: req.body[i]["barcodeSerial"]
+      }
+    });
+  }
+  if(req.body[0]["completedPicklistId"]){
+    let updateData = {
+      'isIssuedToProduction':true
+    }
+    var picklistUpdated = await Picklist.update(updateData,{
+      where: {
+        id: req.body[0]["completedPicklistId"]
+      }
+    });
+  }
   res.send(issueToProductionData);
 };
 

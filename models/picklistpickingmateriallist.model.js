@@ -17,6 +17,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
+    isMaterialIssuedToProduction:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false
+    },
     quantityPicked:{
       type: DataTypes.INTEGER,
       allowNull: false
@@ -48,6 +52,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     picklistStatus:{
       type:DataTypes.STRING,
+      allowNull:false
+    },
+    isIssuedToProduction:{
+      type:DataTypes.BOOLEAN,
       allowNull:false
     },
     siteId:{

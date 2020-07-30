@@ -49,6 +49,10 @@ module.exports = (sequelize, DataTypes) => {
       type:DataTypes.BOOLEAN,
       allowNull:false
     },
+    isIssuedToProduction:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false
+    },
     picklistStatus:{
       type:DataTypes.STRING,
       allowNull:false
