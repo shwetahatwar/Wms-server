@@ -166,7 +166,7 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
   }
 
   responseData.push(qcData);
-
+  console.log("whereClause",whereClause)
   var total = await QCTransaction.count({
     where: whereClause,
     include: [{model: MaterialInward,
@@ -185,3 +185,23 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
   
   res.status(200).send(responseData);
 };
+
+// get count of all QCTransactions 
+exports.countOfQCTransactions = async (req, res) => {
+  var whereClause = {}
+  if(req.query.QCStatus){
+    whereClause.currentQCStatus = req.query.QCStatus;
+  }
+  var total = await QCTransaction.count({
+   where:whereClause
+  })
+
+  if(!total){
+    return next(HTTPError(500, "Internal error has occurred, while getting count of QCTransaction"))
+  }
+
+  var totalCount = {
+    totalCount : total 
+  }
+  res.status(200).send(totalCount);
+}

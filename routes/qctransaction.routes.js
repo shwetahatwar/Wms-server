@@ -13,6 +13,11 @@ router.get("/:id", users.loginRequired,
 
 router.get("/get/getQCtransactionsBySearchQuery",
 	users.loginRequired,
-	qctransactions.findQCTransactionsBySearchQuery)
+	qctransactions.findQCTransactionsBySearchQuery);
+
+
+router.get("/get/qctransactioncount",
+	users.loginRequired,
+	qctransactions.countOfQCTransactions);
 
 module.exports = router;

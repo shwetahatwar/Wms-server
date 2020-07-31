@@ -243,7 +243,7 @@ exports.countOfPutawayTransaction = async (req, res) => {
   materialInwardWhereClause.QCStatus = {
     [Op.ne]:2
   }
-
+  console.log("in count")
   total = await PutawayTransaction.count({
     include: [
     {
@@ -254,7 +254,7 @@ exports.countOfPutawayTransaction = async (req, res) => {
   });
 
   var totalCount = {
-    totalProjects : total 
+    totalCount : total 
   }
   res.status(200).send(totalCount);
 };

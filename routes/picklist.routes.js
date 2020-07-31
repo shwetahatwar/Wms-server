@@ -68,12 +68,15 @@ router.get("/dashboard/count", users.loginRequired,
 
 router.get("/get/getbydate",
  	users.loginRequired,
- 	picklists.findPicklistByName,
-	picklists.sendFindResponse);
+ 	picklists.findPicklistByName);
 
 router.get("/get/picklistbyname", 
 	users.loginRequired,
-	picklists.findPicklistByName,
-	picklists.sendFindResponse);
+	picklists.findPicklistByName);
+
+router.get("/get/count", 
+	users.loginRequired,
+	picklists.findPicklistCount);
+
 
 module.exports = router;

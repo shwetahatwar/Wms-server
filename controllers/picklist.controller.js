@@ -794,11 +794,69 @@ exports.findPicklistByName = async (req, res,next) => {
     limit:newLimit
   });
 
+
   if (!picklistData) {
     return next(HTTPError(400, "Seached data not found"));
   }
-  
-  req.picklistDataList = picklistData.map ( el => { return el.get({ plain: true }) } );
 
-  next();
-}
+  var responseData =[];
+  responseData.push(picklistData);
+  var total = await Picklist.count({ 
+    where:whereClause,
+  });
+
+  var countArray=[];
+  var totalPicklists = {
+    totalCount : total
+  }
+  countArray.push(totalPicklists);
+  responseData.push(countArray);
+
+  res.status(200).send(responseData);
+};
+
+//get Picklist count
+exports.findPicklistCount = async (req, res) => {
+var total =0;
+  var inProgress=0;
+  var completed = 0;
+  var total =0;
+  var inProgress=0;
+  var completed = 0;
+  var pending = 0;
+  var whereClause = {};
+  if(req.site){
+    whereClause.siteId = req.site
+  }
+
+  whereClause.status = true;
+  total = await Picklist.count({
+    where:whereClause
+  });
+
+  whereClause.picklistStatus="In Progress"
+
+  inProgress = await Picklist.count({
+    where:whereClause
+  });
+
+  whereClause.picklistStatus="Pending"
+
+  pending = await Picklist.count({
+    where:whereClause
+  });
+  
+  whereClause.picklistStatus="Completed";
+
+  completed = await Picklist.count({
+    where:whereClause
+  });
+
+  let responseData = {
+    'total':total,
+    'inProgress':inProgress,
+    'pending':pending,
+    'completed':completed
+  }
+    res.status(200).send(responseData);
+};
