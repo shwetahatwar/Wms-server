@@ -283,3 +283,33 @@ exports.sendCreateResponse = async (req, res, next) => {
   res.status(200).send(req.transferOutData);
 };
 
+exports.getCount = async (req, res, next) => {
+  var materialInwardWhereClause = {};
+  var siteWhereClause ={};
+  if(req.site){
+    materialInwardWhereClause.siteId = req.site;
+    siteWhereClause.siteId = req.site;
+  }
+  var total = await StockTransaction.count({
+    include: [
+    {model: MaterialInward,
+      required: true,
+      where:materialInwardWhereClause},
+      {model: Site,
+        as: 'fromSite'},
+        {model: Site,
+          required:true,
+          where:siteWhereClause,
+          as: 'toSite'}],
+  })
+
+  if(!total){
+    return next(HTTPError(500, "Internal error has occurred, while getting count"))
+  }
+
+  var totalCount = {
+    totalCount : total 
+  }
+  res.status(200).send(totalCount);
+};
+

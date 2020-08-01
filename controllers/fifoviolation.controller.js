@@ -156,12 +156,58 @@ exports.findFIFOViolationsBySearchQuery = async (req, res,next) => {
     return next(HTTPError(400, "FIFO violations not found"));
   }
 
-  req.fifoViolationLists = fifoviolations.map ( el => { return el.get({ plain: true }) } );
+  var responseData =[];
+  responseData.push(fifoviolations);
 
-  next();
+  var total = await FIFOViolationList.count({ 
+    where: whereClause,
+    include: [
+    {model: Picklist,
+      required: true,
+      where:picklistWhereClause
+    }
+    ]
+  });
+
+  var countArray=[];
+  var totalData = {
+    totalCount : total
+  }
+  countArray.push(totalData);
+  responseData.push(countArray);
+
+  res.status(200).send(responseData);
+
+  // req.fifoViolationLists = fifoviolations.map ( el => { return el.get({ plain: true }) } );
+
+  // next();
 };
 
 
 exports.sendFindResponse = async (req, res, next) => {
   res.status(200).send(req.fifoViolationLists);
+};
+
+exports.getCount= async (req, res, next) => {
+var picklistWhereClause = {};
+  if(req.site){
+    picklistWhereClause.siteId = req.site;
+  }
+  var total = await FIFOViolationList.count({
+    include: [
+    {model: Picklist,
+      required:true,
+      where: picklistWhereClause
+    }
+    ]
+  })
+
+  if(!total){
+    return next(HTTPError(500, "Internal error has occurred, while getting count of parts"))
+  }
+
+  var totalCount = {
+    totalCount : total 
+  }
+  res.status(200).send(totalCount);
 };

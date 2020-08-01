@@ -85,8 +85,10 @@ exports.findBySearchQuery = async (req, res) => {
   }
 
   var materialInwardWhereClause = {};
+  var siteWhereClause = {};
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
+    siteWhereClause:id = req.site;
   }
   else{
     materialInwardWhereClause.siteId = {
@@ -130,6 +132,8 @@ exports.findBySearchQuery = async (req, res) => {
       {model: Site,
         as: 'fromSite'},
         {model: Site,
+          required:true,
+          where:siteWhereClause,
           as: 'toSite'},
           {model: User,
             as: 'transferOutUser'},
@@ -157,6 +161,8 @@ exports.findBySearchQuery = async (req, res) => {
             as: 'transferOutUser'},
             {model: User,
               as: 'transferInUser'}] 
+            }).then().catch(err =>{
+              console.log(err)
             });
   let count = {
     'totalCount':countData
@@ -171,6 +177,36 @@ exports.findBySearchQuery = async (req, res) => {
   res.status(200).send(dataList);
 };
 
+exports.getCount = async (req, res, next) => {
+
+  var materialInwardWhereClause = {};
+  var siteWhereClause ={};
+  if(req.site){
+    materialInwardWhereClause.siteId = req.site;
+    siteWhereClause.siteId = req.site;
+  }
+  var total = await StockTransit.count({
+    include: [
+    {model: MaterialInward,
+      required: true,
+      where:materialInwardWhereClause},
+      {model: Site,
+        as: 'fromSite'},
+        {model: Site,
+          required:true,
+          where:siteWhereClause,
+          as: 'toSite'}],
+  })
+
+  if(!total){
+    return next(HTTPError(500, "Internal error has occurred, while getting count"))
+  }
+
+  var totalCount = {
+    totalCount : total 
+  }
+  res.status(200).send(totalCount);
+};
 
 exports.sendFindResponse = async (req, res, next) => {
   res.status(200).send(req.responseList);

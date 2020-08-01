@@ -12,7 +12,10 @@ router.get("/:id", users.loginRequired,
 	fifoviolationlists.sendFindResponse);
 
 router.get("/get/searchdata", users.loginRequired,
-	fifoviolationlists.findFIFOViolationsBySearchQuery,
-	fifoviolationlists.sendFindResponse);
+	fifoviolationlists.findFIFOViolationsBySearchQuery);
+
+
+router.get("/get/count", users.loginRequired,
+	fifoviolationlists.getCount);
 
 module.exports = router;

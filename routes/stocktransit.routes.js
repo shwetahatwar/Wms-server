@@ -20,4 +20,8 @@ router.get("/get/findbysearchquery",
  users.loginRequired,
  stocktransits.findBySearchQuery);
 
+router.get("/get/count",
+ users.loginRequired,
+ stocktransits.getCount);
+
 module.exports = router;

@@ -30,4 +30,9 @@ router.post("/stocktransfer/in",
 	stocktransactions.transferIn,	
 	stocktransactions.sendCreateResponse);
 
+
+router.get("/get/count",
+ users.loginRequired,
+ stocktransactions.getCount);
+
 module.exports = router;
