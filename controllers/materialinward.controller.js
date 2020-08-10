@@ -1218,6 +1218,56 @@ exports.findRecentTransactions = async (req, res,next) => {
   res.status(200).send(data);
 };
 
+exports.findPartNumbersForPicklist = async (req,res) => {
+var {offset , limit , partNumber , description } = req.query
+  var materialInwardWhereClause = {};
+  if(req.site){
+    materialInwardWhereClause.siteId = req.site;
+  }
+
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
+  }
+
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+
+  materialInwardWhereClause.QCStatus = 1;
+  materialInwardWhereClause.materialStatus = "Available";
+  materialInwardWhereClause.status = true;
+  var data =  await MaterialInward.findAll({
+    where:materialInwardWhereClause,
+    group: [ 'partNumberId' ],
+    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
+    [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
+    include: [{
+      model: PartNumber,
+      attributes: ['description','partNumber','UOM'],
+    }],
+    limit:limit,
+    offset:offset
+  });
+
+  if(!data){
+    return next(HTTPError(500, "Inventory data not found"));
+  }
+
+  let responseData = [];
+  for(var i=0;i<data.length;i++){
+    let item = {
+      "partNumber":data[i]["partnumber"]["partNumber"],
+      "description":data[i]["partnumber"]["description"],
+      "UOM":data[i]["partnumber"]["UOM"],
+    }
+    responseData.push(item);
+  }
+  res.status(200).send(responseData);
+};
+
 exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
   var materialInwardWhereClause = {};
   if(req.site){

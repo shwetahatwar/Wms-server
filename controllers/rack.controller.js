@@ -9,12 +9,29 @@ var HTTPError = require('http-errors');
 exports.create = async (req, res,next) => {
   var { name,zoneId} = req.body;
   
-  if (!name || !zoneId) {
+  if (!zoneId) {
     return next(HTTPError(500, "Rack not created,name or zone field is empty"))
   }
 
   var rack;
   try {
+
+    var latestRack = await Rack.count({ 
+      where:{
+        zoneId:zoneId
+      }
+    });
+
+    if(latestRack){
+      let rackId = latestRack;
+      rackId = parseInt(rackId) + 1;
+      name = "RAC"+rackId;
+    }
+    else{
+     name = "RAC1" 
+    }
+    console.log("latestRack",name)
+
     rack = await Rack.create({
       name: name,
       status:true,

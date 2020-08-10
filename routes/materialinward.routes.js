@@ -99,4 +99,8 @@ router.post('/post/bulkupload', users.loginRequired,
   materialinwards.bulkUpload,
   materialinwards.sendBulkUploadResponse);
 
+router.get('/partnumbers/get/findforpicklist',
+ users.loginRequired,
+ materialinwards.findPartNumbersForPicklist);
+
 module.exports = router;
