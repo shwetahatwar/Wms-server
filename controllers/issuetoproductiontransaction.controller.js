@@ -208,7 +208,7 @@ exports.returnFromProduction = async (req, res) => {
 };
 
 exports.findTransactionsBySearchQuery = async (req, res,next) => {
-  var {createdAtStart,createdAtEnd,offset,limit,partNumber,barcodeSerial,transactionType} = req.query;
+  var {createdAtStart,createdAtEnd,offset,limit,partNumber,barcodeSerial,transactionType,project} = req.query;
 
   var newOffset = 0;
   var newLimit = 100;
@@ -239,6 +239,13 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
   }
   if(!transactionType){
     transactionType="";
+  }
+
+  var projectsWhereClause = {};
+  if(project){
+    projectsWhereClause.name = {
+      [Op.like]: '%'+project+'%'
+    }
   }
 
   var whereClause = {};
@@ -273,7 +280,9 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
       required: true,
       where:materialInwardWhereClause
     },
-    {model: Project},
+    {model: Project,
+    required: true,
+      where:projectsWhereClause},
     {model: User,
       as: 'doneBy'},
       ],
@@ -287,6 +296,18 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
   if (!issueToProductionTransactions) {
     return next(HTTPError(400, "Issue To Production transactions not found"));
   }
+
+  var total = await IssueToProductionTransaction.findAll({
+    where: whereClause,
+    include: [{model: MaterialInward,
+      required: true,
+      where:materialInwardWhereClause
+    },
+    {model: Project,
+    required: true,
+      where:projectsWhereClause}
+      ]
+    });
 
   req.issueToProductionTransactionsList = issueToProductionTransactions.map ( el => { return el.get({ plain: true }) } );
 

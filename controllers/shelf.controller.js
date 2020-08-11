@@ -73,9 +73,10 @@ exports.getAll =async (req,res,next) =>{
 exports.create = async (req, res, next) => {
   var { name,rackId,description,vertical,capacity,volume} = req.body;
   
-  if (!name || !rackId || !description) {
+  if (!rackId) {
     return next(HTTPError(500, "Shelf not created,name or rack or description field is empty"))
   }
+
 
   if(!vertical){
     vertical = "001";
@@ -89,11 +90,32 @@ exports.create = async (req, res, next) => {
   var shelfData = await serialNumberFinder.getShelfSerialNumber(rackId);
   
   console.log("shelfData",shelfData)
+  let siteName;
+  let zoneName;
+  let rackName;
+
+  let rackData = await Rack.findOne({
+    where:{
+      id:rackId
+    },
+    include:[{
+      model:Zone,
+      include:[{
+        model:Site
+      }]
+    }]
+  });
+  rackData =rackData.toJSON();
+  console.log("rackData",rackData);
+  siteName=rackData["zone"]["site"]["name"];
+  zoneName=rackData["zone"]["name"];
+  rackName=rackData["name"];
+
   serialNumber = await generateSerialNumber(shelfData,rackId,zoneId,siteId,vertical); 
   const shelf = {
-    name: name,
+    name: "SH-"+serialNumber+"",
     status:true,
-    description: description,
+    description: ""+siteName + "-" +zoneName+"-"+rackName+"",
     barcodeSerial:serialNumber,
     rackId: rackId,
     capacity: capacity,
@@ -364,8 +386,23 @@ exports.BulkUpload = async (req, res) => {
   if(zoneId != null && zoneId != undefined && siteId != null && siteId != undefined){
     console.log("Line 398",req.body.locations.length);
     for(var a = 0; a<req.body.locations.length; a++){
+      let name;
+      var latestRack = await Rack.count({ 
+        where:{
+          zoneId:zoneId
+        }
+      });
+
+      if(latestRack){
+        let latestRackId = latestRack;
+        latestRackId = parseInt(latestRackId) + 1;
+        name = "RAC"+latestRackId;
+      }
+      else{
+        name = "RAC1" 
+      }
       const rack = {
-        name: "RAC"+req.body.locations[a]["rackNo"],
+        name: name,
         status:true,
         zoneId: zoneId,
         createdBy:req.user.username,
