@@ -364,6 +364,41 @@ exports.countOfShelfs = async (req, res) => {
   res.status(200).send(totalCount);
 };
 
+// get count of all shelfs whose capacity exceeded
+exports.excessCountOfShelfs = async (req, res) => {
+  var total = 0;
+  var query = "select count(id) as total from shelves where status = true and shelves.loadedCapacity > shelves.capacity;";
+  total = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT});
+  var totalCount;
+  if(total[0]){
+    // totalCount = {
+    //   totalLocations : total[0]["total"] 
+    // }
+    total = total[0]["total"];
+  }
+
+  var totalCapacity = 0;
+  var query = `select sum(capacity) as totalCapacity from shelves where status = true;`;
+  totalCapacity = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT});
+  if(totalCapacity[0]){
+    totalCapacity = totalCapacity[0]["totalCapacity"];
+  }
+
+  var totalLoadedCapacity = 0;
+  var query = `select sum(loadedCapacity) as totalLoadedCapacity from shelves where status = true;`;
+  totalCapacity = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT});
+  if(totalLoadedCapacity[0]){
+    totalLoadedCapacity = totalLoadedCapacity[0]["totalLoadedCapacity"];
+  }
+
+  totalCount = {
+    totalLocations : total,
+    totalCapacity : totalCapacity, 
+    totalLoadedCapacity :totalLoadedCapacity
+  }
+  res.status(200).send(totalCount);
+};
+
 // Bulk upload of Shelf's
 exports.BulkUpload = async (req, res) => {
   console.log(req.body);

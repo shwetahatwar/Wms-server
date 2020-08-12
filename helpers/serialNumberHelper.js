@@ -41,6 +41,7 @@
 
 const db = require("../models");
 const MaterialInward = db.materialinwards;
+const Shelf = db.shelfs;
 
 exports.getSerialNumbers = async (materialInwardDetail, partNumber, reqMaterialInward, username, serialNumberId) => {
   var { partNumberId, batchNumber, quantity, shelfId, eachPackQuantity, invoiceReferenceNumber, siteId, inwardDate} = materialInwardDetail;
@@ -52,6 +53,20 @@ exports.getSerialNumbers = async (materialInwardDetail, partNumber, reqMaterialI
     serialNumberId = serialNumberId;
   }
   var materialInward = [];
+
+  if(materialInwardDetail["location"] != "N/A"){
+    var locationDataToBeUpdated = await Shelf.findOne({
+      where:{
+        barcodeSerial:materialInwardDetail["location"]
+      }
+    });
+
+    if(locationDataToBeUpdated){
+      locationDataToBeUpdated = locationDataToBeUpdated.toJSON();
+      shelfId = locationDataToBeUpdated["id"];
+    }
+    console.log("line 68",locationDataToBeUpdated);
+  }
   
   for (var i = 0; i < parseInt(quantity); i++) {
     serialNumberId = (parseInt(serialNumberId) + 1).toString();

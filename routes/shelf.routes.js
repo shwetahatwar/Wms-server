@@ -31,4 +31,8 @@ router.get('/get/countOfShelfs',
 router.post("/post/bulkupload", users.loginRequired,
 	shelfs.BulkUpload);
 
+router.get('/get/excess/countOfShelfs',
+ 	users.loginRequired,
+	shelfs.excessCountOfShelfs);
+
 module.exports = router;
