@@ -368,6 +368,9 @@ exports.countOfShelfs = async (req, res) => {
 exports.excessCountOfShelfs = async (req, res) => {
   var total = 0;
   var query = "select count(id) as total from shelves where status = true and shelves.loadedCapacity > shelves.capacity;";
+  if(req.site){
+    query = "SELECT count(shelf.id) as total FROM `shelves` AS `shelf` INNER JOIN `racks` AS `rack` ON `shelf`.`rackId` = `rack`.`id` INNER JOIN `zones` AS `rack->zone` ON `rack`.`zoneId` = `rack->zone`.`id` AND `rack->zone`.`siteId` LIKE '%%' INNER JOIN `sites` AS `rack->zone->site` ON `rack->zone`.`siteId` = `rack->zone->site`.`id` AND `rack->zone->site`.`id` = "+req.site+" WHERE `shelf`.`status` = true and shelf.loadedCapacity > shelf.capacity;";
+  }
   total = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT});
   var totalCount;
   if(total[0]){
@@ -379,6 +382,9 @@ exports.excessCountOfShelfs = async (req, res) => {
 
   var totalCapacity = 0;
   var query = `select sum(capacity) as totalCapacity from shelves where status = true;`;
+  if(req.site){
+    query = "select sum(capacity) as totalCapacity FROM `shelves` AS `shelf` INNER JOIN `racks` AS `rack` ON `shelf`.`rackId` = `rack`.`id` INNER JOIN `zones` AS `rack->zone` ON `rack`.`zoneId` = `rack->zone`.`id` AND `rack->zone`.`siteId` LIKE '%%' INNER JOIN `sites` AS `rack->zone->site` ON `rack->zone`.`siteId` = `rack->zone->site`.`id` AND `rack->zone->site`.`id` = "+req.site+" WHERE `shelf`.`status` = true;";
+  }
   totalCapacity = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT});
   if(totalCapacity[0]){
     totalCapacity = totalCapacity[0]["totalCapacity"];
@@ -386,7 +392,10 @@ exports.excessCountOfShelfs = async (req, res) => {
 
   var totalLoadedCapacity = 0;
   var query = `select sum(loadedCapacity) as totalLoadedCapacity from shelves where status = true;`;
-  totalCapacity = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT});
+  if(req.site){
+    query = "select sum(loadedCapacity) as totalLoadedCapacity FROM `shelves` AS `shelf` INNER JOIN `racks` AS `rack` ON `shelf`.`rackId` = `rack`.`id` INNER JOIN `zones` AS `rack->zone` ON `rack`.`zoneId` = `rack->zone`.`id` AND `rack->zone`.`siteId` LIKE '%%' INNER JOIN `sites` AS `rack->zone->site` ON `rack->zone`.`siteId` = `rack->zone->site`.`id` AND `rack->zone->site`.`id` = "+req.site+" WHERE `shelf`.`status` = true;";
+  }
+  totalLoadedCapacity = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT});
   if(totalLoadedCapacity[0]){
     totalLoadedCapacity = totalLoadedCapacity[0]["totalLoadedCapacity"];
   }

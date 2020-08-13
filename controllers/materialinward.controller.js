@@ -55,6 +55,7 @@ exports.bulkUpload = async (req,res,next)  =>{
       for(var j=0;j<materialInward.length;j++){
         req.materialInwardBulkUploadResponse.push(materialInward[j]["dataValues"])
       }
+
       var putawayTransactionList = await createTransaction.createPutawayTransaction(materialInward,req.user.username);
       var inventoryTransactionList = await createTransaction.createInventoryTransaction(materialInward,req.user.username);
 
@@ -878,7 +879,7 @@ exports.updateWithBarcode = async (req, res,next) => {
     totalCapacity = locationData[0]["dataValues"]["capacity"];
     prevCapacityOfLocation = locationData[0]["dataValues"]["loadedCapacity"];
 
-    let netWeightOfPacksInTons = netWeightOfPacks/1000;
+    let netWeightOfPacksInTons = netWeightOfPacks;
     netWeightOfPacksInTons = Math.round((netWeightOfPacksInTons + Number.EPSILON) * 100) / 100;
     let updateCapacity = prevCapacityOfLocation + netWeightOfPacksInTons;
     console.log("updateCapacity",updateCapacity,totalCapacity,netWeightOfPacksInTons);
