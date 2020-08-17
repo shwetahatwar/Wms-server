@@ -44,5 +44,7 @@ db.shelfs = require("./shelf.model.js")(sequelize, Sequelize);
 db.projects = require("./project.model.js")(sequelize, Sequelize);
 db.issuetoproductiontransactions = require("./issuetoproductiontransaction.model.js")(sequelize, Sequelize);
 db.fifoviolationlists = require("./fifoviolation.model.js")(sequelize, Sequelize);
+db.audits = require("./audit.model.js")(sequelize, Sequelize);
+db.audititems = require("./audititems.model.js")(sequelize, Sequelize);
 
 module.exports = db;

@@ -33,6 +33,8 @@ var shelfRouter = require('./routes/shelf.routes');
 var projectRouter = require('./routes/project.routes');
 var issueToProductionTransactionRouter = require('./routes/issuetoproductiontransaction.routes');
 var fifoViolationRouter = require('./routes/fifoviolation.routes');
+var auditRouter = require('./routes/audit.routes');
+var auditItmesRouter = require('./routes/audititems.routes');
 
 const app = express();
 
@@ -115,6 +117,8 @@ app.use('/shelfs', shelfRouter);
 app.use('/projects', projectRouter);
 app.use('/issuetoproductiontransactions', issueToProductionTransactionRouter);
 app.use('/fifoviolations', fifoViolationRouter);
+app.use('/audits', auditRouter);
+app.use('/audititems', auditItmesRouter);
 
 const db = require("./models");
 db.sequelize.sync();
