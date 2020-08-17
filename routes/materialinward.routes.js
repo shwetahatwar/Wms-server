@@ -13,7 +13,7 @@ router.post("/", users.loginRequired,
   partnumbers.getPartNumber,	
   serialNumberFinder.getLastSerialNumber,
   materialinwards.materialInwardBulkUpload,
-  putawaytransactions.putawayTransaction,
+  // putawaytransactions.putawayTransaction,
   inventorytransactions.materialInventoryTransactions,
   materialinwards.sendResponse
   );
