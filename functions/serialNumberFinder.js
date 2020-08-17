@@ -18,18 +18,18 @@ exports.getLastSerialNumber = async (req, res, next) => {
   next();
 };
 
-// exports.getLatestSerialNumber = async () => {
-//   var materialInward = "";
-// 	var materialInward = await MaterialInward.findOne({
-// 		order: [
-// 		['id', 'DESC'],
-// 		]
-// 	});
+exports.getLatestSerialNumber = async () => {
+  var materialInward = "";
+	var materialInward = await MaterialInward.findOne({
+		order: [
+		['id', 'DESC'],
+		]
+	});
   
-//   if (!materialInward)
-//     return materialInward
-// 	return materialInward.toJSON();
-// };
+  if (!materialInward)
+    return materialInward
+	return materialInward.toJSON();
+};
 
 exports.getShelfSerialNumber = async (rackId) => {
  var shelfResponse;
@@ -66,7 +66,7 @@ exports.getLatestPicklistSerialNumber = async () => {
   if (!picklistData){
     serialNumber ="P" + "100001";
   }
-  else{
+  else {
     serialNumber = picklistData["picklistName"];
     serialNumber = serialNumber.substring(serialNumber.length - 6, serialNumber.length);
     serialNumber = (parseInt(serialNumber) + 1).toString();
