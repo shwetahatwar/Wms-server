@@ -42,16 +42,8 @@ exports.findAll =async (req, res,next) => {
 
   var {transactionTimestamp,performedBy,transactionType,materialInwardId,batchNumber,offset,limit} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  var limitOffsetQuery = new LimitOffsetHelper()
+  .clause(offset, limit).toJSON();
 
   var whereClause = new WhereBuilder()
   .clause('transactionTimestamp', transactionTimestamp)
@@ -70,8 +62,7 @@ exports.findAll =async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit 
+    limitOffsetQuery
   });
 
   if (!inventoryTransactions) {

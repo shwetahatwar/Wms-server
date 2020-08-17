@@ -12,16 +12,8 @@ const PicklistPickingMaterialList = db.picklistpickingmateriallists;
 exports.findAll =async (req, res,next) => {
   var { transactionTimestamp, performedBy, transactionType, quantity, remarks, materialInwardId, projectId, offset, limit } = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  var limitOffsetQuery = new LimitOffsetHelper()
+  .clause(offset, limit).toJSON();
 
   var whereClause = new WhereBuilder()
   .clause('transactionTimestamp', transactionTimestamp)
@@ -62,8 +54,7 @@ exports.findAll =async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit 
+    limitOffsetQuery
   });
 
   if (!issueToProductionTransactions) {
@@ -210,16 +201,8 @@ exports.returnFromProduction = async (req, res) => {
 exports.findTransactionsBySearchQuery = async (req, res,next) => {
   var {createdAtStart,createdAtEnd,offset,limit,partNumber,barcodeSerial,transactionType,project} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  var limitOffsetQuery = new LimitOffsetHelper()
+  .clause(offset, limit).toJSON();
 
   var materialInwardWhereClause = {};
   if(req.site){
@@ -289,8 +272,7 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
       order: [
       ['id', 'DESC'],
       ],
-      offset:newOffset,
-      limit:newLimit
+      limitOffsetQuery
     });
 
   if (!issueToProductionTransactions) {

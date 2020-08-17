@@ -78,6 +78,7 @@ exports.getAll =async (req,res,next) =>{
   .clause('name', name)
   .clause('zoneId', zoneId)
   .clause('status', status).toJSON();
+  console.log(whereClause);
 
   var zoneWhereClause = {};
   if(req.site){
@@ -88,6 +89,7 @@ exports.getAll =async (req,res,next) =>{
       [Op.like]:'%'+req.site+'%'
     };
   }
+  console.log("zoneWhereClause",zoneWhereClause);
   var getAllRacks;
   getAllRacks = await Rack.findAll({
     where:whereClause,
@@ -107,7 +109,7 @@ exports.getAll =async (req,res,next) =>{
     offset:newOffset,
     limit:newLimit
   });
-
+  console.log(getAllRacks);
   if (!getAllRacks) {
     return next(HTTPError(400, "Racks not found"));
   }

@@ -63,18 +63,19 @@ exports.getLatestPicklistSerialNumber = async () => {
     ]
   });
 
-  serialNumber = picklistData["picklistName"];
-  serialNumber = serialNumber.substring(serialNumber.length - 6, serialNumber.length);
-  serialNumber = (parseInt(serialNumber) + 1).toString();
-  var str = '' + serialNumber;
-  while (str.length < 6) {
-    str = '0' + str;
-  }
-  serialNumber = "P" + str;
-  
   if (!picklistData){
     serialNumber ="P" + "100001";
-    return serialNumber
   }
+  else {
+    serialNumber = picklistData["picklistName"];
+    serialNumber = serialNumber.substring(serialNumber.length - 6, serialNumber.length);
+    serialNumber = (parseInt(serialNumber) + 1).toString();
+    var str = '' + serialNumber;
+    while (str.length < 6) {
+      str = '0' + str;
+    }
+    serialNumber = "P" + str;
+  }
+
   return serialNumber;
 };

@@ -4,6 +4,7 @@ const FIFOViolationList = db.fifoviolationlists;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
 const fifoViolationFunction = require('../functions/fifoViolation');
+const LimitOffsetHelper = require('../helpers/limitoffsethelper');
 
 // Retrieve all FIFO Violation List from the database.
 exports.findAll = async(req, res,next) => {
@@ -19,16 +20,6 @@ exports.findAll = async(req, res,next) => {
 
   var {picklistId , purchaseOrderNumber , serialNumber , violatedSerialNumber , partNumber , offset,limit} = req.query;
 
-  // var newOffset = 0;
-  // var newLimit = 100;
-
-  // if(offset){
-  //   newOffset = parseInt(offset)
-  // }
-
-  // if(limit){
-  //   newLimit = parseInt(limit)
-  // }
   var limitOffsetQuery = new LimitOffsetHelper()
   .clause(offset, limit).toJSON();
 
@@ -76,17 +67,6 @@ exports.findOne = async (req, res,next) => {
 
 exports.findFIFOViolationsBySearchQuery = async (req, res,next) => {
   var {createdAtStart , createdAtEnd , offset , limit , partNumber , serialNumber , violatedSerialNumber , picklistName} = req.query;
-
-  // var newOffset = 0;
-  // var newLimit = 100;
-
-  // if(offset){
-  //   newOffset = parseInt(offset)
-  // }
-
-  // if(limit){
-  //   newLimit = parseInt(limit)
-  // }
 
   var limitOffsetQuery = new LimitOffsetHelper()
   .clause(offset, limit).toJSON();
@@ -180,5 +160,4 @@ var picklistWhereClause = {};
   req.responseData = totalCount;
 
   next();
-  // res.status(200).send(totalCount);
 };

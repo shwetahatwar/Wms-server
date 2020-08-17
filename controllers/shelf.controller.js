@@ -105,6 +105,7 @@ exports.create = async (req, res, next) => {
       }]
     }]
   });
+  console.log("rackData", rackData);
   rackData =rackData.toJSON();
   console.log("rackData",rackData);
   siteName=rackData["zone"]["site"]["name"];
