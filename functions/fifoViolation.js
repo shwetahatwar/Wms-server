@@ -33,3 +33,61 @@ exports.createFifoViolation = async(violatedData,picklistId,user)=> {
 
 	return fifoviolation;
 };
+
+exports.whereClauseFunction = async(createdAtStart,createdAtEnd,partNumber,serialNumber,violatedSerialNumber)=> {
+	var whereClause = {};
+  if(createdAtStart && createdAtEnd  && createdAtStart != 0 && createdAtEnd != 0){
+    whereClause.createdAt = {
+      [Op.gte]: parseInt(createdAtStart),
+      [Op.lt]: parseInt(createdAtEnd),
+    }
+  }
+
+  if(partNumber){
+    whereClause.partNumber = {
+      [Op.like]:'%'+partNumber+'%'
+    };
+  }
+
+  if(serialNumber){
+    whereClause.serialNumber = {
+      [Op.like]:'%'+serialNumber+'%'
+    };
+  }
+
+  if(violatedSerialNumber){
+    whereClause.violatedSerialNumber ={
+      [Op.like]: '%'+violatedSerialNumber+'%'
+    }
+  }
+  return whereClause;
+};
+
+exports.picklistWhereClauseFunction = async(partNumber,serialNumber,violatedSerialNumber,picklistName,site)=> {
+	var picklistWhereClause = {};
+  if(site){
+    picklistWhereClause.siteId = site;
+  }
+  else{
+    picklistWhereClause.siteId = {
+      [Op.like]:'%'+site+'%'
+    };
+  }
+
+  if(!partNumber){
+    partNumber="";
+  }
+  if(!serialNumber){
+    serialNumber="";
+  }
+  if(!violatedSerialNumber){
+    violatedSerialNumber="";
+  }
+
+  if(picklistName){
+    picklistWhereClause.picklistName = {
+      [Op.like]:'%'+picklistName+'%'
+    };
+  }
+  return picklistWhereClause;
+};
