@@ -54,18 +54,20 @@ exports.getSerialNumbers = async (materialInwardDetail, partNumber, reqMaterialI
   }
   var materialInward = [];
 
-  if(materialInwardDetail["location"] != "N/A"){
-    var locationDataToBeUpdated = await Shelf.findOne({
-      where:{
-        barcodeSerial:materialInwardDetail["location"]
-      }
-    });
+  if(materialInwardDetail["location"]){
+    if(materialInwardDetail["location"] != "N/A"){
+      var locationDataToBeUpdated = await Shelf.findOne({
+        where:{
+          barcodeSerial:materialInwardDetail["location"]
+        }
+      });
 
-    if(locationDataToBeUpdated){
-      locationDataToBeUpdated = locationDataToBeUpdated.toJSON();
-      shelfId = locationDataToBeUpdated["id"];
+      if(locationDataToBeUpdated){
+        locationDataToBeUpdated = locationDataToBeUpdated.toJSON();
+        shelfId = locationDataToBeUpdated["id"];
+      }
+      console.log("line 68",locationDataToBeUpdated);
     }
-    console.log("line 68",locationDataToBeUpdated);
   }
   
   for (var i = 0; i < parseInt(quantity); i++) {

@@ -16,7 +16,7 @@ const fifoViolationFunction = require('../functions/fifoViolation');
 const sgMail = require('@sendgrid/mail');
 
 // Create and Save a new Picklist
-exports.create = async (req, res) => {
+exports.create = async (req, res,next) => {
   if (!req.body.material) {
     return next(HTTPError(500,"Content can not be empty!"))
   } 
