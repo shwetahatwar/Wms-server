@@ -3,6 +3,7 @@ const Picklist = db.picklists;
 const FIFOViolationList = db.fifoviolationlists;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
+const fifoViolationFunction = require('../functions/fifoViolation');
 
 // Retrieve all FIFO Violation List from the database.
 exports.findAll = async(req, res,next) => {
@@ -18,16 +19,18 @@ exports.findAll = async(req, res,next) => {
 
   var {picklistId , purchaseOrderNumber , serialNumber , violatedSerialNumber , partNumber , offset,limit} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
+  // var newOffset = 0;
+  // var newLimit = 100;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
+  // if(offset){
+  //   newOffset = parseInt(offset)
+  // }
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  // if(limit){
+  //   newLimit = parseInt(limit)
+  // }
+  var limitOffsetQuery = new LimitOffsetHelper()
+  .clause(offset, limit).toJSON();
 
   var whereClause = new WhereBuilder()
   .clause('picklistId', picklistId)
@@ -48,8 +51,7 @@ exports.findAll = async(req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit 
+    limitOffsetQuery
   });
 
   if (!fifoviolations) {
@@ -75,97 +77,62 @@ exports.findOne = async (req, res,next) => {
 exports.findFIFOViolationsBySearchQuery = async (req, res,next) => {
   var {createdAtStart , createdAtEnd , offset , limit , partNumber , serialNumber , violatedSerialNumber , picklistName} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
+  // var newOffset = 0;
+  // var newLimit = 100;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
+  // if(offset){
+  //   newOffset = parseInt(offset)
+  // }
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  // if(limit){
+  //   newLimit = parseInt(limit)
+  // }
 
-  var picklistWhereClause = {};
-  if(req.site){
-    picklistWhereClause.siteId = req.site;
-  }
-  else{
-    picklistWhereClause.siteId = {
-      [Op.like]:'%'+req.site+'%'
-    };
-  }
+  var limitOffsetQuery = new LimitOffsetHelper()
+  .clause(offset, limit).toJSON();
 
-  if(!partNumber){
-    partNumber="";
-  }
-  if(!serialNumber){
-    serialNumber="";
-  }
-  if(!violatedSerialNumber){
-    violatedSerialNumber="";
-  }
-
-  if(picklistName){
-    picklistWhereClause.picklistName = {
-      [Op.like]:'%'+picklistName+'%'
-    };
-  }
-  var whereClause = {};
-  if(createdAtStart && createdAtEnd  && createdAtStart != 0 && createdAtEnd != 0){
-    whereClause.createdAt = {
-      [Op.gte]: parseInt(createdAtStart),
-      [Op.lt]: parseInt(createdAtEnd),
-    }
-  }
-
-  if(partNumber){
-    whereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
-
-  if(serialNumber){
-    whereClause.serialNumber = {
-      [Op.like]:'%'+serialNumber+'%'
-    };
-  }
-
-  if(violatedSerialNumber){
-    whereClause.violatedSerialNumber ={
-      [Op.like]: '%'+violatedSerialNumber+'%'
-    }
-  }
+  var picklistWhereClause = fifoViolationFunction.picklistWhereClauseFunction(partNumber,serialNumber,violatedSerialNumber,picklistName,req.siteId);
+  var whereClause = fifoViolationFunction.whereClauseFunction(createdAtStart,createdAtEnd,partNumber,serialNumber,violatedSerialNumber);
 
   var fifoviolations = await FIFOViolationList.findAll({
     where: whereClause,
     include: [
-    {model: Picklist,
-      required: true,
-      where:picklistWhereClause
-    }
+      {
+        model: Picklist,
+        required: true,
+        where:picklistWhereClause
+      }
     ],
     order: [
-    ['id', 'DESC'],
+      ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    limitOffsetQuery
   });
 
   if (!fifoviolations) {
     return next(HTTPError(400, "FIFO violations not found"));
   }
 
-  var responseData =[];
-  responseData.push(fifoviolations);
+  req.responseData =[];
+  req.responseData.push(fifoviolations);
+
+  next();
+};
+
+exports.findFIFOViolationsBySearchQueryCount = async (req, res, next) => {
+  var {createdAtStart , createdAtEnd , offset , limit , partNumber , serialNumber , violatedSerialNumber , picklistName} = req.query;
+
+  var picklistWhereClause = fifoViolationFunction.picklistWhereClauseFunction(partNumber,serialNumber,violatedSerialNumber,picklistName,req.siteId);
+  var whereClause = fifoViolationFunction.whereClauseFunction(createdAtStart,createdAtEnd,partNumber,serialNumber,violatedSerialNumber);
 
   var total = await FIFOViolationList.count({ 
     where: whereClause,
     include: [
-    {model: Picklist,
-      required: true,
-      where:picklistWhereClause
-    }
+      {
+        model: Picklist,
+        required: true,
+        where:picklistWhereClause
+      }
     ]
   });
 
@@ -174,14 +141,14 @@ exports.findFIFOViolationsBySearchQuery = async (req, res,next) => {
     totalCount : total
   }
   countArray.push(totalData);
-  responseData.push(countArray);
+  req.responseData.push(countArray);
 
-  res.status(200).send(responseData);
-
-  // req.fifoViolationLists = fifoviolations.map ( el => { return el.get({ plain: true }) } );
-
-  // next();
+  next();
 };
+
+exports.sendCountResponse = async (req, res, next) => {
+  res.status(200).send(req.responseData);
+}
 
 
 exports.sendFindResponse = async (req, res, next) => {
@@ -211,5 +178,8 @@ var picklistWhereClause = {};
   var totalCount = {
     totalCount : total 
   }
-  res.status(200).send(totalCount);
+  req.responseData = totalCount;
+
+  next();
+  // res.status(200).send(totalCount);
 };

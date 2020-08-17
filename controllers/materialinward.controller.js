@@ -17,11 +17,16 @@ var HTTPError = require('http-errors');
 
 exports.materialInwardBulkUpload = async (req, res, next) => {
 
-  if (!req.materialInward) {
-    return res.status(500).send("No Material");
+  // if (!req.materialInward) {
+  //   return res.status(500).send("No Material");
+  // }
+  var serialNumberId = null;
+  if(req.materialInward) {
+    serialNumberId = req.materialInward["barcodeSerial"]
   }
-  var materialInward = serialNumberHelper.getSerialNumbers(req.body,req.partNumber["partNumber"],req.materialInward,req.user.username);
-  materialInward = await MaterialInward.bulkCreate(materialInward);
+  var materialInward = await serialNumberHelper.getSerialNumbers(req.body,req.partNumber["partNumber"],req.materialInward,req.user.username,serialNumberId);
+  console.log("materialInwardConsole", materialInward);
+  materialInward = await MaterialInward.bulkCreate(materialInward["materialInward"]);
   req.materialInwardBulkUpload = materialInward.map ( el => { return el.get({ plain: true }) } );
   
   next();

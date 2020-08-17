@@ -30,9 +30,7 @@ exports.create = async (req, res, next) => {
     }
   }
 
-  createdAccess = createdAccess.toJSON();
-  req.createdAccess = createdAccess;
-  console.log("Access",req.createdAccess)
+  req.createdAccess = createdAccess.toJSON();
   next();
 };
 
