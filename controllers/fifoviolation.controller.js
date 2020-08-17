@@ -140,7 +140,8 @@ var picklistWhereClause = {};
   if(req.site){
     picklistWhereClause.siteId = req.site;
   }
-  var total = await FIFOViolationList.count({
+  var total = 0;
+  total = await FIFOViolationList.count({
     include: [
     {
       model: Picklist,

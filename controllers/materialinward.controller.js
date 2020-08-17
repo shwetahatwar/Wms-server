@@ -61,7 +61,7 @@ exports.bulkUpload = async (req,res,next)  =>{
         req.materialInwardBulkUploadResponse.push(materialInward[j]["dataValues"])
       }
 
-      var putawayTransactionList = await createTransaction.createPutawayTransaction(materialInward,req.user.username);
+      // var putawayTransactionList = await createTransaction.createPutawayTransaction(materialInward,req.user.username);
       var inventoryTransactionList = await createTransaction.createInventoryTransaction(materialInward,req.user.username);
 
     }
@@ -1173,10 +1173,22 @@ exports.dashboardCountForPendingPutaway = async (req,res,next) =>{
   dataCount = await MaterialInward.count({
     where:materialInwardWhereClause
   });
+  
+  var totalData = 0;
+  var totalWhereClause={};
+  totalWhereClause.status=true;
+  totalWhereClause.QCStatus=1;
+  if(req.site){
+    totalWhereClause.siteId = req.site;
+  }
+  totalData = await MaterialInward.count({
+    where:totalWhereClause
+  });
 
   responseData ={
     'pendingForPutaway':dataCount,
-    'totalInventory':count
+    'totalInventory':count,
+    'totalData':totalData
   };
   res.status(200).send({
     responseData
