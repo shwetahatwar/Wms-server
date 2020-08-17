@@ -19,16 +19,18 @@ exports.findAll = async(req, res,next) => {
 
   var {picklistId , purchaseOrderNumber , serialNumber , violatedSerialNumber , partNumber , offset,limit} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
+  // var newOffset = 0;
+  // var newLimit = 100;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
+  // if(offset){
+  //   newOffset = parseInt(offset)
+  // }
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  // if(limit){
+  //   newLimit = parseInt(limit)
+  // }
+  var limitOffsetQuery = new LimitOffsetHelper()
+  .clause(offset, limit).toJSON();
 
   var whereClause = new WhereBuilder()
   .clause('picklistId', picklistId)
@@ -49,8 +51,7 @@ exports.findAll = async(req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit 
+    limitOffsetQuery
   });
 
   if (!fifoviolations) {
@@ -76,16 +77,19 @@ exports.findOne = async (req, res,next) => {
 exports.findFIFOViolationsBySearchQuery = async (req, res,next) => {
   var {createdAtStart , createdAtEnd , offset , limit , partNumber , serialNumber , violatedSerialNumber , picklistName} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
+  // var newOffset = 0;
+  // var newLimit = 100;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
+  // if(offset){
+  //   newOffset = parseInt(offset)
+  // }
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  // if(limit){
+  //   newLimit = parseInt(limit)
+  // }
+
+  var limitOffsetQuery = new LimitOffsetHelper()
+  .clause(offset, limit).toJSON();
 
   var picklistWhereClause = fifoViolationFunction.picklistWhereClauseFunction(partNumber,serialNumber,violatedSerialNumber,picklistName,req.siteId);
   var whereClause = fifoViolationFunction.whereClauseFunction(createdAtStart,createdAtEnd,partNumber,serialNumber,violatedSerialNumber);
@@ -102,8 +106,7 @@ exports.findFIFOViolationsBySearchQuery = async (req, res,next) => {
     order: [
       ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    limitOffsetQuery
   });
 
   if (!fifoviolations) {
@@ -159,7 +162,8 @@ var picklistWhereClause = {};
   }
   var total = await FIFOViolationList.count({
     include: [
-    {model: Picklist,
+    {
+      model: Picklist,
       required:true,
       where: picklistWhereClause
     }
