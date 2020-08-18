@@ -103,4 +103,8 @@ router.get('/partnumbers/get/findforpicklist',
  users.loginRequired,
  materialinwards.findPartNumbersForPicklist);
 
+router.post('/post/qcstatuschangehht',
+ users.loginRequired,
+ materialinwards.updateQcStatusHHT);
+
 module.exports = router;

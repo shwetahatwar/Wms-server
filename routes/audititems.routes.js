@@ -22,4 +22,12 @@ router.put('/:id', users.loginRequired,
 	auditItems.sendCreateResponse
 	);
 
+router.put('/update/updateWithSerialNumber', users.loginRequired,
+	auditItems.updateWithSerialNumber,
+	auditItems.sendCreateResponse
+	);
+
+router.get('/get/countOfAuditItems', users.loginRequired,
+	auditItems.countOfAuditItems);
+
 module.exports = router;

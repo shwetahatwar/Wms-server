@@ -78,12 +78,26 @@ exports.getAll = async (req, res, next) =>{
   .clause('auditStatus', auditStatus)
   .clause('status', status).toJSON();
 
-  var limitOffsetQuery = new LimitOffsetHelper()
-  .clause(offset, limit).toJSON();
+  var newOffset = 0;
+  var newLimit = 100;
+
+  if(offset){
+    newOffset = parseInt(offset)
+  }
+
+  if(limit){
+    newLimit = parseInt(limit)
+  }
+  
 
   var getAllAudits = await Audit.findAll({
     where:whereClause,
-    limitOffsetQuery
+    order: [
+    ['auditStatus','DESC'],
+    ['id', 'DESC'],
+    ],
+    offset:newOffset,
+    limit:newLimit
   });
   
   if (!getAllAudits) {
@@ -212,7 +226,10 @@ exports.findAuditsBySearchQuery = async (req, res,next) => {
   }
 
   var whereClause = {};
-  whereClause.status = status;
+  if(status){
+    whereClause.status = status;
+  }
+  
   if(number){
     whereClause.number = {
       [Op.like]:'%'+number+'%'

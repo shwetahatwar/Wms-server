@@ -1503,3 +1503,44 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
     responseData
   });
 };  
+
+
+exports.updateQcStatusHHT = async (req, res) => {
+  var notUpdatedList = [];
+  for(var i=0;i<req.body.length;i++){
+   await MaterialInward.update(req.body[i], {
+      where: { 
+        barcodeSerial: req.body[i]["barcodeSerial"] 
+      }
+    })
+    .then(async num => {
+      console.log(num)
+      if (num == 1) {
+        const statusChange = {
+          transactionTimestamp :Date.now(), 
+          materialInwardId: req.body[i]["id"],
+          prevQCStatus:req.body[i]["prevQCStatus"],
+          currentQCStatus:req.body[i]["QCStatus"],
+          performedBy:req.user.username,
+          createdBy:req.user.username,
+          updatedBy:req.user.username,
+        };
+       await QCTransaction.create(statusChange)
+      }
+      else{
+        notUpdatedList.push(req.body[i]);
+      }
+    }).catch(err => {
+      notUpdatedList.push(req.body[i]);
+    });
+  }
+  console.log(req.body.length,notUpdatedList.length)
+  if(req.body.length == notUpdatedList.length){
+    res.status(500).send({
+      message: "Error updating QC status "
+    });
+  }
+  else{
+    res.status(200).send("success");
+  }   
+}; 
