@@ -10,31 +10,54 @@ exports.create = async (req, res,next) => {
   var auditId;
   var auditNumber;
   var latestAudit = await Audit.findOne({
-     order: [
+    order: [
     ['id', 'DESC'],
     ]
   });
 
-  if(latestAudit){
-    latestAudit = latestAudit.toJSON();
-    auditNumber = latestAudit["number"];
-     auditNumber = auditNumber.substring(auditNumber.length - 5, auditNumber.length);
-        auditNumber = (parseInt(auditNumber) + 1).toString();
-        var str = '' + auditNumber;
-        while (str.length < 5) {
-          str = '0' + str;
-        }
-        auditNumber = "A" + str;
-  }
-  else{
-    auditNumber = "A11111";
-  }
 
-  var site = req.site;
-  if(req.siteId){
-    site = req.siteId
+  var {partNumber , siteId , auditId} = req.body;
+  var whereClause = {};
+  if(partNumber){
+    whereClause.partNumber = partNumber;
   }
-  const audit = {
+  if(siteId){
+    whereClause.siteId = siteId;
+  }
+  if(req.site){
+    whereClause.siteId =  req.site;
+  }
+  whereClause.status = true;
+  whereClause.QCStatus = {
+      [Op.ne]:2
+  }
+  console.log("whereClause",whereClause);
+  var materialInwardsData = await MaterialInward.count({
+    where:whereClause
+  });
+
+  if(materialInwardsData > 0){
+
+    if(latestAudit){
+      latestAudit = latestAudit.toJSON();
+      auditNumber = latestAudit["number"];
+      auditNumber = auditNumber.substring(auditNumber.length - 5, auditNumber.length);
+      auditNumber = (parseInt(auditNumber) + 1).toString();
+      var str = '' + auditNumber;
+      while (str.length < 5) {
+        str = '0' + str;
+      }
+      auditNumber = "A" + str;
+    }
+    else{
+      auditNumber = "A11111";
+    }
+
+    var site = req.site;
+    if(req.siteId){
+      site = req.siteId
+    }
+    const audit = {
       number: auditNumber,
       start: 0,
       end: 0,
@@ -43,28 +66,32 @@ exports.create = async (req, res,next) => {
       auditStatus:"New",
       createdBy:req.user.username,
       updatedBy:req.user.username
-  };
+    };
 
-  var auditData; 
-  try {
-   auditData = await Audit.create(audit);
-    if (!auditData) {
-      return next(HTTPError(500, "Audit not created"))
+    var auditData; 
+    try {
+      auditData = await Audit.create(audit);
+      if (!auditData) {
+        return next(HTTPError(500, "Audit not created"))
+      }
+    } 
+    catch (err) {
+      if(err["errors"]){
+        return next(HTTPError(500,err["errors"][0]["message"]))
+      }
+      else{
+        return next(HTTPError(500,"Internal error has occurred, while creating the Audit."))
+      }
     }
-  } 
-  catch (err) {
-    if(err["errors"]){
-      return next(HTTPError(500,err["errors"][0]["message"]))
+
+    auditData = auditData.toJSON();
+    req.auditData = auditData;
+    next();  
     }
     else{
-      return next(HTTPError(500,"Internal error has occurred, while creating the Audit."))
-    }
-  }
-
-  auditData = auditData.toJSON();
-  req.auditData = auditData;
-  next();      
-};
+      return next(HTTPError(500, "Audit not created due to stock not available"))
+    } 
+  };
 
 
 exports.getAll = async (req, res, next) =>{

@@ -16,6 +16,13 @@ exports.create = async (req, res,next) => {
 	if(siteId){
 		whereClause.siteId = siteId;
 	}
+  if(req.site){
+    whereClause.siteId =  req.site;
+  }
+  whereClause.QCStatus = {
+      [Op.ne]:2
+  }
+  whereClause.QCStatus = 1;
   console.log("whereClause",whereClause);
   var materialInwardsData = await MaterialInward.findAll({
     where:whereClause
@@ -197,6 +204,16 @@ exports.updateWithSerialNumber = async (req, res, next) => {
         auditId : auditId
       }
     });
+    if(updatedAuditItem[0] == 1 && itemStatus =="Scrapped"){
+      let scrappedData = {
+        status : "false"
+      }
+      var updatedMaterialInwards = await MaterialInward.update(scrappedData,{
+        where: {
+          barcodeSerial:serialNumber
+        }
+      })
+    }
     if (updatedAuditItem[0] != 1) {
       notUpdatedItems.push(req.body[i]);
     }
