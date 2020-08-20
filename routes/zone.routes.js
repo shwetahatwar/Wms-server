@@ -2,29 +2,30 @@ var express = require('express');
 var router = express.Router();
 var zones = require('../controllers/zone.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
 	zones.create,
-	zones.sendCreateResponse);
+	sendResponse.sendCreateResponse);
 
 router.get("/", users.loginRequired,
 	zones.getAll,
-	zones.sendFindResponse
+	sendResponse.sendFindResponse
 	);
 
 router.get("/:id", users.loginRequired,
 	zones.getById,
-	zones.sendFindResponse
+	sendResponse.sendFindResponse
 	);
 
 router.put('/:id', users.loginRequired,
 	zones.update,
-	zones.sendCreateResponse
+	sendResponse.sendCreateResponse
 	);
 
 router.get('/get/findZonesBySearchQuery', users.loginRequired,
 	zones.findZonesBySearchQuery,
-	zones.sendFindResponse
+	sendResponse.sendFindResponse
 	);
 
 
