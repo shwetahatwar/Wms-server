@@ -128,9 +128,9 @@ exports.getById =async (req,res,next) => {
 exports.findZonesBySearchQuery = async (req, res,next) => {
   var {zone,site,offset,limit} = req.query;
 
-  var limitOffsetQuery = new LimitOffsetHelper()
-  .clause(offset, limit).toJSON();
-  
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
+
   site = (!site) ? site:'';
   zone = (!zone) ? zone:'';
 
@@ -159,7 +159,8 @@ exports.findZonesBySearchQuery = async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    limitOffsetQuery
+    limit:limit,
+    offset:offset
   });
 
   if (!list) {
