@@ -131,8 +131,8 @@ exports.findZonesBySearchQuery = async (req, res,next) => {
   limit = (limit) ? parseInt(limit) : 100;
   offset = (offset) ? parseInt(offset) : 0;
 
-  site = (!site) ? site:'';
-  zone = (!zone) ? zone:'';
+  site = (site) ? site:'';
+  zone = (zone) ? zone:'';
 
   var zoneWhereClause = {};
   var siteWhereClause = {};

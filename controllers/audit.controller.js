@@ -37,7 +37,6 @@ exports.create = async (req, res,next) => {
   });
 
   if(materialInwardsData > 0){
-
     if(latestAudit){
       latestAudit = latestAudit.toJSON();
       auditNumber = latestAudit["number"];
@@ -98,24 +97,17 @@ exports.getAll = async (req, res, next) =>{
   if(req.site){
     req.query.siteId = req.site
   }
+
   var { number , status , auditStatus , siteId,offset, limit} = req.query;
+  
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
+
   var whereClause = new WhereBuilder()
   .clause('number', number)
   .clause('siteId', siteId)
   .clause('auditStatus', auditStatus)
   .clause('status', status).toJSON();
-
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-  
 
   var getAllAudits = await Audit.findAll({
     where:whereClause,
@@ -123,8 +115,8 @@ exports.getAll = async (req, res, next) =>{
     ['auditStatus','DESC'],
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
   
   if (!getAllAudits) {
@@ -132,7 +124,7 @@ exports.getAll = async (req, res, next) =>{
   }
   
   req.auditList = getAllAudits.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.auditList; 
   next();
 };
 
@@ -141,7 +133,7 @@ exports.update = async (req, res, next) => {
   const { id } = req.params;
   var { status , auditStatus , start , end} = req.body;
   
-  whereClause = new WhereBuilder()
+  updateClause = new WhereBuilder()
   .clause('status', status)
   .clause('updatedBy', req.user.username) 
   .clause('start', start) 
@@ -149,7 +141,7 @@ exports.update = async (req, res, next) => {
   .clause('auditStatus', auditStatus).toJSON();
 
   try {
-    var updatedAudit = await Audit.update(whereClause,{
+    var updatedAudit = await Audit.update(updateClause,{
       where: {
         id: id
       }
@@ -181,19 +173,12 @@ exports.getById = async (req, res, next) => {
     return next(HTTPError(500, "Audit not found"))
   }
   req.auditList = audit;
+  req.responseData = req.auditList; 
   next();
-}
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.auditList);
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
 };
 
 // get count of audits whose status =1 
-exports.countOfAudits = async (req, res) => {
+exports.countOfAudits = async (req, res,next) => {
   var inProgress = 0;
   var newAudit = 0;
   var completed = 0;
@@ -225,7 +210,9 @@ exports.countOfAudits = async (req, res) => {
     inProgress:inProgress,
     completed:completed 
   }
-  res.send(totalCount);
+  req.responseData = totalCount; 
+  next();
+  // res.send(totalCount);
 };
 
 //search query
@@ -234,39 +221,25 @@ exports.findAuditsBySearchQuery = async (req, res,next) => {
     req.query.siteId = req.site
   }
   var {number , status ,siteId , auditStatus , offset,limit} = req.query;
-  var newOffset = 0;
-  var newLimit = 100;
-  if(offset){
-    newOffset = parseInt(offset)
-  }
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(!number){
-    number ='';
-  }
+  number = (number) ? number:'';
 
   if(!auditStatus || auditStatus=="All"){
     auditStatus = '';
   }
 
-  var whereClause = {};
+  whereClause = new LikeQueryHelper()
+  .clause(number, "number")
+  .clause(auditStatus, "auditStatus")
+  .toJSON();
+
   if(status){
     whereClause.status = status;
   }
-  
-  if(number){
-    whereClause.number = {
-      [Op.like]:'%'+number+'%'
-    };
-  }
-  if(auditStatus){
-    whereClause.auditStatus = {
-      [Op.like]:'%'+auditStatus+'%'
-    };
-  }
+
   if(siteId){
     whereClause.siteId = siteId
   }
@@ -297,6 +270,8 @@ exports.findAuditsBySearchQuery = async (req, res,next) => {
   }
   countArray.push(totalAudits);
   responseData.push(countArray);
-  res.status(200).send(responseData);
+  req.responseData = responseData;
+  next();
+  // res.status(200).send(responseData);
 };
 

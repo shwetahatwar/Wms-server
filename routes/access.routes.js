@@ -2,24 +2,25 @@ var express = require('express');
 var router = express.Router();
 var access = require('../controllers/access.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
   access.create,
-  access.sendCreateResponse);
+  sendResponse.sendCreateResponse);
 
 router.get("/", users.loginRequired,
   access.getAll,
-  access.sendFindResponse
+  sendResponse.sendFindResponse
   );
 
 router.get("/:id", users.loginRequired,
   access.getById,
-  access.sendFindResponse
+  sendResponse.sendFindResponse
   );
 
 router.put('/:id', users.loginRequired,
   access.update,
-  access.sendCreateResponse
+  sendResponse.sendCreateResponse
   );
 
 module.exports = router;

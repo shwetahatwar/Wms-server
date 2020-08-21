@@ -50,7 +50,7 @@ exports.getAll = async (req, res, next) =>{
   }
   
   req.accessList = getAllAccess.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.accessList;
   next();
 };
 
@@ -96,13 +96,6 @@ exports.getById = async (req, res, next) => {
     return next(HTTPError(500, "Access not found"))
   }
   req.accessList = foundAccess;
+  req.responseData = req.accessList;
   next();
 }
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.accessList);
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};

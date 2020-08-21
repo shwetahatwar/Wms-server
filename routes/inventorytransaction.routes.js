@@ -2,15 +2,16 @@ var express = require('express');
 var router = express.Router();
 var inventorytransactions = require('../controllers/inventorytransaction.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.get("/", users.loginRequired,
   inventorytransactions.findAll,
-  inventorytransactions.sendFindResponse
+  sendResponse.sendFindResponse
   );
 
 router.get("/:id", users.loginRequired,
   inventorytransactions.findOne,
-  inventorytransactions.sendFindResponse
+  sendResponse.sendFindResponse
   );
 
 module.exports = router;

@@ -20,10 +20,10 @@ exports.create = async (req, res,next) => {
     whereClause.siteId =  req.site;
   }
   whereClause.QCStatus = {
-      [Op.ne]:2
+    [Op.ne]:2
   }
   whereClause.QCStatus = 1;
-  console.log("whereClause",whereClause);
+
   var materialInwardsData = await MaterialInward.findAll({
     where:whereClause
   });
@@ -64,17 +64,8 @@ exports.getAll = async (req, res, next) =>{
   .clause('auditId', auditId)
   .clause('status', status).toJSON();
 
-  
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var getAllAuditItems = await AuditItems.findAll({
     where:whereClause,
@@ -85,8 +76,8 @@ exports.getAll = async (req, res, next) =>{
     ['itemStatus', 'DESC'],
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
   
   if (!getAllAuditItems) {
@@ -94,7 +85,7 @@ exports.getAll = async (req, res, next) =>{
   }
   
   req.auditItemsList = getAllAuditItems.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.auditItemsList;
   next();
 };
 
@@ -141,11 +132,12 @@ exports.getById = async (req, res, next) => {
     return next(HTTPError(500, "Audit item not found"))
   }
   req.auditItemsList = audit;
+  req.responseData = req.auditItemsList;
   next();
 };
 
 // get count of audit items 
-exports.countOfAuditItems = async (req, res) => {
+exports.countOfAuditItems = async (req, res,next) => {
   var found = 0;
   var notFound = 0;
   var scrapped = 0;
@@ -184,7 +176,9 @@ exports.countOfAuditItems = async (req, res) => {
     manual:manual,
     scrapped:scrapped
   }
-  res.send(totalCount);
+  req.responseData = totalCount;
+  next();
+  // res.send(totalCount);
 };
 
 exports.updateWithSerialNumber = async (req, res, next) => {
@@ -220,22 +214,14 @@ exports.updateWithSerialNumber = async (req, res, next) => {
   }
 
   if(notUpdatedItems.length != req.body.length){
-    res.status(200).send({
-      message: "Audit Items updated",
-      data:notUpdatedItems
-    });
+    // res.status(200).send({
+    //   message: "Audit Items updated",
+    //   data:notUpdatedItems
+    // });
+    next();
   }
   else{
     return next(HTTPError(500, "Audit item not updated"))
   }
   
-};
-
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.auditItemsList);
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
 };

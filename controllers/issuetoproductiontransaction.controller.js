@@ -7,13 +7,15 @@ const Picklist = db.picklists;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
 const PicklistPickingMaterialList = db.picklistpickingmateriallists;
+const issueToProdFunction = require('../functions/issueToProduction');
+const materialInwardUpdateFunction = require('../functions/materialInwardUpdate');
 
 // Retrieve all Issue To ProductionTransaction from the database.
 exports.findAll =async (req, res,next) => {
   var { transactionTimestamp, performedBy, transactionType, quantity, remarks, materialInwardId, projectId, offset, limit } = req.query;
 
-  var limitOffsetQuery = new LimitOffsetHelper()
-  .clause(offset, limit).toJSON();
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('transactionTimestamp', transactionTimestamp)
@@ -24,15 +26,9 @@ exports.findAll =async (req, res,next) => {
   .clause('remarks', remarks)
   .clause('transactionType', transactionType).toJSON();
 
-  var materialInwardWhereClause = {};
-  if(req.site){
-    materialInwardWhereClause.siteId = req.site;
-  }
-  else{
-    materialInwardWhereClause.siteId = {
-      [Op.like]:'%'+req.site+'%'
-    };
-  }
+  materialInwardWhereClause = new LikeQueryHelper()
+  .clause(req.site, "siteId")
+  .toJSON();
 
   var issueToProductionTransactions;
   issueToProductionTransactions = await IssueToProductionTransaction.findAll({ 
@@ -54,7 +50,8 @@ exports.findAll =async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    limitOffsetQuery
+    limit:limit,
+    offset:offset
   });
 
   if (!issueToProductionTransactions) {
@@ -62,7 +59,7 @@ exports.findAll =async (req, res,next) => {
   }
 
   req.issueToProductionTransactionsList = issueToProductionTransactions.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.issueToProductionTransactionsList;
   next();
 
 };
@@ -75,7 +72,8 @@ exports.findOne = async (req, res,next) => {
 		return next(HTTPError(500, "Issue To Production transaction not found with id=" + id))
 	}
 	req.issueToProductionTransactionsList = inventorytransaction;
-	next();
+	req.responseData = req.issueToProductionTransactionsList;
+  next();
 };
 
 //Issue to Production API
@@ -99,17 +97,20 @@ exports.issueToProduction = async (req, res,next) => {
   if (!issueToProductionData) {
     return next(HTTPError(500, "Issue To Production transaction not Created"))
   }
-  for(var i=0;i<req.body.length;i++){
+
+  var issueToProductionUpdateArray = req.body.map(async el => {
     let updatePicklistMaterialData = {
       'isMaterialIssuedToProduction':true
     }
+    console.log("picklistId",el["picklistId"])
     var picklistMaterialUpdated = await PicklistPickingMaterialList.update(updatePicklistMaterialData,{
       where: {
-        picklistId: req.body[i]["picklistId"],
-        serialNumber: req.body[i]["barcodeSerial"]
+        picklistId: el["picklistId"],
+        serialNumber: el["barcodeSerial"]
       }
     });
-  }
+  });
+
   if(req.body[0]["completedPicklistId"]){
     let updateData = {
       'isIssuedToProduction':true
@@ -120,116 +121,62 @@ exports.issueToProduction = async (req, res,next) => {
       }
     });
   }
-  res.send(issueToProductionData);
+
+  req.issueToProductionData = issueToProductionData;
+  // res.send(issueToProductionData);
+  next();
 };
 
 //Return from Production API
-exports.returnFromProduction = async (req, res) => {
-	for(var i=0; i < req.body.length; i++){
-		var returnFromProductionData = [];
-		const stock = {
-			transactionTimestamp: Date.now(),
-			materialInwardId:req.body[i]["materialInwardId"],
-			projectId: req.body[i]["projectId"],
-			performedBy:req.body[i]["userId"],
-			transactionType :"Return From Production",
-			remarks:req.body[i]["remarks"],
-			quantity:req.body[i]["quantity"],
-			createdBy:req.user.username,
-			updatedBy:req.user.username
-		};
-		let updateQuantity=0;
+exports.returnFromProduction = async (req, res,next) => {
+  var returnFromProductionData = [];
+  var issueToProductionDataArray = req.body.map(async el => {
+    const stock = {
+      transactionTimestamp: Date.now(),
+      materialInwardId:el["materialInwardId"],
+      projectId: el["projectId"],
+      performedBy:el["userId"],
+      transactionType :"Return From Production",
+      remarks:el["remarks"],
+      quantity:el["quantity"],
+      createdBy:req.user.username,
+      updatedBy:req.user.username
+    };
+    let updateQuantity=0;
+    var issuedData = await issueToProdFunction.getQuantityData(el["materialInwardId"],el["projectId"]);
+    if(issuedData){
+      updateQuantity = issuedData +parseInt(el["quantity"]);
+    }
 
-    // how can we use modular code for this as this is in for loop
-   //
-   await IssueToProductionTransaction.findAll({
-     where: {
-       materialInwardId:req.body[i]["materialInwardId"],
-       projectId: req.body[i]["projectId"]
-     },
-     include: [{
-       model: MaterialInward
-     }],
-     order: [
-     ['id', 'DESC'],
-     ] 
-   })
-   .then(data => {
-     updateQuantity = parseInt(data[0]["dataValues"]["materialinward"]["eachPackQuantity"])+parseInt(req.body[i]["quantity"]);
-     console.log(updateQuantity);
-   })
-   .catch(err => {
-     console.log(err.message)
-   });
-   await IssueToProductionTransaction.create(stock)
-   .then(async data => {
-     returnFromProductionData.push(data);
-     let updateData = {
-       'status':true,
-       'eachPackQuantity':updateQuantity,
-       'updatedBy':req.user.username
-     }
-     await  MaterialInward.update(updateData, {
-       where: {
-         id: req.body[i]["materialInwardId"]
-       }
-     }).then(num => {
-       if (num == 1) {
+    var transactionData = await IssueToProductionTransaction.create(stock);
+    returnFromProductionData.push(transactionData);
+    let updateData = {
+      'status':true,
+      'eachPackQuantity':updateQuantity,
+      'updatedBy':req.user.username
+    }
+    var updatedMaterialInward = await materialInwardUpdateFunction.updateMaterialInward(updateData,el["materialInwardId"]);
+  });
 
-       } else {
-         res.send({
-           message: `Some error occurred while updating MaterialInward!`
-         });
-       }
-     })
-     .catch(err => {
-       res.status(500).send({
-         message: "Some error occurred while updating MaterialInward"
-       });
-     })
-
-   })
-   .catch(err => {
-     res.status(500).send({
-       message: "Some error occurred while creating issueToProduction"
-     });
-   });
- }
- res.send(returnFromProductionData);
+  req.returnFromProductionData = returnFromProductionData;   
+  next();
 };
 
 exports.findTransactionsBySearchQuery = async (req, res,next) => {
   var {createdAtStart,createdAtEnd,offset,limit,partNumber,barcodeSerial,transactionType,project} = req.query;
 
-  var limitOffsetQuery = new LimitOffsetHelper()
-  .clause(offset, limit).toJSON();
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  var materialInwardWhereClause = {};
-  if(req.site){
-    materialInwardWhereClause.siteId = req.site;
-  }
-  else{
-    materialInwardWhereClause.siteId = {
-      [Op.like]:'%'+req.site+'%'
-    };
-  }
+  partNumber = (partNumber) ? partNumber:'';
+  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
+  transactionType = (transactionType) ? transactionType:'';
 
-  if(!partNumber){
-    partNumber="";
-  }
-  if(!barcodeSerial){
-    barcodeSerial="";
-  }
-  if(!transactionType){
-    transactionType="";
-  }
+  project = (project) ? project:'';
 
-  var projectsWhereClause = {};
-  if(project){
-    projectsWhereClause.name = {
-      [Op.like]: '%'+project+'%'
-    }
-  }
+  projectsWhereClause = new LikeQueryHelper()
+  .clause(project, "name")
+  .toJSON();
 
   var whereClause = {};
   if(createdAtStart && createdAtEnd){
@@ -239,17 +186,11 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
     }
   }
 
-  if(partNumber){
-    materialInwardWhereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
-
-  if(barcodeSerial){
-    materialInwardWhereClause.barcodeSerial = {
-      [Op.like]:'%'+barcodeSerial+'%'
-    };
-  }
+  materialInwardWhereClause = new LikeQueryHelper()
+  .clause(req.site, "siteId")
+  .clause(partNumber, "partNumber")
+  .clause(barcodeSerial, "barcodeSerial")
+  .toJSON();
 
   if(transactionType){
     whereClause.transactionType ={
@@ -264,38 +205,42 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
       where:materialInwardWhereClause
     },
     {model: Project,
-    required: true,
+      required: true,
       where:projectsWhereClause},
-    {model: User,
-      as: 'doneBy'},
-      ],
-      order: [
-      ['id', 'DESC'],
-      ],
-      limitOffsetQuery
-    });
+      {model: User,
+        as: 'doneBy'},
+        ],
+        order: [
+        ['id', 'DESC'],
+        ],
+        limit:limit,
+        offset:offset
+      });
 
   if (!issueToProductionTransactions) {
     return next(HTTPError(400, "Issue To Production transactions not found"));
   }
+  var responseData = [];
+  responseData.push(issueToProductionTransactions);
 
-  var total = await IssueToProductionTransaction.findAll({
+  var total = await IssueToProductionTransaction.count({
     where: whereClause,
     include: [{model: MaterialInward,
       required: true,
       where:materialInwardWhereClause
     },
     {model: Project,
-    required: true,
+      required: true,
       where:projectsWhereClause}
       ]
     });
 
-  req.issueToProductionTransactionsList = issueToProductionTransactions.map ( el => { return el.get({ plain: true }) } );
-
+  let count = {
+    'totalCount':total
+  };
+  let dataCount = [];
+  dataCount.push(count);
+  responseData.push(dataCount);
+  req.responseData = responseData;
   next();
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.issueToProductionTransactionsList);
 };

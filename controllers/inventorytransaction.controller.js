@@ -30,20 +30,15 @@ exports.materialInventoryTransactions=async (req, res,next) => {
 
 // Retrieve all Inventory Transaction from the database.
 exports.findAll =async (req, res,next) => {
-  var materialinwardsWhereClause = {};
-  if(req.site){
-    materialinwardsWhereClause.siteId = req.site;
-  }
-  else{
-    materialinwardsWhereClause.siteId = {
-      [Op.like]:'%'+req.site+'%'
-    };
-  }
+  // var materialinwardsWhereClause = {};
+  materialinwardsWhereClause = new LikeQueryHelper()
+  .clause(req.site, "siteId")
+  .toJSON();
 
   var {transactionTimestamp,performedBy,transactionType,materialInwardId,batchNumber,offset,limit} = req.query;
 
-  var limitOffsetQuery = new LimitOffsetHelper()
-  .clause(offset, limit).toJSON();
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('transactionTimestamp', transactionTimestamp)
@@ -62,7 +57,8 @@ exports.findAll =async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    limitOffsetQuery
+    limit:limit,
+    offset:offset
   });
 
   if (!inventoryTransactions) {
@@ -70,7 +66,7 @@ exports.findAll =async (req, res,next) => {
   }
   
   req.inventoryTransactionsList = inventoryTransactions.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.inventoryTransactionsList;
   next();
   
 };
@@ -83,9 +79,6 @@ exports.findOne =async (req, res,next) => {
     return next(HTTPError(500, "Inventory transaction not found with id=" + id))
   }
   req.inventoryTransactionsList = inventorytransaction;
+  req.responseData = req.inventoryTransactionsList;
   next();
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.inventoryTransactionsList);
 };

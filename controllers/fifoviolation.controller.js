@@ -8,20 +8,15 @@ const LimitOffsetHelper = require('../helpers/limitoffsethelper');
 
 // Retrieve all FIFO Violation List from the database.
 exports.findAll = async(req, res,next) => {
-  var picklistWhereClause = {};
-  if(req.site){
-    picklistWhereClause.siteId = req.site;
-  }
-  else{
-    picklistWhereClause.siteId = {
-      [Op.like]:'%'+req.site+'%'
-    };
-  }
+
+  picklistWhereClause = new LikeQueryHelper()
+  .clause(req.site, "siteId")
+  .toJSON();
 
   var {picklistId , purchaseOrderNumber , serialNumber , violatedSerialNumber , partNumber , offset,limit} = req.query;
 
-  var limitOffsetQuery = new LimitOffsetHelper()
-  .clause(offset, limit).toJSON();
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('picklistId', picklistId)
@@ -42,7 +37,8 @@ exports.findAll = async(req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    limitOffsetQuery
+    offset:offset,
+    limit:limit
   });
 
   if (!fifoviolations) {
@@ -50,7 +46,7 @@ exports.findAll = async(req, res,next) => {
   }
   
   req.fifoViolationLists = fifoviolations.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.fifoViolationLists;
   next();
 };
 
@@ -62,14 +58,15 @@ exports.findOne = async (req, res,next) => {
     return next(HTTPError(500, "FIFO violation not found with id=" + id))
   }
   req.fifoViolationLists = fifoviolations;
+  req.responseData = req.fifoViolationLists;
   next();
 };
 
 exports.findFIFOViolationsBySearchQuery = async (req, res,next) => {
   var {createdAtStart , createdAtEnd , offset , limit , partNumber , serialNumber , violatedSerialNumber , picklistName} = req.query;
 
-  var limitOffsetQuery = new LimitOffsetHelper()
-  .clause(offset, limit).toJSON();
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;  
 
   var picklistWhereClause = fifoViolationFunction.picklistWhereClauseFunction(partNumber,serialNumber,violatedSerialNumber,picklistName,req.siteId);
   var whereClause = fifoViolationFunction.whereClauseFunction(createdAtStart,createdAtEnd,partNumber,serialNumber,violatedSerialNumber);
@@ -77,16 +74,17 @@ exports.findFIFOViolationsBySearchQuery = async (req, res,next) => {
   var fifoviolations = await FIFOViolationList.findAll({
     where: whereClause,
     include: [
-      {
-        model: Picklist,
-        required: true,
-        where:picklistWhereClause
-      }
+    {
+      model: Picklist,
+      required: true,
+      where:picklistWhereClause
+    }
     ],
     order: [
-      ['id', 'DESC'],
+    ['id', 'DESC'],
     ],
-    limitOffsetQuery
+    limit:limit,
+    offset:offset
   });
 
   if (!fifoviolations) {
@@ -108,11 +106,11 @@ exports.findFIFOViolationsBySearchQueryCount = async (req, res, next) => {
   var total = await FIFOViolationList.count({ 
     where: whereClause,
     include: [
-      {
-        model: Picklist,
-        required: true,
-        where:picklistWhereClause
-      }
+    {
+      model: Picklist,
+      required: true,
+      where:picklistWhereClause
+    }
     ]
   });
 
@@ -122,21 +120,11 @@ exports.findFIFOViolationsBySearchQueryCount = async (req, res, next) => {
   }
   countArray.push(totalData);
   req.responseData.push(countArray);
-
   next();
 };
 
-exports.sendCountResponse = async (req, res, next) => {
-  res.status(200).send(req.responseData);
-}
-
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.fifoViolationLists);
-};
-
 exports.getCount= async (req, res, next) => {
-var picklistWhereClause = {};
+  var picklistWhereClause = {};
   if(req.site){
     picklistWhereClause.siteId = req.site;
   }

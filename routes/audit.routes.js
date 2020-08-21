@@ -3,32 +3,35 @@ var router = express.Router();
 var audits = require('../controllers/audit.controller');
 var auditItems = require('../controllers/audititems.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
 	audits.create,
 	auditItems.create,
-	audits.sendCreateResponse);
+	sendResponse.sendCreateResponse);
 
 router.get("/", users.loginRequired,
 	audits.getAll,
-	audits.sendFindResponse
+	sendResponse.sendFindResponse
 	);
 
 router.get("/:id", users.loginRequired,
 	audits.getById,
-	audits.sendFindResponse
+	sendResponse.sendFindResponse
 	);
 
 router.put('/:id', users.loginRequired,
 	audits.update,
-	audits.sendCreateResponse
+	sendResponse.sendCreateResponse
 	);
 
 router.get('/get/findAuditsBySearchQuery', 
 	users.loginRequired,
-	audits.findAuditsBySearchQuery);
+	audits.findAuditsBySearchQuery,
+	sendResponse.sendFindResponse);
 
 router.get('/get/countOfAudits', users.loginRequired,
-	audits.countOfAudits);
+	audits.countOfAudits,
+	sendResponse.sendFindResponse);
 
 module.exports = router;

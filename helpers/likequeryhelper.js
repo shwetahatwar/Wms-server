@@ -6,8 +6,7 @@ LikeQueryHelper = function() {
 }
 
 LikeQueryHelper.prototype.clause = function(input1, input2) {
-
-  if(input1){
+  if(input1 && input2 == "siteId"){
     this.obj[input2] = input1;
   }
   else{
