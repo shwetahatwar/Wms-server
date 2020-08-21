@@ -3,6 +3,7 @@ const Site = db.sites;
 const Zone = db.zones;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
+const LikeQueryHelper = require('../helpers/likequeryhelper');
 
 // Create and Save a new Zone
 exports.create = async (req, res,next) => {
@@ -127,43 +128,25 @@ exports.getById =async (req,res,next) => {
 exports.findZonesBySearchQuery = async (req, res,next) => {
   var {zone,site,offset,limit} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-  
-  if(!site){
-    site = '';
-  }
-  if(!zone){
-    zone='';
-  }
+  site = (!site) ? site:'';
+  zone = (!zone) ? zone:'';
 
   var zoneWhereClause = {};
   var siteWhereClause = {};
   if(zone){
-    var likeClause = { [Op.like]: '%'+ zone + '%' };
-    zoneWhereClause.name = likeClause;
+    zoneWhereClause.name = { [Op.like]: '%'+ zone + '%' };
   }
 
-  if(req.site){
-    zoneWhereClause.siteId = req.site;
-  }
-  else{
-    zoneWhereClause.siteId = {
-      [Op.like]:'%'+req.site+'%'
-    };
-  }
+  zoneWhereClause = new LikeQueryHelper()
+  .clause(req.site, "siteId")
+  .toJSON();
   zoneWhereClause.status = true;
 
   if(site){
-    var likeClause = { [Op.like]: '%'+ site + '%' };
-    siteWhereClause.name = likeClause;
+    siteWhereClause.name = { [Op.like]: '%'+ site + '%' };
   }
   
   var list = await Zone.findAll({ 
@@ -176,8 +159,8 @@ exports.findZonesBySearchQuery = async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    limit:limit,
+    offset:offset
   });
 
   if (!list) {
@@ -185,14 +168,6 @@ exports.findZonesBySearchQuery = async (req, res,next) => {
   }
   
   req.zonesList = list.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.zonesList;
   next();
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.zonesList);
 };
