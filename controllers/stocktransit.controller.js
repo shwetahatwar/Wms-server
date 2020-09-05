@@ -22,13 +22,27 @@ exports.findAll = async (req, res,next) => {
     newLimit = parseInt(limit)
   }
 
-  var whereClause = new WhereBuilder()
-  .clause('fromSiteId', fromSiteId)
-  .clause('toSiteId', toSiteId)
-  .clause('transferOutUserId', transferOutUserId)
-  .clause('transferInUserId', transferInUserId)
-  .clause('materialInwardId', materialInwardId)
-  .clause('status', status).toJSON();
+   var whereClause ={};
+  if(req.site){
+    checkString = req.site.toString();
+    siteWhereClause.id =req.site
+    whereClause = {
+    [Op.or]: [
+    { fromSiteId: req.site },
+    { toSiteId: req.site }
+    ]
+  }
+  }
+  
+  if(transferOutUserId){
+    whereClause.transferOutUserId = transferOutUserId
+  }
+  if(transferInUserId){
+    whereClause.transferInUserId = transferInUserId
+  }
+  if(materialInwardId){
+    whereClause.materialInwardId = materialInwardId
+  }
 
   var stockData =  await StockTransit.findAll({ 
     where: whereClause,
@@ -86,9 +100,17 @@ exports.findBySearchQuery = async (req, res) => {
 
   var materialInwardWhereClause = {};
   var siteWhereClause = {};
+  var whereClause = {};
+  
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
     siteWhereClause:id = req.site;
+     whereClause = {
+    [Op.or]: [
+    { fromSiteId: req.site },
+    { toSiteId: req.site }
+    ]
+  }
   }
   else{
     materialInwardWhereClause.siteId = {
@@ -103,7 +125,6 @@ exports.findBySearchQuery = async (req, res) => {
     barcodeSerial="";
   }
 
-  var whereClause = {};
   if(createdAtStart && createdAtEnd){
     whereClause.createdAt = {
       [Op.gte]: parseInt(createdAtStart),
@@ -181,11 +202,20 @@ exports.getCount = async (req, res, next) => {
 
   var materialInwardWhereClause = {};
   var siteWhereClause ={};
+  var whereClause={};
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
     siteWhereClause.siteId = req.site;
+    whereClause = {
+    [Op.or]: [
+    { fromSiteId: req.site },
+    { toSiteId: req.site }
+    ]
   }
+  }
+   
   var total = await StockTransit.count({
+    where:whereClause,
     include: [
     {model: MaterialInward,
       required: true,

@@ -127,15 +127,31 @@ exports.findAll = async (req, res,next) => {
     newLimit = parseInt(limit)
   }
 
-  var whereClause = new WhereBuilder()
-  .clause('fromSiteId', fromSiteId)
-  .clause('toSiteId', toSiteId)
-  .clause('toSiteId', toSiteId)
-  .clause('transactionType', transactionType)
-  .clause('transactionTimestamp', transactionTimestamp)
-  .clause('transferInUserId', transferInUserId)
-  .clause('materialInwardId', materialInwardId)
-  .clause('status', status).toJSON();
+    var whereClause ={};
+  if(req.site){
+    checkString = req.site.toString();
+    siteWhereClause.id =req.site
+    whereClause = {
+    [Op.or]: [
+    { fromSiteId: req.site },
+    { toSiteId: req.site }
+    ]
+  }
+  }
+  
+  if(transactionType){
+    whereClause.transactionType = transactionType
+  }
+  if(transferOutUserId){
+    whereClause.transferOutUserId = transferOutUserId
+  }
+  if(transferInUserId){
+    whereClause.transferInUserId = transferInUserId
+  }
+  if(materialInwardId){
+    whereClause.materialInwardId = materialInwardId
+  }
+
   console.log(whereClause)
   var stockData =  await StockTransaction.findAll({ 
     where: whereClause,
@@ -190,9 +206,16 @@ exports.findBySearchQuery = async (req, res) => {
     newLimit = parseInt(limit)
   }
 
+
+  var whereClause = {};
   var materialInwardWhereClause = {};
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
+    whereClause = {
+    [Op.or]: [
+    { fromSiteId: req.site },
+    { toSiteId: req.site }
+    ]
   }
   else{
     materialInwardWhereClause.siteId = {
@@ -206,8 +229,6 @@ exports.findBySearchQuery = async (req, res) => {
   if(!barcodeSerial){
     barcodeSerial="";
   }
-
-  var whereClause = {};
   if(createdAtStart && createdAtEnd){
     whereClause.createdAt = {
       [Op.gte]: parseInt(createdAtStart),
@@ -290,17 +311,20 @@ exports.getCount = async (req, res, next) => {
     materialInwardWhereClause.siteId = req.site;
     siteWhereClause.siteId = req.site;
   }
+  var whereClause={};
+   whereClause = {
+    [Op.or]: [
+    { fromSiteId: req.site },
+    { toSiteId: req.site }
+    ]
+  }
   var total = await StockTransaction.count({
+    where:whereClause,
     include: [
     {model: MaterialInward,
       required: true,
       where:materialInwardWhereClause},
-      {model: Site,
-        as: 'fromSite'},
-        {model: Site,
-          required:true,
-          where:siteWhereClause,
-          as: 'toSite'}],
+     ],
   })
 
   if(!total){
