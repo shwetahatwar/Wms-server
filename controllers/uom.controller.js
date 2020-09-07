@@ -59,7 +59,7 @@ exports.getAll =async (req,res,next) =>{
   }
   
   req.uomsList = getAllUOM.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.uomsList;
   next();
 };
 
@@ -108,13 +108,6 @@ exports.getById =async (req,res,next) => {
     return next(HTTPError(500, "UOM not found"))
   }
   req.uomsList = uom;
+  req.responseData = req.uomsList;
   next();
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.uomsList);
 };

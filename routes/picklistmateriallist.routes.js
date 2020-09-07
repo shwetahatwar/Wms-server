@@ -2,26 +2,27 @@ var express = require('express');
 var router = express.Router();
 var picklistmateriallists = require('../controllers/picklistmateriallist.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
 	picklistmateriallists.create,
-	picklistmateriallists.sendCreateResponse);
+	sendResponse.sendCreateResponse);
 
 router.get("/", users.loginRequired,
 	picklistmateriallists.findAll,
-	picklistmateriallists.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 router.get("/:id", users.loginRequired,
 	picklistmateriallists.findOne,
-	picklistmateriallists.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 router.get("/get/findByPicklist", users.loginRequired,
 	picklistmateriallists.getPicklistMaterialListByPicklistId,
-	picklistmateriallists.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 router.get("/get/findPicklistItemsBySearchQuery",
 	users.loginRequired,
 	picklistmateriallists.findPicklistItemsBySearchQuery,
-	picklistmateriallists.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 module.exports = router;

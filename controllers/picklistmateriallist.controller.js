@@ -37,10 +37,6 @@ exports.create = async (req, res,next) => {
   next();  
 };
 
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send(req.picklistMaterial);
-};
-
 // Retrieve all Picklist Materials List from the database.
 exports.findAll = async (req, res,next) => {
   var { picklistId , purchaseOrderNumber , batchNumber , location , numberOfPacks , partNumber , partDescription } = req.query;
@@ -72,7 +68,7 @@ exports.findAll = async (req, res,next) => {
   }
   
   req.picklistsMaterialLists = getAllPicklistData.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.picklistsMaterialLists;
   next();
 };
 
@@ -85,11 +81,8 @@ exports.findOne = async(req, res,next) => {
     return next(HTTPError(500, "Picklist Materials not found"))
   }
   req.picklistsMaterialLists = getPicklistData;
+  req.responseData = req.picklistsMaterialLists;
   next();
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.picklistsMaterialLists);
 };
 
 // Update a Picklist Material List by the id in the request
@@ -149,42 +142,24 @@ exports.getPicklistMaterialListByPicklistId = async(req, res,next) => {
 exports.findPicklistItemsBySearchQuery = async (req, res,next) => {
   var {offset,limit,partNumber,partDescription,picklistId} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var picklistWhereClause = {};
   if(req.site){
     picklistWhereClause.siteId = req.site;
   }
 
-  if(!partNumber){
-    partNumber="";
-  }
-  if(!partDescription){
-    partDescription="";
-  }
+  partNumber = (partNumber) ? partNumber:'';
+  partDescription = (partDescription) ? partDescription:'';
+  
+  whereClause = new LikeQueryHelper()
+  .clause(partNumber, "partNumber")
+  .clause(partDescription, "partDescription")
+  .toJSON();
 
-  var whereClause = {};
   if(picklistId){
     whereClause.picklistId=picklistId;
-  }
-  if(partNumber){
-    whereClause.partNumber = {
-      [Op.like] : '%'+partNumber+'%'
-    }
-  }
-  if(partDescription){
-    whereClause.partDescription = {
-      [Op.like] : '%'+partDescription+'%'
-    }
   }
 
   var getAllPicklistData = await PicklistMaterialList.findAll({ 
@@ -197,8 +172,8 @@ exports.findPicklistItemsBySearchQuery = async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
 
   if (!getAllPicklistData) {
@@ -206,7 +181,7 @@ exports.findPicklistItemsBySearchQuery = async (req, res,next) => {
   }
   
   req.picklistsMaterialLists = getAllPicklistData.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.picklistsMaterialLists; 
   next();
 };
 

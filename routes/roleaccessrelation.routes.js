@@ -2,24 +2,27 @@ var express = require('express');
 var router = express.Router();
 var roleaccessrelations = require('../controllers/roleaccessrelation.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
-	roleaccessrelations.create);
+	roleaccessrelations.create,
+	sendResponse.sendCreateResponse);
 
 router.get("/", users.loginRequired,
 	roleaccessrelations.getAll,
-	roleaccessrelations.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 router.get("/:id", users.loginRequired,
 	roleaccessrelations.getById,
-	roleaccessrelations.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 router.put('/:id', users.loginRequired,
 	roleaccessrelations.update,
-	roleaccessrelations.sendUpdateResponse);
+	sendResponse.sendCreateResponse);
 
 router.get("/get/validateaccessurl", 
 	users.loginRequired,
-	roleaccessrelations.validateAccessUrl);
+	roleaccessrelations.validateAccessUrl,
+	sendResponse.sendFindResponse);
 
 module.exports = router;

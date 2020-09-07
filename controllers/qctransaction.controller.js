@@ -34,16 +34,8 @@ exports.create = async (req,res,next) =>{
 exports.getAll = async(req,res,next) =>{
   var { transactionTimestamp, performedBy, materialInwardId, prevQCStatus, currentQCStatus , offset , limit } = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('transactionTimestamp', transactionTimestamp)
@@ -71,8 +63,8 @@ exports.getAll = async(req,res,next) =>{
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit 
+    offset:offset,
+    limit:limit 
   });
 
   if (!qcTransaction) {
@@ -80,7 +72,7 @@ exports.getAll = async(req,res,next) =>{
   }
   
   req.qcTransactionsList = qcTransaction.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.qcTransactionsList;
   next();
 };
 
@@ -94,54 +86,32 @@ exports.findOne = async (req, res,next) => {
     return next(HTTPError(500, "QC transaction not found with id=" + id))
   }
   req.qcTransactionsList = qcTransaction;
+  req.responseData = req.qcTransactionsList;
   next();
 };
 
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.qcTransactionsList);
-};
 
-exports.findQCTransactionsBySearchQuery = async (req, res) => {
+exports.findQCTransactionsBySearchQuery = async (req, res,next) => {
   var { partNumber, barcodeSerial, QcStatus , offset , limit } = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
   var responseData = [];
+  partNumber = (partNumber) ? partNumber:'';
+  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
 
-  var materialInwardWhereClause = {};
+  materialInwardWhereClause = new LikeQueryHelper()
+  .clause(partNumber, "partNumber")
+  .clause(barcodeSerial, "barcodeSerial")
+  .toJSON();
+
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
   }
   else{
     materialInwardWhereClause.siteId = {
       [Op.like]:'%'+req.site+'%'
-    };
-  }
-
-  if(!partNumber){
-    partNumber="";
-  }
-  if(!barcodeSerial){
-    barcodeSerial="";
-  }
-
-  if(partNumber){
-    materialInwardWhereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
-
-  if(barcodeSerial){
-    materialInwardWhereClause.barcodeSerial = {
-      [Op.like]:'%'+barcodeSerial+'%'
     };
   }
 
@@ -157,8 +127,8 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
     order: [
     ['id', 'DESC'],
     ],
-    limit:newLimit,
-    offset:newOffset
+    limit:limit,
+    offset:offset
   });
 
   if (!qcData) {
@@ -166,7 +136,7 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
   }
 
   responseData.push(qcData);
-  console.log("whereClause",whereClause)
+
   var total = await QCTransaction.count({
     where: whereClause,
     include: [{model: MaterialInward,
@@ -182,12 +152,12 @@ exports.findQCTransactionsBySearchQuery = async (req, res) => {
   let dataCount = [];
   dataCount.push(count);
   responseData.push(dataCount);
-  
-  res.status(200).send(responseData);
+  req.responseData = responseData;
+  next();
 };
 
 // get count of all QCTransactions 
-exports.countOfQCTransactions = async (req, res) => {
+exports.countOfQCTransactions = async (req, res,next) => {
   var whereClause = {}
   if(req.query.QCStatus){
     whereClause.currentQCStatus = req.query.QCStatus;
@@ -203,5 +173,6 @@ exports.countOfQCTransactions = async (req, res) => {
   var totalCount = {
     totalCount : total 
   }
-  res.status(200).send(totalCount);
+  req.responseData = totalCount;
+  next();
 }

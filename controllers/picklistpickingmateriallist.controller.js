@@ -15,7 +15,6 @@ exports.create = async (req, res,next) => {
     return next(HTTPError(400,"Content can not be empty"))
   }
 
-  console.log(material.length);
   var picklistpickingmateriallist = [];
   for(var i=0;i<material.length;i++){
     if(material[i].serialNumber){
@@ -46,10 +45,6 @@ exports.create = async (req, res,next) => {
   
 };
 
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
-
 //Get Picklist Picking Material List
 exports.getAll = async (req,res,next) =>{
   var { picklistId , partNumber , batchNumber , isMaterialIssuedToProduction , serialNumber , quantityPicked , userId } = req.query;
@@ -75,7 +70,7 @@ exports.getAll = async (req,res,next) =>{
   }
   
   req.picklistMaterialLists = picklistData.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.picklistMaterialLists; 
   next();
 };
 
@@ -88,9 +83,6 @@ exports.getById = async (req,res,next) => {
     return next(HTTPError(500, "Error retrieving Picklist Picking Material List with id=" + id))
   }
   req.picklistMaterialLists = picklistData;
+  req.responseData = req.picklistMaterialLists; 
   next();
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.picklistMaterialLists);
 };

@@ -62,16 +62,8 @@ exports.create = async (req, res,next) => {
 exports.getAll =async (req,res,next) =>{
   
   var {siteId,zoneId, name,status,offset,limit} = req.query;
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('siteId', siteId)
@@ -106,8 +98,8 @@ exports.getAll =async (req,res,next) =>{
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
   console.log(getAllRacks);
   if (!getAllRacks) {
@@ -115,7 +107,7 @@ exports.getAll =async (req,res,next) =>{
   }
   
   req.racksList = getAllRacks.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.racksList;
   next();
 };
 
@@ -125,16 +117,15 @@ exports.update =async (req, res,next) => {
 
   var { name, zoneId ,status } = req.body;
   
-  whereClause = new WhereBuilder()
+  updateClause = new WhereBuilder()
   .clause('name', name)
   .clause('zoneId', zoneId)
   .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
-  console.log(whereClause);
 
   var updatedRack;
   try {
-    updatedRack = await Rack.update(whereClause,{
+    updatedRack = await Rack.update(updateClause,{
       where: {
         id: id
       }
@@ -167,11 +158,12 @@ exports.getById =async (req,res,next) => {
     return next(HTTPError(500, "Rack not found"))
   }
   req.racksList = rack;
+  req.responseData =rack;
   next();
 };
 
 // get count of all Racks whose status =1 
-exports.countOfRacks = async (req, res) => {
+exports.countOfRacks = async (req, res,next) => {
   var total = 0;
   var zoneWhereClause = {};
   var whereClause = {};
@@ -206,11 +198,12 @@ exports.countOfRacks = async (req, res) => {
   var totalCount = {
     totalRacks : total 
   }
-  res.send(totalCount);
+  req.responseData= totalCount;
+  next();
 };
 
 // get count of all Racks by Zone 
-exports.countOfRacksByZoneId = async (req, res) => {
+exports.countOfRacksByZoneId = async (req, res,next) => {
   var total = 0;
   var { zoneId } = req.query;
   var zoneWhereClause = {};
@@ -246,36 +239,23 @@ exports.countOfRacksByZoneId = async (req, res) => {
   var totalCount = {
     totalRacks : total 
   }
-
-  res.status(200).send(totalCount);
+  req.responseData = totalCount;
+  next();
 };
 
 //search query
-exports.findRacksBySearchQuery = async(req, res) => {
+exports.findRacksBySearchQuery = async(req, res,next) => {
   var {name,zone,site,offset,limit} = req.query;
-  if(!name){
-    name ='';
-  }
-  if(!site){
-    site ='';
-  }
-  if(!zone){
-    zone ='';
-  }
+  name = (name) ? name:'';
+  site = (site) ? site:'';
+  zone = (zone) ? zone:'';
 
-  var newOffset = 0;
-  var newLimit = 100;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-  var whereClause = {};
-  var siteWhereClause = {};
-  var zoneWhereClause = {};
+  zoneWhereClause = new LikeQueryHelper()
+  .clause(zone, "name")
+  .toJSON();
 
   if(req.site){
     zoneWhereClause.siteId = req.site;
@@ -292,17 +272,13 @@ exports.findRacksBySearchQuery = async(req, res) => {
     };
   }
 
-  if(name){
-    whereClause.name = {
-      [Op.like] : '%'+name+'%'
-    }
-  }
+  whereClause = new LikeQueryHelper()
+  .clause(name, "name")
+  .toJSON();
 
-  if(site){
-    siteWhereClause.name = {
-      [Op.like]:'%'+site+'%'
-    };
-  }
+  siteWhereClause = new LikeQueryHelper()
+  .clause(site, "name")
+  .toJSON();
 
   whereClause.status = true;
 
@@ -319,8 +295,8 @@ exports.findRacksBySearchQuery = async(req, res) => {
       order: [
       ['id', 'DESC'],
       ],
-      offset:newOffset,
-      limit:newLimit
+      offset:offset,
+      limit:limit
     });
 
   var responseData =[];
@@ -345,14 +321,6 @@ exports.findRacksBySearchQuery = async(req, res) => {
   let countArray = [];
   countArray.push(totalRacks);
   responseData.push(countArray);
-
-  res.status(200).send(responseData);
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.racksList);
+  req.responseData =responseData;
+  next();
 };

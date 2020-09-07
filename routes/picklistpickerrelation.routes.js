@@ -2,25 +2,28 @@ var express = require('express');
 var router = express.Router();
 var picklistpickerrelations = require('../controllers/picklistpickerrelation.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
 	picklistpickerrelations.create,
-	picklistpickerrelations.sendCreateResponse);
+	sendResponse.sendCreateResponse);
 
 router.get("/", users.loginRequired,
 	picklistpickerrelations.getAll,
-	picklistpickerrelations.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 router.get("/:id", users.loginRequired,
 	picklistpickerrelations.getById,
-	picklistpickerrelations.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 router.get("/picklists/:picklistId/users", 
 	users.loginRequired,
-	picklistpickerrelations.getUsersbyPicklist);
+	picklistpickerrelations.getUsersbyPicklist,
+	sendResponse.sendFindResponse);
 
 router.get("/users/:userId/picklists",
  users.loginRequired,
- picklistpickerrelations.getPicklistbyUser);
+ picklistpickerrelations.getPicklistbyUser,
+	sendResponse.sendFindResponse);
 
 module.exports = router;

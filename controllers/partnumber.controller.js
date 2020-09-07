@@ -45,16 +45,8 @@ exports.create =async (req, res,next) => {
 //Get All PartNumbers
 exports.getAll =async (req,res,next) =>{
   var {partNumber,description,UOM,status,offset,limit} = req.query;
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('partNumber', partNumber)
@@ -68,8 +60,8 @@ exports.getAll =async (req,res,next) =>{
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
 
   if (!getAllParts) {
@@ -77,16 +69,8 @@ exports.getAll =async (req,res,next) =>{
   }
   
   req.partsList = getAllParts.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.partsList ;
   next();
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.partsList);
 };
 
 //Update PartNumber by Id
@@ -94,7 +78,7 @@ exports.update = async (req, res,next) => {
   const id = req.params.id;
   var { partNumber, description , status , UOM , netWeight , netVolume } = req.body;
   
-  whereClause = new WhereBuilder()
+  updateClause = new WhereBuilder()
   .clause('partNumber', partNumber)
   .clause('description', description)
   .clause('UOM', UOM)
@@ -102,11 +86,10 @@ exports.update = async (req, res,next) => {
   .clause('netVolume', netVolume)
   .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
-  console.log(whereClause);
 
   var updatedPart;
   try {
-    updatedPart = await PartNumber.update(whereClause,{
+    updatedPart = await PartNumber.update(updateClause,{
       where: {
         id: id
       }
@@ -138,12 +121,13 @@ exports.getById =async (req,res,next) => {
     return next(HTTPError(500, "Part Number not found"))
   }
   req.partsList = partNumber;
+  req.responseData = req.partsList ;
   next();
 }
 
 exports.getPartNumber=async (req,res,next) => {
   var {partNumberId} = req.body;
-  console.log("id",partNumberId);
+
   var partNumber = await PartNumber.findByPk(partNumberId);
   if (!partNumber) {
     return next(HTTPError(500, "Part Number not found"))
@@ -156,51 +140,28 @@ exports.getPartNumber=async (req,res,next) => {
 exports.findPartNumbersBySearchQuery = async (req, res,next) => {
 
   var {partNumber,UOM,description,status,offset,limit} = req.query;
-  var newOffset = 0;
-  var newLimit = 100;
-  if(offset){
-    newOffset = parseInt(offset)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  partNumber = (partNumber) ? partNumber:'';
+  description = (description) ? description:'';
+  UOM = (UOM) ? UOM:'';
 
-  if(!partNumber){
-    partNumber ='';
-  }
-  if(!UOM){
-    UOM ='';
-  }
-  if(!description){
-    description = '';
-  }
+   whereClause = new LikeQueryHelper()
+  .clause(partNumber, "partNumber")
+  .clause(description, "description")
+  .clause(UOM, "UOM")
+  .toJSON();
 
-  var whereClause = {};
   whereClause.status = true;
-  if(partNumber){
-    whereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
-  if(description){
-    whereClause.description = {
-      [Op.like]:'%'+description+'%'
-    };
-  }
-  if(partNumber){
-    whereClause.UOM = {
-      [Op.like]:'%'+UOM+'%'
-    };
-  }
-
+  
   var data = await PartNumber.findAll({ 
     where: whereClause,
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
 
   if(!data){
@@ -221,12 +182,13 @@ exports.findPartNumbersBySearchQuery = async (req, res,next) => {
   countArray.push(totalParts);
   responseData.push(countArray);
 
-  res.status(200).send(responseData);
+  req.responseData = responseData;
+  next();
 };
 
 
 // get count of all part numbers whose status =1 
-exports.countOfPartNumbers = async (req, res) => {
+exports.countOfPartNumbers = async (req, res,next) => {
   var whereClause = {};
   whereClause.status = true;
   var total = await PartNumber.count({
@@ -240,5 +202,6 @@ exports.countOfPartNumbers = async (req, res) => {
   var totalCount = {
     totalParts : total 
   }
-  res.status(200).send(totalCount);
+  req.responseData =totalCount;
+  next();
 }

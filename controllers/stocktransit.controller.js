@@ -11,27 +11,19 @@ var HTTPError = require('http-errors');
 exports.findAll = async (req, res,next) => {
   var { fromSiteId, toSiteId , transferOutUserId , transferInUserId , materialInwardId , status , offset , limit } = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
-   var whereClause ={};
+  var whereClause ={};
   if(req.site){
     checkString = req.site.toString();
     siteWhereClause.id =req.site
     whereClause = {
-    [Op.or]: [
-    { fromSiteId: req.site },
-    { toSiteId: req.site }
-    ]
-  }
+      [Op.or]: [
+      { fromSiteId: req.site },
+      { toSiteId: req.site }
+      ]
+    }
   }
   
   if(transferOutUserId){
@@ -57,8 +49,8 @@ exports.findAll = async (req, res,next) => {
           {model: User,
             as: 'transferInUser'}
             ],
-            offset:newOffset,
-            limit:newLimit 
+            offset:offset,
+            limit:limit 
           });
 
   if (!stockData) {
@@ -66,7 +58,7 @@ exports.findAll = async (req, res,next) => {
   }
   
   req.responseList = stockData.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.responseList;
   next();
   
 };
@@ -80,23 +72,16 @@ exports.findOne = async (req, res, next) => {
     return next(HTTPError(500, "Stock Transit not found"))
   }
   req.responseList = stocktransit;
+  req.responseData = req.responseList;
   next();
 };
 
 
 exports.findBySearchQuery = async (req, res) => {
   var { createdAtStart , createdAtEnd , offset , limit , partNumber , barcodeSerial } = req.query;
-
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var materialInwardWhereClause = {};
   var siteWhereClause = {};
@@ -105,12 +90,12 @@ exports.findBySearchQuery = async (req, res) => {
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
     siteWhereClause:id = req.site;
-     whereClause = {
-    [Op.or]: [
-    { fromSiteId: req.site },
-    { toSiteId: req.site }
-    ]
-  }
+    whereClause = {
+      [Op.or]: [
+      { fromSiteId: req.site },
+      { toSiteId: req.site }
+      ]
+    }
   }
   else{
     materialInwardWhereClause.siteId = {
@@ -118,12 +103,9 @@ exports.findBySearchQuery = async (req, res) => {
     };
   }
 
-  if(!partNumber){
-    partNumber="";
-  }
-  if(!barcodeSerial){
-    barcodeSerial="";
-  }
+  
+  partNumber = (partNumber) ? partNumber:'';
+  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
 
   if(createdAtStart && createdAtEnd){
     whereClause.createdAt = {
@@ -160,13 +142,14 @@ exports.findBySearchQuery = async (req, res) => {
             as: 'transferOutUser'},
             {model: User,
               as: 'transferInUser'}],
-              offset:newOffset,
-              limit:newLimit 
+              offset:offset,
+              limit:limit 
             });
 
   if(createdAtStart && createdAtEnd){
-    res.status(200).send(responseData);
-    return;
+    req.responseData =responseData;
+    next();
+    // return;
   }
   var countData = await StockTransit.count({ 
     where: whereClause,
@@ -185,17 +168,17 @@ exports.findBySearchQuery = async (req, res) => {
             }).then().catch(err =>{
               console.log(err)
             });
-  let count = {
-    'totalCount':countData
-  };
+            let count = {
+              'totalCount':countData
+            };
 
-  let dataCount = [];
-  let dataList = [];
-  dataList.push(responseData);
-  dataCount.push(count);
-  dataList.push(dataCount);
-
-  res.status(200).send(dataList);
+            let dataCount = [];
+            let dataList = [];
+            dataList.push(responseData);
+            dataCount.push(count);
+            dataList.push(dataCount);
+            req.responseData = dataList;
+  // res.status(200).send(dataList);
 };
 
 exports.getCount = async (req, res, next) => {
@@ -207,13 +190,13 @@ exports.getCount = async (req, res, next) => {
     materialInwardWhereClause.siteId = req.site;
     siteWhereClause.siteId = req.site;
     whereClause = {
-    [Op.or]: [
-    { fromSiteId: req.site },
-    { toSiteId: req.site }
-    ]
+      [Op.or]: [
+      { fromSiteId: req.site },
+      { toSiteId: req.site }
+      ]
+    }
   }
-  }
-   
+  
   var total = await StockTransit.count({
     where:whereClause,
     include: [
@@ -226,7 +209,7 @@ exports.getCount = async (req, res, next) => {
           required:true,
           where:siteWhereClause,
           as: 'toSite'}],
-  })
+        })
 
   if(!total){
     return next(HTTPError(500, "Internal error has occurred, while getting count"))
@@ -235,9 +218,5 @@ exports.getCount = async (req, res, next) => {
   var totalCount = {
     totalCount : total 
   }
-  res.status(200).send(totalCount);
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.responseList);
+  req.responseData = totalCount;
 };

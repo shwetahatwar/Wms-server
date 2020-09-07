@@ -34,10 +34,6 @@ exports.create = async (req, res,next) => {
   next();
 };
 
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send(req.picklistPickerData);
-};
-
 //Get Picklist Picker Relations list
 exports.getAll = async (req,res,next) =>{
   var { picklistId , userId } = req.query;
@@ -59,7 +55,7 @@ exports.getAll = async (req,res,next) =>{
   }
   
   req.picklistPickerList = getAllPicklistData.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.picklistPickerList;
   next();
 };
 
@@ -72,11 +68,8 @@ exports.getById = async (req,res,next) => {
     return next(HTTPError(500, "Error retrieving Picklist Picker Relation with id=" + id))
   }
   req.picklistPickerList = picklistPickerData;
+  req.responseData = req.picklistPickerList;
   next();  
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.picklistPickerList);
 };
 
 //Update Picklist Picker Relations by Id --- currently not in use
@@ -115,16 +108,14 @@ exports.update = async (req, res,next) => {
 
 
 //Get User by Picklist Id
-exports.getUsersbyPicklist = async (req,res) =>{
+exports.getUsersbyPicklist = async (req,res,next) =>{
   var userListArray=[];
 
   var picklistPickerData = [];
   picklistPickerData = await PicklistPickerRelation.findAll({
     where:req.params
   });
-
-  console.log("picklistPickerData",picklistPickerData);
-
+  
   if(picklistPickerData){
     for(var i = 0; i< picklistPickerData.length;i++){
       var userData =  await User.findAll({
@@ -138,12 +129,12 @@ exports.getUsersbyPicklist = async (req,res) =>{
       }
     }
   }
-
-  res.send(userListArray);
+  req.responseData = userListArray;
+  next();
 };
 
 //Get Picklist by User
-exports.getPicklistbyUser = async (req,res) =>{
+exports.getPicklistbyUser = async (req,res,next) =>{
 
   var d = new Date();
   var newDay = d.getDate();
@@ -193,10 +184,7 @@ exports.getPicklistbyUser = async (req,res) =>{
         }
       })
       .catch(err=>{
-        res.status(500).send({
-          message:
-          err.message || "Some error occurred while retrieving Pick List data."
-        });
+        return next(HTTPError(500, "Some error occurred while retrieving Pick List data"));
       })
     }
     picklistArray.sort(function(a, b){
@@ -208,12 +196,11 @@ exports.getPicklistbyUser = async (req,res) =>{
           return 1
         return 0 //default return value (no sorting)
       });
-    res.send(picklistArray);
+
+    req.responseData = picklistArray;
+    next();
   })
   .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Pick List data."
-    });
+    return next(HTTPError(500, "Some error occurred while retrieving Pick List data"));
   });
 };

@@ -32,16 +32,8 @@ exports.putawayTransaction = async (req,res,next) =>{
 exports.findAll = async(req, res,next) => {
   var { transactionTimestamp, performedBy, materialInwardId, prevLocationId , currentLocationId , offset , limit } = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('transactionTimestamp', transactionTimestamp)
@@ -77,8 +69,8 @@ exports.findAll = async(req, res,next) => {
         order: [
         ['id', 'DESC'],
         ],
-        offset:newOffset,
-        limit:newLimit 
+        offset:offset,
+        limit:limit 
       });
 
   if (!putawayData) {
@@ -86,7 +78,7 @@ exports.findAll = async(req, res,next) => {
   }
   
   req.putawayDataList = putawayData.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.putawayDataList;
   next();
 };
 
@@ -99,30 +91,26 @@ exports.findOne = async (req, res,next) => {
     return next(HTTPError(500, "Putaway Transaction not found"))
   }
   req.putawayDataList = putawayData;
+  req.responseData = req.putawayDataList;
   next();
 };
 
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.putawayDataList);
-};
-
-
 // get Putaway Transaction data by search query
-exports.findPutawayTransactionBySearchQuery = async (req, res) => {
+exports.findPutawayTransactionBySearchQuery = async (req, res,next) => {
   var {createdAtStart,createdAtEnd,partNumber,currentLocation,barcodeSerial,limit,offset} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
+  partNumber = (partNumber) ? partNumber:'';
+  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
+  currentLocation = (currentLocation) ? currentLocation:'';
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  materialInwardWhereClause = new LikeQueryHelper()
+  .clause(partNumber, "partNumber")
+  .clause(barcodeSerial, "barcodeSerial")
+  .toJSON();
 
-  var materialInwardWhereClause = {};
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
   }
@@ -131,19 +119,7 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
       [Op.like]:'%'+req.site+'%'
     };
   }
-
-  if(!partNumber){
-    partNumber="";
-  }
-  if(!barcodeSerial){
-    barcodeSerial="";
-  }
-  if(!currentLocation){
-    currentLocation="";
-  }
-
   var whereClause = {};
-  var locationWhereClause = {};
   if(createdAtStart && createdAtEnd){
     whereClause.transactionTimestamp = {
       [Op.gte]: parseInt(createdAtStart),
@@ -151,23 +127,9 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
     }
   }
 
-  if(currentLocation){
-    locationWhereClause.currentLocation = {
-      [Op.like] : '%'+currentLocation+'%'
-    }
-  }
-
-  if(partNumber){
-    materialInwardWhereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
-
-  if(barcodeSerial){
-    materialInwardWhereClause.barcodeSerial = {
-      [Op.like]:'%'+barcodeSerial+'%'
-    };
-  }
+  locationWhereClause = new LikeQueryHelper()
+  .clause(currentLocation, "currentLocation")
+  .toJSON();
 
   materialInwardWhereClause.QCStatus = {
     [Op.ne]:2
@@ -193,8 +155,8 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
         order: [
         ['id', 'DESC'],
         ],
-        offset:newOffset,
-        limit:newLimit
+        offset:offset,
+        limit:limit
       });
 
   responseData.push(putawayData);
@@ -222,13 +184,13 @@ exports.findPutawayTransactionBySearchQuery = async (req, res) => {
   let dataCount = [];
   dataCount.push(count);
   responseData.push(dataCount);
-
-  res.status(200).send(responseData);
+  req.responseData = responseData;
+  next();
   
 };
 
 // get count of all PutawayTransaction 
-exports.countOfPutawayTransaction = async (req, res) => {
+exports.countOfPutawayTransaction = async (req, res,next) => {
   var total = 0;
   var materialInwardWhereClause = {};
   if(req.site){
@@ -243,7 +205,7 @@ exports.countOfPutawayTransaction = async (req, res) => {
   materialInwardWhereClause.QCStatus = {
     [Op.ne]:2
   }
-  console.log("in count")
+
   total = await PutawayTransaction.count({
     include: [
     {
@@ -256,6 +218,7 @@ exports.countOfPutawayTransaction = async (req, res) => {
   var totalCount = {
     totalCount : total 
   }
-  res.status(200).send(totalCount);
+  req.responseData = responseData;
+  next();
 };
 

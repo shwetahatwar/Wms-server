@@ -8,16 +8,8 @@ var HTTPError = require('http-errors');
 exports.findAll = async (req, res, next) => {
   var {offset,limit,userId,siteId} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('userId', userId)
@@ -41,7 +33,7 @@ exports.findAll = async (req, res, next) => {
   }
   
   req.dataList = getData.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.dataList;
   next();
 };
 
@@ -54,9 +46,6 @@ exports.findOne = async(req, res,next) => {
     return next(HTTPError(500, "User site relation not found"))
   }
   req.dataList = data;
+  req.responseData = req.dataList;
   next();
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.dataList);
 };

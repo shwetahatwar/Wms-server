@@ -2,31 +2,34 @@ var express = require('express');
 var router = express.Router();
 var projects = require('../controllers/project.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
 	projects.create,
-	projects.sendCreateResponse);
+	sendResponse.sendCreateResponse);
 
 router.get("/", users.loginRequired,
 	projects.getAll,
-	projects.sendFindResponse
+	sendResponse.sendFindResponse
 	);
 
 router.get("/:id", users.loginRequired,
 	projects.getById,
-	projects.sendFindResponse
+	sendResponse.sendFindResponse
 	);
 
 router.put('/:id', users.loginRequired,
 	projects.update,
-	projects.sendCreateResponse
+	sendResponse.sendCreateResponse
 	);
 
 router.get('/get/findProjectsBySearchQuery', 
 	users.loginRequired,
-	projects.findProjectsBySearchQuery);
+	projects.findProjectsBySearchQuery,
+	sendResponse.sendFindResponse);
 
 router.get('/get/countOfProjects', users.loginRequired,
-	projects.countOfProjects);
+	projects.countOfProjects,
+	sendResponse.sendFindResponse);
 
 module.exports = router;

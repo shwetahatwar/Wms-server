@@ -8,6 +8,7 @@ const inventorytransactions = require('../controllers/inventorytransaction.contr
 var partnumbers = require('../controllers/partnumber.controller');
 var qctransactions = require('../controllers/qctransaction.controller');
 var serialNumberFinder = require('../functions/serialNumberFinder');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
   partnumbers.getPartNumber,	
@@ -15,29 +16,29 @@ router.post("/", users.loginRequired,
   materialinwards.materialInwardBulkUpload,
   // putawaytransactions.putawayTransaction,
   inventorytransactions.materialInventoryTransactions,
-  materialinwards.sendResponse
+  sendResponse.sendFindResponse
   );
 
 router.get("/", users.loginRequired,
   materialinwards.findAll,
-  materialinwards.sendFindResponse
+  sendResponse.sendFindResponse
   );
 
 router.get("/:id", users.loginRequired,
   materialinwards.findOne,
-  materialinwards.sendFindResponse
+  sendResponse.sendFindResponse
   );
 
 router.put('/:id', users.loginRequired,
 	materialinwards.update,
-	materialinwards.sendCreateResponse
-	);
+  sendResponse.sendCreateResponse
+  );
 
 router.put('/update/:id/updateQcStatus', users.loginRequired,
 	materialinwards.update,
 	qctransactions.create,
-	materialinwards.sendCreateResponse
-	);
+  sendResponse.sendCreateResponse
+  );
 
 router.put("/updatewithbarcode/:barcodeSerial", 
   users.loginRequired,
@@ -45,23 +46,28 @@ router.put("/updatewithbarcode/:barcodeSerial",
 
 router.get("/get/getCountByQcStatus", 
   users.loginRequired,
-  materialinwards.countByQcStatus);
+  materialinwards.countByQcStatus,
+  sendResponse.sendFindResponse);
 
 router.get('/get/findMaterialInwardsBySearchQuery',
   users.loginRequired,
-  materialinwards.findMaterialInwardsBySearchQuery);
+  materialinwards.findMaterialInwardsBySearchQuery,
+  sendResponse.sendFindResponse);
 
 router.get('/get/getinventorydetails', 
   users.loginRequired,
-  materialinwards.inventoryData);
+  materialinwards.inventoryData,
+  sendResponse.sendFindResponse);
 
 router.get('/get/inventory/getinventoryStock', 
   users.loginRequired,
-  materialinwards.inventoryStockData);
+  materialinwards.inventoryStockData,
+  sendResponse.sendFindResponse);
 
 router.get('/get/transfer/findMaterialInwardsBySearchQuery',
- users.loginRequired,
- materialinwards.findMaterialInwardsForTransferOut);
+  users.loginRequired,
+  materialinwards.findMaterialInwardsForTransferOut,
+  sendResponse.sendFindResponse);
 
 router.get('/get/getinventorycount', 
   users.loginRequired,
@@ -73,38 +79,46 @@ router.get("/get/getCountByQcStatusHHT",
 
 router.get("/get/getCountByPending", 
   users.loginRequired,
-  materialinwards.getCountByPending);
+  materialinwards.getCountByPending,
+  sendResponse.sendFindResponse);
 
 router.get('/get/findPendingMaterialInwardsBySearchQuery',
- users.loginRequired,
- materialinwards.findPendingMaterialInwardsBySearchQuery);
+  users.loginRequired,
+  materialinwards.findPendingMaterialInwardsBySearchQuery,
+  sendResponse.sendFindResponse);
 
 router.get('/get/dashboardCountForPendingPutaway', 
   users.loginRequired,
-  materialinwards.dashboardCountForPendingPutaway);
+  materialinwards.dashboardCountForPendingPutaway,
+  sendResponse.sendFindResponse);
 
 router.get('/get/getRecent/getRecentTransactionData',
- users.loginRequired,
- materialinwards.findRecentTransactions);
+  users.loginRequired,
+  materialinwards.findRecentTransactions,
+  sendResponse.sendFindResponse);
 
 router.get('/get/RecentTransactions/getRecentTransactions', 
   users.loginRequired,
-  materialinwards.findRecentTransactionsWithoutMaterialId);
+  materialinwards.findRecentTransactionsWithoutMaterialId,
+  sendResponse.sendFindResponse);
 
 router.get('/stock/get/findMaterialInwardsBySearchQuery',
- users.loginRequired,
- materialinwards.findMaterialInwardsBySearchQueryStock);
+  users.loginRequired,
+  materialinwards.findMaterialInwardsBySearchQueryStock,
+  sendResponse.sendFindResponse);
 
 router.post('/post/bulkupload', users.loginRequired,
   materialinwards.bulkUpload,
-  materialinwards.sendBulkUploadResponse);
+  sendResponse.sendFindResponse);
 
 router.get('/partnumbers/get/findforpicklist',
- users.loginRequired,
- materialinwards.findPartNumbersForPicklist);
+  users.loginRequired,
+  materialinwards.findPartNumbersForPicklist,
+  sendResponse.sendFindResponse);
 
 router.post('/post/qcstatuschangehht',
- users.loginRequired,
- materialinwards.updateQcStatusHHT);
+  users.loginRequired,
+  materialinwards.updateQcStatusHHT,
+  sendResponse.sendCreateResponse);
 
 module.exports = router;

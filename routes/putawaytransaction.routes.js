@@ -2,24 +2,28 @@ var express = require('express');
 var router = express.Router();
 var putawaytransactions = require('../controllers/putawaytransaction.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.get("/", users.loginRequired,
 	putawaytransactions.findAll,
-	putawaytransactions.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 router.get("/:id", users.loginRequired,
 	putawaytransactions.findOne,
-	putawaytransactions.sendFindResponse);
+	sendResponse.sendFindResponse);
 
 router.get("/get/getByTransactionDate", users.loginRequired,
-	putawaytransactions.findPutawayTransactionBySearchQuery);
+	putawaytransactions.findPutawayTransactionBySearchQuery,
+	sendResponse.sendFindResponse);
 
 router.get("/get/findPutawayTransactionBySearchQuery",
 	users.loginRequired,
-	putawaytransactions.findPutawayTransactionBySearchQuery);
+	putawaytransactions.findPutawayTransactionBySearchQuery,
+	sendResponse.sendFindResponse);
 
 router.get('/get/countofputawaytransactions', 
 	users.loginRequired,
-	putawaytransactions.countOfPutawayTransaction);
+	putawaytransactions.countOfPutawayTransaction,
+	sendResponse.sendFindResponse);
 
 module.exports = router;

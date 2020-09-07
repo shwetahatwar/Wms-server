@@ -28,25 +28,13 @@ exports.create = async (req, res, next) => {
 
   foundRole = foundRole.toJSON();
 
-  // var foundSite = await Site.findOne({
-  //   where: {
-  //     name: site
-  //   }
-  // });
-
-  // if (!foundSite) {
-  //   return next(HTTPError(500, "User not created, inappropriate site"))
-  // }
-
-  // foundSite = foundSite.toJSON();
-
   try{
     var user = await User.create({
       username: username,
       password: password,
       status: "1",
       roleId: foundRole["id"],
-      siteId: req.body.site,
+      siteId: site,
       employeeId: employeeId,
       createdBy: req.user.username,
       updatedBy: req.user.username
@@ -61,7 +49,7 @@ exports.create = async (req, res, next) => {
 
     var userSiteRelation = await UserSiteRelation.create({
       userId : user["id"],
-      siteId : foundSite["id"],
+      siteId : site,
       createdBy:req.user.username,
       updatedBy:req.user.username
     });
@@ -71,6 +59,7 @@ exports.create = async (req, res, next) => {
     }
   }
   catch (err) {
+    console.log(err)
     if(err["errors"]){
       return next(HTTPError(500,err["errors"][0]["message"]))
     }
@@ -109,6 +98,7 @@ exports.findAll = async (req, res, next) => {
   }
   
   req.userList = list.map ( el => { return el.get({ plain: true }) } );
+  req.responseData = req.userList;
   next();
 };
 
@@ -184,18 +174,6 @@ exports.sign_in = async (req, res, next) => {
   }
 };
 
-exports.sendFindUserResponse = async (req, res, next) => {
-  if(!req.userList) {
-    req.userList = [];
-    return next(HTTPError(401, "User not found"))
-  }
-  res.status(200).send(req.userList);
-};
-
-exports.sendCreateUserResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
-
 exports.findOne = async (req, res, next) => {
   const { id } = req.params;
 
@@ -204,6 +182,7 @@ exports.findOne = async (req, res, next) => {
     return next(HTTPError(500, "User not found"))
   }
   req.userList = foundUser;
+  req.responseData = req.userList;
   next();
 };
 
@@ -215,7 +194,7 @@ exports.update = async (req, res, next) => {
     password = await User.encryptPassword(password);
   }
   // console.log(password);
-  whereClause = new WhereBuilder()
+  updateClause = new WhereBuilder()
     .clause('username', username)
     .clause('password', password)
     .clause('roleId', role)
@@ -223,7 +202,7 @@ exports.update = async (req, res, next) => {
     .clause('siteId', site).toJSON();
 
     try{
-      var updatedUser = await User.update(whereClause,{
+      var updatedUser = await User.update(updateClause,{
         where: {
           id: id
         }

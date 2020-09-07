@@ -71,7 +71,7 @@ exports.getAll =async (req,res,next) =>{
   }
   
   req.zonesList = getAllZones.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.zonesList;
   next();
 };
 
@@ -81,7 +81,7 @@ exports.update =async (req, res,next) => {
 
   var { name, siteId ,status } = req.body;
   
-  whereClause = new WhereBuilder()
+  updateClause = new WhereBuilder()
   .clause('name', name)
   .clause('siteId', siteId)
   .clause('updatedBy', req.user.username) 
@@ -90,7 +90,7 @@ exports.update =async (req, res,next) => {
 
   var updatedZone;
   try {
-    updatedZone = await Zone.update(whereClause,{
+    updatedZone = await Zone.update(updateClause,{
       where: {
         id: id
       }
@@ -122,6 +122,7 @@ exports.getById =async (req,res,next) => {
     return next(HTTPError(500, "Zone not found"))
   }
   req.zonesList = zone;
+  req.responseData = req.zonesList
   next();
 };
 

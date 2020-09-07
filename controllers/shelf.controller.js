@@ -12,16 +12,8 @@ exports.getAll =async (req,res,next) =>{
 
   var {description,rackId,barcodeSerial,name,status,limit,offset} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('name', name)
@@ -56,8 +48,8 @@ exports.getAll =async (req,res,next) =>{
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
 
   if (!getAllShelves) {
@@ -65,7 +57,7 @@ exports.getAll =async (req,res,next) =>{
   }
   
   req.shelfsList = getAllShelves.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.shelfsList;
   next();
 };
 
@@ -76,7 +68,6 @@ exports.create = async (req, res, next) => {
   if (!rackId) {
     return next(HTTPError(500, "Shelf not created,name or rack or description field is empty"))
   }
-
 
   if(!vertical){
     vertical = "001";
@@ -89,7 +80,6 @@ exports.create = async (req, res, next) => {
 
   var shelfData = await serialNumberFinder.getShelfSerialNumber(rackId);
   
-  console.log("shelfData",shelfData)
   let siteName;
   let zoneName;
   let rackName;
@@ -105,9 +95,7 @@ exports.create = async (req, res, next) => {
       }]
     }]
   });
-  console.log("rackData", rackData);
   rackData =rackData.toJSON();
-  console.log("rackData",rackData);
   siteName=rackData["zone"]["site"]["name"];
   zoneName=rackData["zone"]["name"];
   rackName=rackData["name"];
@@ -147,10 +135,6 @@ exports.create = async (req, res, next) => {
   next();
 };
 
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send(req.shelfCreated);
-};
-
 //Update Shelf by Id
 exports.update = async(req, res,next) => {
   const id = req.params.id;
@@ -158,7 +142,7 @@ exports.update = async(req, res,next) => {
   var { name , rackId , description , capacity , loadedCapacity , volume , loadedVolume ,
     status , updatedBy} = req.body;
 
-    whereClause = new WhereBuilder()
+    updateClause = new WhereBuilder()
     .clause('name', name)
     .clause('rackId', rackId)
     .clause('description', description)
@@ -171,7 +155,7 @@ exports.update = async(req, res,next) => {
 
     var updatedShelf;
     try {
-      updatedShelf = await Shelf.update(whereClause,{
+      updatedShelf = await Shelf.update(updateClause,{
         where: {
           id: id
         }
@@ -193,10 +177,6 @@ exports.update = async(req, res,next) => {
     next();
   };
 
-  exports.sendUpdateResponse = async (req, res, next) => {
-    res.status(200).send({message: "success"});
-  };
-
 //Get Shelf by Id
 exports.getById = async (req,res,next) => {
   const id = req.params.id;
@@ -206,6 +186,7 @@ exports.getById = async (req,res,next) => {
     return next(HTTPError(500, "shelf not found"))
   }
   req.shelfsList = shelf;
+  req.responseData = req.shelfsList;
   next();
 };
 
@@ -213,60 +194,31 @@ exports.findShelfsBySearchQuery = async(req, res,next) => {
 
   var { name, zone , rack , site , status , offset , limit } = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
+  name = (name) ? name:'';
+  zone = (zone) ? zone:'';
+  site = (site) ? site:'';
+  rack = (rack) ? rack:'';
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
-  if(!name){
-    name ='';
-  }
-  if(!zone){
-    zone = '';
-  }
-  if(!site){
-    site = '';
-  }
-  if(!rack){
-    rack = '';
-  }
-
-  var whereClause = {};
-  var siteWhereClause = {};
-  var zoneWhereClause = {};
-  var rackWhereClause = {};
-
-  if(name){
-    whereClause.name = {
-      [Op.like] : '%'+name+'%'
-    }
-  }
+  whereClause = new LikeQueryHelper()
+  .clause(name, "name")
+  .toJSON();
 
   whereClause.status = true;
 
-  if(rack){
-    rackWhereClause.name = {
-      [Op.like]:'%'+rack+'%'
-    };
-  }
+  rackWhereClause = new LikeQueryHelper()
+  .clause(rack, "name")
+  .toJSON();
 
-  if(site){
-    siteWhereClause.name = {
-      [Op.like]:'%'+site+'%'
-    };
-  }
+  siteWhereClause = new LikeQueryHelper()
+  .clause(site, "name")
+  .toJSON();
 
-  if(zone){
-    zoneWhereClause.name = {
-      [Op.like]:'%'+zone+'%'
-    };
-  }
+  zoneWhereClause = new LikeQueryHelper()
+  .clause(zone, "name")
+  .toJSON();
 
   if(req.site){
     zoneWhereClause.siteId = req.site;
@@ -295,8 +247,8 @@ exports.findShelfsBySearchQuery = async(req, res,next) => {
       order: [
       ['id', 'DESC'],
       ],
-      offset:newOffset,
-      limit:newLimit
+      offset:offset,
+      limit:limit
     });
   
   var countArray =[];
@@ -328,12 +280,12 @@ exports.findShelfsBySearchQuery = async(req, res,next) => {
 
   countArray.push(totalLocations);
   responseData.push(countArray);
-
-  res.status(200).send(responseData);
+  req.responseData = responseData;
+  next();
 };
 
 // get count of all shelfs whose status =1 
-exports.countOfShelfs = async (req, res) => {
+exports.countOfShelfs = async (req, res,next) => {
   var total = 0;
   var zoneWhereClause = {};
 
@@ -361,12 +313,12 @@ exports.countOfShelfs = async (req, res) => {
   var totalCount = {
     totalLocations : total 
   }
-
-  res.status(200).send(totalCount);
+  req.responseData = totalCount;
+  next();
 };
 
 // get count of all shelfs whose capacity exceeded
-exports.excessCountOfShelfs = async (req, res) => {
+exports.excessCountOfShelfs = async (req, res,next) => {
   var total = 0;
   var query = "select count(id) as total from shelves where status = true and shelves.loadedCapacity > shelves.capacity;";
   if(req.site){
@@ -406,11 +358,12 @@ exports.excessCountOfShelfs = async (req, res) => {
     totalCapacity : totalCapacity, 
     totalLoadedCapacity :totalLoadedCapacity
   }
-  res.status(200).send(totalCount);
+  req.responseData = totalCount;
+  next();
 };
 
 // Bulk upload of Shelf's
-exports.BulkUpload = async (req, res) => {
+exports.BulkUpload = async (req, res,next) => {
   console.log(req.body);
   let responseDataArray = [];
   var serialNumber;
@@ -478,9 +431,10 @@ exports.BulkUpload = async (req, res) => {
         });
       });
     }
-    res.status(200).send({
-      responseDataArray
-    });
+    next();
+    // res.status(200).send({
+    //   responseDataArray
+    // });
   }
   else{
     res.status(500).send({

@@ -2,37 +2,40 @@ var express = require('express');
 var router = express.Router();
 var stocktransactions = require('../controllers/stocktransaction.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.get("/",users.loginRequired,
-  stocktransactions.findAll,
-  stocktransactions.sendFindResponse
-  );
+	stocktransactions.findAll,
+	sendResponse.sendFindResponse
+	);
 
 router.get("/:id",users.loginRequired,
-  stocktransactions.findOne,
-  stocktransactions.sendFindResponse);
+	stocktransactions.findOne,
+	sendResponse.sendFindResponse);
 
 router.get("/get/stocktransactionsdatewise", 
 	users.loginRequired,
-	stocktransactions.findBySearchQuery);
+	stocktransactions.findBySearchQuery,
+	sendResponse.sendFindResponse);
 
 router.get("/get/findbysearchquery",
- users.loginRequired,
- stocktransactions.findBySearchQuery);
+	users.loginRequired,
+	stocktransactions.findBySearchQuery,
+	sendResponse.sendFindResponse);
 
 router.post("/stocktransfer/out", 
 	users.loginRequired,
 	stocktransactions.transferOut,
-	stocktransactions.sendCreateResponse);
+	sendResponse.sendCreateResponse);
 
 router.post("/stocktransfer/in", 
 	users.loginRequired,
 	stocktransactions.transferIn,	
-	stocktransactions.sendCreateResponse);
-
+	sendResponse.sendCreateResponse);
 
 router.get("/get/count",
- users.loginRequired,
- stocktransactions.getCount);
+	users.loginRequired,
+	stocktransactions.getCount,
+	sendResponse.sendFindResponse);
 
 module.exports = router;

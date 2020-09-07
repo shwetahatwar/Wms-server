@@ -2,30 +2,33 @@ var express = require('express');
 var router = express.Router();
 var partnumbers = require('../controllers/partnumber.controller');
 var users = require('../controllers/user.controller');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
 	partnumbers.create,
-	partnumbers.sendCreateResponse);
+	sendResponse.sendCreateResponse);
 
 router.get("/", users.loginRequired,
 	partnumbers.getAll,
-	partnumbers.sendFindResponse
+	sendResponse.sendFindResponse
 	);
 
 router.get("/:id", users.loginRequired,
 	partnumbers.getById,
-	partnumbers.sendFindResponse
+	sendResponse.sendFindResponse
 	);
 
 router.put('/:id', users.loginRequired,
 	partnumbers.update,
-	partnumbers.sendCreateResponse
+	sendResponse.sendCreateResponse
 	);
 
 router.get('/get/findPartNumbersBySearchQuery', users.loginRequired,
-	partnumbers.findPartNumbersBySearchQuery);
+	partnumbers.findPartNumbersBySearchQuery,
+	sendResponse.sendFindResponse);
 
 router.get('/get/countOfPartNumbers', users.loginRequired,
-	partnumbers.countOfPartNumbers);
+	partnumbers.countOfPartNumbers,
+	sendResponse.sendFindResponse);
 
 module.exports = router;

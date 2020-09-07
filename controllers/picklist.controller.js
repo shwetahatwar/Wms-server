@@ -153,7 +153,8 @@ exports.create = async (req, res,next) => {
         }
       }
     }
-    res.send(responseData);
+    req.responseData = responseData;
+    next();
   }
   else{
     return next(HTTPError(500,"Picklist not created due to insufficient quantity."))
@@ -162,33 +163,10 @@ exports.create = async (req, res,next) => {
 
 // Get all Picklists from the database.
 exports.findAll = async (req, res,next) => {
-
-//   const msg = {
-//   to: 'sagar@briot.in',
-//   from: 'sagar@briot.in',
-//   subject: 'Sending with SendGrid is Fun',
-//   text: 'and easy to do anywhere, even with Node.js',
-//   html: '<strong>and easy to do anywhere, even with Node.js</strong>',
-// }
-
-// try{
-//   sgMail.send(msg)
-// }
-// catch(err){
-//   console.log("line 176",err)
-// }
   var { picklistName , status , isIssuedToProduction , picklistStatus , offset , limit } = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('picklistName', picklistName)
@@ -205,8 +183,8 @@ exports.findAll = async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
 
   if (!picklistData) {
@@ -214,15 +192,11 @@ exports.findAll = async (req, res,next) => {
   }
   
   req.picklistDataList = picklistData.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.picklistDataList;
   next();
 };
 
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.picklistDataList);
-};
-
-exports.getCountForPicklist = async (req,res) =>{
+exports.getCountForPicklist = async (req,res,next) =>{
   let responseData =[];
   
   for(var i=0;i<req.body.length;i++){
@@ -244,7 +218,8 @@ exports.getCountForPicklist = async (req,res) =>{
     }
   }
   
-  res.status(200).send(responseData);
+  req.responseData = responseData;
+  next();
 };
 
 // Find a single Picklist with an id
@@ -256,7 +231,7 @@ exports.findOne = async (req, res,next) => {
     return next(HTTPError(500, "Picklist not found by id="+id))
   }
   req.picklistDataList = picklist;
-
+  req.responseData = req.picklistDataList;
   next();
 };
 
@@ -295,10 +270,7 @@ exports.update = async(req, res,next) => {
   req.picklistUpdated = picklistUpdated;
   next();
 };
- 
-exports.updateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
+
 
 //Get Picklist Material List
 exports.getPicklistMaterialLists = async (req, res,next) => {  
@@ -311,13 +283,9 @@ exports.getPicklistMaterialLists = async (req, res,next) => {
   }
   
   req.picklistMaterialsList = picklistMaterials.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.picklistMaterialsList;
   next();
 };
-
-exports.sendPicklistMaterialResponse = async (req,res,next) =>{
-  res.status(200).send(req.picklistMaterialsList);
-}
 
 //Create Picklist Material List
 exports.postPicklistMaterialLists = async (req, res) => {
@@ -356,6 +324,7 @@ exports.getPicklistMaterialList = async(req, res,next) => {
   }
   
   req.picklistMaterialsList = picklistMaterials
+  req.responseData = req.picklistMaterialsList;
   next();
 };
 
@@ -404,13 +373,10 @@ exports.getPicklistPickingMaterialLists = async (req, res ,next) => {
   }
 
   req.picklistPickingMaterialsList = picklistPickingMaterials.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.picklistPickingMaterialsList;
   next();
 };
 
-exports.sendPicklistPickingMaterialResponse = async (req,res,next) =>{
-  res.status(200).send(req.picklistPickingMaterialsList);
-}
 
 //Create Picklist Picking Material List
 exports.postPicklistPickingMaterialLists = async (req, res,next) => {
@@ -612,6 +578,7 @@ exports.getPicklistPickingMaterialList = async (req, res,next) => {
   }
 
   req.picklistPickingMaterialsList = picklistPickingMaterial;
+  req.responseData = picklistPickingMaterial;
   next();
 };
 
@@ -650,7 +617,7 @@ exports.putPicklistPickingMaterialList = async(req, res,next) => {
 };
 
 //Get Count of Picklist for Dashboard
-exports.getPicklistCountDashboard = async (req, res) => {
+exports.getPicklistCountDashboard = async (req, res,next) => {
   var d = new Date();
   var newDay = d.getDate();
   if(newDay.toString().length == 1)
@@ -693,7 +660,8 @@ exports.getPicklistCountDashboard = async (req, res) => {
       completed:completed,
       total:total
     }
-    res.send(picklistCount);
+    req.responseData = picklistCount;
+    next();
   })
   .catch(function(err){
     res.status(500).send({
@@ -754,19 +722,10 @@ exports.getPicklistCountDashboard = async (req, res) => {
 exports.findPicklistByName = async (req, res,next) => {
   var { createdAtStart , createdAtEnd , offset , limit , picklistName} = req.query;
   var whereClause = {};
-  var newOffset = 0;
-  var newLimit = 100;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-  if(!picklistName){
-    picklistName = ''
-  }
+  picklistName = (picklistName) ? picklistName:'';
 
   if(createdAtStart && createdAtEnd){
     whereClause.createdAt = {
@@ -790,10 +749,9 @@ exports.findPicklistByName = async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
-
 
   if (!picklistData) {
     return next(HTTPError(400, "Seached data not found"));
@@ -812,11 +770,12 @@ exports.findPicklistByName = async (req, res,next) => {
   countArray.push(totalPicklists);
   responseData.push(countArray);
 
-  res.status(200).send(responseData);
+  req.responseData = responseData;
+  next();
 };
 
 //get Picklist count
-exports.findPicklistCount = async (req, res) => {
+exports.findPicklistCount = async (req, res,next) => {
 var total =0;
   var inProgress=0;
   var completed = 0;
@@ -858,5 +817,6 @@ var total =0;
     'pending':pending,
     'completed':completed
   }
-    res.status(200).send(responseData);
+    req.responseData =responseData;
+    next();
 };

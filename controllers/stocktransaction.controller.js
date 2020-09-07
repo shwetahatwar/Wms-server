@@ -109,34 +109,24 @@ exports.transferIn = async (req, res, next) => {
   var updatedData = await updateMaterialInwardFunction.updateMaterialInward(updateMaterial,materialInwardId)
   
   next();
-  
 };
 
 // get all stock transactions
 exports.findAll = async (req, res,next) => {
   var { transactionType , fromSiteId, toSiteId , transactionTimestamp , transferOutUserId , transferInUserId , materialInwardId , status , offset , limit } = req.query;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
-    var whereClause ={};
+  var whereClause ={};
   if(req.site){
     checkString = req.site.toString();
     siteWhereClause.id =req.site
     whereClause = {
-    [Op.or]: [
-    { fromSiteId: req.site },
-    { toSiteId: req.site }
-    ]
-  }
+      [Op.or]: [
+      { fromSiteId: req.site },
+      { toSiteId: req.site }
+      ]
+    }
   }
   
   if(transactionType){
@@ -152,7 +142,6 @@ exports.findAll = async (req, res,next) => {
     whereClause.materialInwardId = materialInwardId
   }
 
-  console.log(whereClause)
   var stockData =  await StockTransaction.findAll({ 
     where: whereClause,
     include: [
@@ -166,8 +155,8 @@ exports.findAll = async (req, res,next) => {
           {model: User,
             as: 'transferInUser'}
             ],
-            offset:newOffset,
-            limit:newLimit 
+            offset:offset,
+            limit:limit 
           });
 
   if (!stockData) {
@@ -175,7 +164,7 @@ exports.findAll = async (req, res,next) => {
   }
   
   req.responseList = stockData.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.responseList;
   next();
 };
 
@@ -188,34 +177,27 @@ exports.findOne = async (req, res, next) => {
     return next(HTTPError(500, "Stock Transactions not found"))
   }
   req.responseList = stocktransit;
+  req.responseData = req.responseList;
   next();
 };
 
 
-exports.findBySearchQuery = async (req, res) => {
+exports.findBySearchQuery = async (req, res,next) => {
   var { createdAtStart , createdAtEnd , offset , limit , partNumber , barcodeSerial } = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = {};
   var materialInwardWhereClause = {};
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
     whereClause = {
-    [Op.or]: [
-    { fromSiteId: req.site },
-    { toSiteId: req.site }
-    ]
+      [Op.or]: [
+      { fromSiteId: req.site },
+      { toSiteId: req.site }
+      ]
+    }
   }
   else{
     materialInwardWhereClause.siteId = {
@@ -223,12 +205,9 @@ exports.findBySearchQuery = async (req, res) => {
     };
   }
 
-  if(!partNumber){
-    partNumber="";
-  }
-  if(!barcodeSerial){
-    barcodeSerial="";
-  }
+  partNumber = (partNumber) ? partNumber:'';
+  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
+
   if(createdAtStart && createdAtEnd){
     whereClause.createdAt = {
       [Op.gte]: parseInt(createdAtStart),
@@ -262,12 +241,13 @@ exports.findBySearchQuery = async (req, res) => {
             as: 'transferOutUser'},
             {model: User,
               as: 'transferInUser'}],
-              offset:newOffset,
-              limit:newLimit 
+              offset:offset,
+              limit:limit 
             });
 
   if(createdAtStart && createdAtEnd){
-    res.status(200).send(responseData);
+    req.responseData = responseData;
+    next();
     return;
   }
   var countData = await StockTransaction.count({ 
@@ -293,15 +273,9 @@ exports.findBySearchQuery = async (req, res) => {
   dataList.push(responseData);
   dataCount.push(count);
   dataList.push(dataCount);
-  res.status(200).send(dataList);
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.responseList);
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send(req.transferOutData);
+  req.responseData = dataList;
+  next();
+  //res.status(200).send(dataList);
 };
 
 exports.getCount = async (req, res, next) => {
@@ -312,7 +286,7 @@ exports.getCount = async (req, res, next) => {
     siteWhereClause.siteId = req.site;
   }
   var whereClause={};
-   whereClause = {
+  whereClause = {
     [Op.or]: [
     { fromSiteId: req.site },
     { toSiteId: req.site }
@@ -324,8 +298,8 @@ exports.getCount = async (req, res, next) => {
     {model: MaterialInward,
       required: true,
       where:materialInwardWhereClause},
-     ],
-  })
+      ],
+    })
 
   if(!total){
     return next(HTTPError(500, "Internal error has occurred, while getting count"))
@@ -334,6 +308,6 @@ exports.getCount = async (req, res, next) => {
   var totalCount = {
     totalCount : total 
   }
-  res.status(200).send(totalCount);
+  req.responseData =totalCount
 };
 

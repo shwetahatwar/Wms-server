@@ -54,7 +54,7 @@ exports.getAll = async (req, res, next) =>{
   }
   
   req.roleList = getAllRole.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.roleList;
   next();
 };
 
@@ -63,13 +63,13 @@ exports.update = async (req, res, next) => {
   const { id } = req.params;
   var { name, status } = req.body;
   
-  whereClause = new WhereBuilder()
+  updateClause = new WhereBuilder()
   .clause('name', name)
   .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
 
   try {
-    var updatedRole = await Role.update(whereClause,{
+    var updatedRole = await Role.update(updateClause,{
       where: {
         id: id
       }
@@ -101,13 +101,6 @@ exports.getById = async (req, res, next) => {
     return next(HTTPError(500, "Role not found"))
   }
   req.roleList = foundRole;
+  req.responseData = req.roleList;
   next();
 }
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.roleList);
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};

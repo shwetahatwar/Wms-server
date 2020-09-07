@@ -167,7 +167,7 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
 
   limit = (limit) ? parseInt(limit) : 100;
   offset = (offset) ? parseInt(offset) : 0;
-
+  
   partNumber = (partNumber) ? partNumber:'';
   barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
   transactionType = (transactionType) ? transactionType:'';

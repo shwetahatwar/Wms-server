@@ -28,12 +28,8 @@ exports.materialInwardBulkUpload = async (req, res, next) => {
   console.log("materialInwardConsole", materialInward);
   materialInward = await MaterialInward.bulkCreate(materialInward["materialInward"]);
   req.materialInwardBulkUpload = materialInward.map ( el => { return el.get({ plain: true }) } );
-  
+  req.responseData = req.materialInwardBulkUpload;
   next();
-}
-
-exports.sendResponse = (req, res, next) => {
-  return res.status(200).send(req.materialInwardBulkUpload)
 }
 
 exports.bulkUpload = async (req,res,next)  =>{
@@ -71,13 +67,10 @@ exports.bulkUpload = async (req,res,next)  =>{
   }
 
   console.log("materialInwardBulkUploadResponse 67",req.materialInwardBulkUploadResponse)
-  
+  req.responseData = req.materialInwardBulkUploadResponse;
   next();
 }
 
-exports.sendBulkUploadResponse = (req, res, next) => {
-  return res.status(200).send(req.materialInwardBulkUploadResponse)
-}
 //   for(var a=0;a<req.body.length;a++){
 //     const partNumbersId = req.body[a]["partNumberId"];
 //     var materialInwardIds;  
@@ -194,16 +187,8 @@ exports.findAll =async (req, res,next) => {
     materialStatus,
     siteId,offset,limit} = req.query;
 
-    var newOffset = 0;
-    var newLimit = 100;
-
-    if(offset){
-      newOffset = parseInt(offset)
-    }
-
-    if(limit){
-      newLimit = parseInt(limit)
-    }
+    limit = (limit) ? parseInt(limit) : 100;
+    offset = (offset) ? parseInt(offset) : 0;
 
     var whereClause = new WhereBuilder()
     .clause('partNumberId', partNumberId)
@@ -228,8 +213,8 @@ exports.findAll =async (req, res,next) => {
       order: [
       ['id', 'DESC'],
       ],
-      offset:newOffset,
-      limit:newLimit 
+      offset:offset,
+      limit:limit 
     });
 
     if (!materialinwards) {
@@ -237,7 +222,7 @@ exports.findAll =async (req, res,next) => {
     }
 
     req.materialInwardsList = materialinwards.map ( el => { return el.get({ plain: true }) } );
-
+    req.responseData = req.materialInwardsList;
     next();
     
   };
@@ -250,12 +235,8 @@ exports.findOne =async (req, res,next) => {
     return next(HTTPError(500, "Material Inward not found with id=" + id))
   }
   req.materialInwardsList = materialinward;
+  req.responseData = req.materialInwardsList;
   next();
-};
-
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.materialInwardsList);
 };
 
 // Update a MaterialInward by the id in the request
@@ -266,7 +247,7 @@ exports.update = async (req, res,next) => {
     materialStatus,
     siteId} = req.body;
 
-    var whereClause = new WhereBuilder()
+    var updateData = new WhereBuilder()
     .clause('partNumberId', partNumberId)
     .clause('shelfId', shelfId)
     .clause('barcodeSerial', barcodeSerial)
@@ -277,10 +258,10 @@ exports.update = async (req, res,next) => {
     .clause('siteId', siteId)
     .clause('eachPackQuantity', eachPackQuantity)
     .clause('materialStatus', materialStatus).toJSON();
-    console.log("whereClause",whereClause)
+
     var updatedMaterialInward;
     try {
-      updatedMaterialInward = await MaterialInward.update(whereClause,{
+      updatedMaterialInward = await MaterialInward.update(updateData,{
         where: {
           id: id
         }
@@ -405,13 +386,12 @@ exports.getCountByPending = async (req, res,next) => {
   };
   countTable.push(singleData);
 
-  res.status(200).send({
-    countTable
-  });
+  req.responseData =countTable;
+  next();
 };
 
 // get count by QC
-exports.countByQcStatus = async (req, res) => {
+exports.countByQcStatus = async (req, res,next) => {
   var countTable=[];
   var materialInwardWhereClause = {};
   if(req.site){
@@ -464,14 +444,12 @@ exports.countByQcStatus = async (req, res) => {
     'rejected':rejectedData
   };
   countTable.push(singleData);
-
-  res.status(200).send({
-    countTable
-  });
+  req.responseData = countTable;
+  next();
 };
 
 //Get count
-exports.countByQcStatusHHT = async (req, res) => {
+exports.countByQcStatusHHT = async (req, res,next) => {
   var countTable=[];
   var total = 0;
   var ok = 0;
@@ -518,50 +496,28 @@ exports.countByQcStatusHHT = async (req, res) => {
 
 exports.findPendingMaterialInwardsBySearchQuery= async (req, res) => {
   var {offset , limit ,barcodeSerial , partNumber , description , QCStatus} = req.query
-  var materialInwardWhereClause = {};
+  
+  partNumber = (partNumber) ? partNumber:'';
+  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
+  description = (description) ? description:'';
+
+  materialInwardWhereClause = new LikeQueryHelper()
+  .clause(barcodeSerial, "barcodeSerial")
+  .clause(partNumber, "partNumber")
+  .toJSON();
+
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
   }
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
-  if(!barcodeSerial){
-    barcodeSerial='';
-  }
-  if(!partNumber){
-    partNumber='';
-  }
-  if(!description){
-    description='';
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   materialInwardWhereClause.status = true;
 
-  if(barcodeSerial){
-    materialInwardWhereClause.barcodeSerial = {
-      [Op.like]:'%'+barcodeSerial+'%'
-    };
-  }
-  if(partNumber){
-    materialInwardWhereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
-  var partNumberWhereClause = {};
-  if(description){
-    partNumberWhereClause.description = {
-      [Op.like]:'%'+description+'%'
-    };
-  }
+  partNumberWhereClause = new LikeQueryHelper()
+  .clause(description, "description")
+  .toJSON();
 
   if(QCStatus){
     materialInwardWhereClause.QCStatus = QCStatus
@@ -582,8 +538,8 @@ exports.findPendingMaterialInwardsBySearchQuery= async (req, res) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
   if (!data) {
     return next(HTTPError(500, "Searched data not found"));
@@ -608,47 +564,41 @@ exports.findPendingMaterialInwardsBySearchQuery= async (req, res) => {
   countArray.push(totalMaterials);
   responseData.push(countArray);
 
-  res.status(200).send(responseData);
+  req.responseData = responseData;
+  next();
 };
 
 //get data by search query
-exports.findMaterialInwardsBySearchQuery = async (req, res) => {
+exports.findMaterialInwardsBySearchQuery = async (req, res,next) => {
   var {offset , limit ,barcodeSerial , partNumber , QCStatus} = req.query
-  var materialInwardWhereClause = {};
+  
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
+
+  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
+  partNumber = (partNumber) ? partNumber:'';
+
+  materialInwardWhereClause = new LikeQueryHelper()
+  .clause(barcodeSerial, "barcodeSerial")
+  .clause(partNumber, "partNumber")
+  .toJSON();
+
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
   }
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
-  if(!barcodeSerial){
-    barcodeSerial='';
-  }
-  if(!partNumber){
-    partNumber='';
-  }
-
   materialInwardWhereClause.status = true;
 
-  if(barcodeSerial){
-    materialInwardWhereClause.barcodeSerial = {
-      [Op.like]:'%'+barcodeSerial+'%'
-    };
-  }
-  if(partNumber){
-    materialInwardWhereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
+  // if(barcodeSerial){
+  //   materialInwardWhereClause.barcodeSerial = {
+  //     [Op.like]:'%'+barcodeSerial+'%'
+  //   };
+  // }
+  // if(partNumber){
+  //   materialInwardWhereClause.partNumber = {
+  //     [Op.like]:'%'+partNumber+'%'
+  //   };
+  // }
   
   if(!QCStatus){
     materialInwardWhereClause.QCStatus = {
@@ -666,8 +616,8 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
       order: [
       ['id', 'DESC'],
       ],
-      offset:newOffset,
-      limit:newLimit
+      offset:offset,
+      limit:limit
     });
     if (!data) {
       return next(HTTPError(500, "Searched data not found"));
@@ -687,7 +637,8 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
     countArray.push(totalMaterials);
     responseData.push(countArray);
 
-    res.status(200).send(responseData);
+    req.responseData = responseData;
+    next();
   }
   else {
     materialInwardWhereClause.QCStatus = QCStatus;
@@ -702,8 +653,8 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
       order: [
       ['id', 'DESC'],
       ],
-      offset:newOffset,
-      limit:newLimit
+      offset:offset,
+      limit:limit
     });
     if (!data) {
       return next(HTTPError(500, "Searched data not found"));
@@ -723,47 +674,29 @@ exports.findMaterialInwardsBySearchQuery = async (req, res) => {
     countArray.push(totalMaterials);
     responseData.push(countArray);
 
-    res.status(200).send(responseData); 
+    req.responseData = responseData;
+    next();
   }
 };
 
-exports.findMaterialInwardsBySearchQueryStock = async (req, res) => {
+exports.findMaterialInwardsBySearchQueryStock = async (req, res,next) => {
   var {offset , limit ,barcodeSerial , partNumber , QCStatus} = req.query
-  var materialInwardWhereClause = {};
+  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
+  partNumber = (partNumber) ? partNumber:'';
+
+  materialInwardWhereClause = new LikeQueryHelper()
+  .clause(barcodeSerial, "barcodeSerial")
+  .clause(partNumber, "partNumber")
+  .toJSON();
+
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
   }
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
-  if(!barcodeSerial){
-    barcodeSerial='';
-  }
-  if(!partNumber){
-    partNumber='';
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   materialInwardWhereClause.status = true;
-
-  if(barcodeSerial){
-    materialInwardWhereClause.barcodeSerial = {
-      [Op.like]:'%'+barcodeSerial+'%'
-    };
-  }
-  if(partNumber){
-    materialInwardWhereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
   materialInwardWhereClause.materialStatus = {
     [Op.or]: ["Available", "NA"]
   };
@@ -781,8 +714,8 @@ exports.findMaterialInwardsBySearchQueryStock = async (req, res) => {
       order: [
       ['id', 'DESC'],
       ],
-      offset:newOffset,
-      limit:newLimit
+      offset:offset,
+      limit:limit
     });
     if (!data) {
       return next(HTTPError(500, "Searched data not found"));
@@ -801,7 +734,8 @@ exports.findMaterialInwardsBySearchQueryStock = async (req, res) => {
     countArray.push(totalMaterials);
     responseData.push(countArray);
 
-    res.status(200).send(responseData);
+    req.responseData = responseData;
+    next();
   }
   else{
     var data = await MaterialInward.findAll({ 
@@ -815,8 +749,8 @@ exports.findMaterialInwardsBySearchQueryStock = async (req, res) => {
       order: [
       ['id', 'DESC'],
       ],
-      offset:newOffset,
-      limit:newLimit
+      offset:offset,
+      limit:limit
     });
 
     var countArray =[];
@@ -834,7 +768,8 @@ exports.findMaterialInwardsBySearchQueryStock = async (req, res) => {
     countArray.push(totalMaterials);
     responseData.push(countArray);
 
-    res.status(200).send(responseData);
+    req.responseData = responseData;
+    next();
   }
 };
 
@@ -952,7 +887,8 @@ exports.inventoryData = async (req, res,next) => {
     return next(HTTPError(500, "Error occurred while retrieving inventory stock"));
   }
 
-  res.status(200).send(data);
+  req.responseData = data;
+  next();
 };
 
 
@@ -964,35 +900,16 @@ exports.inventoryStockData = async (req, res,next) => {
     materialInwardWhereClause.siteId = req.site;
   }
 
-  var newOffset = 0;
-  var newLimit = 100;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(offset){
-    newOffset = parseInt(offset)
-  }
+  partNumber = (partNumber) ? partNumber:'';
+  description = (description) ? description:'';
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
-  if(!partNumber){
-    partNumber='';
-  }
-  if(!description){
-    description='';
-  }
-
-  var partNumberWhereClause = {};
-  if(partNumber){
-    partNumberWhereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
-  if(description){
-    partNumberWhereClause.description = {
-      [Op.like]:'%'+description+'%'
-    };
-  }
+  partNumberWhereClause = new LikeQueryHelper()
+  .clause(partNumber, "partNumber")
+  .clause(description, "description")
+  .toJSON();
 
   materialInwardWhereClause.QCStatus = 1;
   materialInwardWhereClause.materialStatus = "Available";
@@ -1009,14 +926,15 @@ exports.inventoryStockData = async (req, res,next) => {
         where:partNumberWhereClause,
         attributes: ['description','partNumber']
       }],
-      limit:newLimit,
-      offset:newOffset
+      limit:limit,
+      offset:offset
     });
     if(!data){
       return next(HTTPError(500, "Inventory data not found"));
     }
 
-    res.status(200).send(data);
+    req.responseData = data;
+    next();
   }
   else{
     var data =  await MaterialInward.findAll({
@@ -1036,48 +954,29 @@ exports.inventoryStockData = async (req, res,next) => {
       return next(HTTPError(500, "Inventory data not found"));
     }
 
-    res.status(200).send(data);
+    req.responseData = data;
+    next();
   }
 };
 
 //get data by search query for transfer Out
 exports.findMaterialInwardsForTransferOut = async (req, res,next) => {
   var {offset , limit ,barcodeSerial ,materialStatus , partNumber , QCStatus} = req.query
-  var materialInwardWhereClause = {};
+  partNumber = (partNumber) ? partNumber:'';
+  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
+
+  materialInwardWhereClause = new LikeQueryHelper()
+  .clause(barcodeSerial, "barcodeSerial")
+  .clause(partNumber, "partNumber")
+  .toJSON();
+
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
   }
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
-  if(!barcodeSerial){
-    barcodeSerial='';
-  }
-  if(!partNumber){
-    partNumber='';
-  }
-
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
   materialInwardWhereClause.status = true;
-
-  if(barcodeSerial){
-    materialInwardWhereClause.barcodeSerial = {
-      [Op.like]:'%'+barcodeSerial+'%'
-    };
-  }
-  if(partNumber){
-    materialInwardWhereClause.partNumber = {
-      [Op.like]:'%'+partNumber+'%'
-    };
-  }
   
   if(QCStatus){
     materialInwardWhereClause.QCStatus = QCStatus
@@ -1096,8 +995,8 @@ exports.findMaterialInwardsForTransferOut = async (req, res,next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
   if(!data){
     return next(HTTPError(500, "Searhed data not found"));
@@ -1115,7 +1014,8 @@ exports.findMaterialInwardsForTransferOut = async (req, res,next) => {
   countArray.push(totalMaterials);
   responseData.push(countArray);
 
-  res.status(200).send(responseData);
+  req.responseData =responseData;
+  next();
 
 };
 
@@ -1190,9 +1090,8 @@ exports.dashboardCountForPendingPutaway = async (req,res,next) =>{
     'totalInventory':count,
     'totalData':totalData
   };
-  res.status(200).send({
-    responseData
-  });
+  req.responseData = responseData;
+  next();
 };
 
 
@@ -1205,16 +1104,8 @@ exports.findRecentTransactions = async (req, res,next) => {
   
   var {siteId,offset,limit} = req.query;
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
   
   var data = await MaterialInward.findAll({ 
     where: materialInwardWhereClause,
@@ -1227,33 +1118,26 @@ exports.findRecentTransactions = async (req, res,next) => {
     order: [
     ['updatedAt', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit
+    offset:offset,
+    limit:limit
   });
   if(!data){
     return next(HTTPError(500, "Error while retrieving recent transaction"));
   }
-  res.status(200).send(data);
+  req.responseData = data;
+  next();
 };
 
-exports.findPartNumbersForPicklist = async (req,res) => {
+exports.findPartNumbersForPicklist = async (req,res,next) => {
 var {offset , limit , partNumber , description } = req.query
   var materialInwardWhereClause = {};
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
   }
 
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
-
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
+  
   materialInwardWhereClause.QCStatus = 1;
   materialInwardWhereClause.materialStatus = "Available";
   materialInwardWhereClause.status = true;
@@ -1283,27 +1167,19 @@ var {offset , limit , partNumber , description } = req.query
     }
     responseData.push(item);
   }
-  res.status(200).send(responseData);
+  req.responseData = responseData;
+  next();
 };
 
-exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
+exports.findRecentTransactionsWithoutMaterialId =async (req, res,next) => {
   var materialInwardWhereClause = {};
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
   }
   
   var {offset,limit} = req.query;
-
-  var newOffset = 0;
-  var newLimit = 20;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 20;
+  offset = (offset) ? parseInt(offset) : 0;
 
   let responseData = [];
 
@@ -1315,8 +1191,8 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
     order: [
     ['updatedAt', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit, 
+    offset:offset,
+    limit:limit, 
   })
   .then(data => {
     for(var i=0;i<data.length;i++){
@@ -1346,8 +1222,8 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
     order: [
     ['updatedAt', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit, 
+    offset:offset,
+    limit:limit, 
   })
   .then(data => {
     for(var i=0;i<data.length;i++){
@@ -1377,8 +1253,8 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
     order: [
     ['updatedAt', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit, 
+    offset:offset,
+    limit:limit, 
   })
   .then(data => {
     for(var i=0;i<data.length;i++){
@@ -1408,8 +1284,8 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
     order: [
     ['updatedAt', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit, 
+    offset:offset,
+    limit:limit, 
   })
   .then(data => {
     for(var i=0;i<data.length;i++){
@@ -1439,8 +1315,8 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
     order: [
     ['updatedAt', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit, 
+    offset:offset,
+    limit:limit, 
   })
   .then(data => {
     for(var i=0;i<data.length;i++){
@@ -1467,8 +1343,8 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
     order: [
     ['updatedAt', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit, 
+    offset:offset,
+    limit:limit, 
   })
   .then(data => {
     for(var i=0;i<data.length;i++){
@@ -1499,13 +1375,12 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res) => {
   })
 
   responseData = responseData.slice(0,50);
-  res.status(200).send({
-    responseData
-  });
+  req.responseData = responseData;
+  next();
 };  
 
 
-exports.updateQcStatusHHT = async (req, res) => {
+exports.updateQcStatusHHT = async (req, res,next) => {
   var notUpdatedList = [];
   for(var i=0;i<req.body.length;i++){
    await MaterialInward.update(req.body[i], {
@@ -1541,6 +1416,6 @@ exports.updateQcStatusHHT = async (req, res) => {
     });
   }
   else{
-    res.status(200).send("success");
+    next();
   }   
 }; 

@@ -51,16 +51,8 @@ exports.getAll = async (req,res,next) =>{
   }
 
   var {siteId, name, description,status,offset,limit} = req.query;
-  var newOffset = 0;
-  var newLimit = 100;
-
-  if(offset){
-    newOffset = parseInt(offset)
-  }
-
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
   var whereClause = new WhereBuilder()
   .clause('siteId', siteId)
@@ -73,8 +65,8 @@ exports.getAll = async (req,res,next) =>{
     order: [
     ['id', 'DESC'],
     ],
-    limit:newLimit,
-    offset:newOffset
+    limit:limit,
+    offset:offset
   });
   
   if (!getAllProjects) {
@@ -82,7 +74,7 @@ exports.getAll = async (req,res,next) =>{
   }
   
   req.projectsList = getAllProjects.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.projectsList;
   next();
 
 }
@@ -93,14 +85,14 @@ exports.update =async (req, res,next) => {
 
   var { name, description ,status } = req.body;
   
-  whereClause = new WhereBuilder()
+  updateClause = new WhereBuilder()
   .clause('name', name)
   .clause('description', description)
   .clause('updatedBy', req.user.username) 
   .clause('status', status).toJSON();
   var updatedProject;
   try {
-    updatedProject = await Project.update(whereClause,{
+    updatedProject = await Project.update(updateClause,{
       where: {
         id: id
       }
@@ -132,6 +124,7 @@ exports.getById =async (req,res,next) => {
     return next(HTTPError(500, "Project not found"))
   }
   req.projectsList = project;
+  req.responseData = req.projectsList;
   next();
 };
 
@@ -141,36 +134,19 @@ exports.findProjectsBySearchQuery = async (req, res,next) => {
     req.query.siteId = req.site
   }
   var {name,description,status,siteId,offset,limit} = req.query;
-  var newOffset = 0;
-  var newLimit = 100;
-  if(offset){
-    newOffset = parseInt(offset)
-  }
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(limit){
-    newLimit = parseInt(limit)
-  }
+  name = (name) ? name:'';
+  description = (description) ? description:'';
 
-  if(!name){
-    name ='';
-  }
+  whereClause = new LikeQueryHelper()
+  .clause(name, "name")
+  .clause(description, "description")
+  .toJSON();
 
-  if(!description){
-    description = '';
-  }
-
-  var whereClause = {};
   whereClause.status = true;
-  if(name){
-    whereClause.name = {
-      [Op.like]:'%'+name+'%'
-    };
-  }
-  if(description){
-    whereClause.description = {
-      [Op.like]:'%'+description+'%'
-    };
-  }
+
   if(siteId){
     whereClause.siteId = siteId
   }
@@ -202,12 +178,12 @@ exports.findProjectsBySearchQuery = async (req, res,next) => {
   countArray.push(totalProjects);
   responseData.push(countArray);
 
-  res.status(200).send(responseData);
-  
+  req.responseData = responseData;
+  next();
 };
 
 // get count of all Project whose status =1 
-exports.countOfProjects =async (req, res) => {
+exports.countOfProjects =async (req, res,next) => {
   var whereClause = {};
   whereClause.status = true;
   if(req.site){
@@ -225,14 +201,7 @@ exports.countOfProjects =async (req, res) => {
     totalParts : total 
   }
 
-  res.status(200).send(totalCount);
+  req.responseData = totalCount;
+  next();
   
-};
-
-exports.sendCreateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.projectsList);
 };

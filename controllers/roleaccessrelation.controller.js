@@ -7,7 +7,7 @@ const Access = db.access;
 // Create and Save a new RoleAccessRelation
 exports.create =async (req, res) => {
   console.log(req.body);
- 
+  
   // Validate request
   if (!req.body.roleId) {
     res.status(400).send({
@@ -91,20 +91,20 @@ exports.create =async (req, res) => {
         });
       })
     })
-      .catch(err => {
-        res.status(500).send({
-          message:
-          err.message || "Some error occurred while creating RoleAccessRelation."
-        });
+    .catch(err => {
+      res.status(500).send({
+        message:
+        err.message || "Some error occurred while creating RoleAccessRelation."
       });
+    });
   }
-  res.send(responseData)
+  req.responseData = responseData;
 };
 
 //Get All RoleAccessRelation
 exports.getAll = async(req,res,next) =>{
 
-var { roleId , accessId , status } = req.query;
+  var { roleId , accessId , status } = req.query;
 
   var whereClause = new WhereBuilder()
   .clause('roleId', roleId)
@@ -124,12 +124,8 @@ var { roleId , accessId , status } = req.query;
   }
   
   req.getAllRoleAccessRelationsList = getAllRoleAccessRelations.map ( el => { return el.get({ plain: true }) } );
-
+  req.responseData = req.getAllRoleAccessRelationsList;
   next();
-};
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.getAllRoleAccessRelationsList);
 };
 
 //Update RoleAccessRelation by Id
@@ -166,10 +162,6 @@ exports.update = async (req, res,next) => {
   next();
 };
 
-exports.sendUpdateResponse = async (req, res, next) => {
-  res.status(200).send({message: "success"});
-};
-
 //Get RoleAccessRelation by Id
 exports.getById = async(req,res,next) => {
   const id = req.params.id;
@@ -179,10 +171,11 @@ exports.getById = async(req,res,next) => {
     return next(HTTPError(500, "Role access relation not found"))
   }
   req.getAllRoleAccessRelationsList = roleAccessRelation;
+  req.responseData = req.getAllRoleAccessRelationsList;
   next();
 }
 
-exports.validateAccessUrl = async (req,res) =>{
+exports.validateAccessUrl = async (req,res,next) =>{
   var {accessUrl , roleId} = req.query;
   var whereClause = {};
   if(accessUrl){
@@ -204,16 +197,17 @@ exports.validateAccessUrl = async (req,res) =>{
       where:roleAccessRelationWhereClause
     });
     if(roleAccessData.length != 0){
-      res.status(200).send(roleAccessData)
+      req.responseData = roleAccessData;
     }
     else{
       roleAccessData = [];
-      res.status(200).send(roleAccessData)
+      req.responseData = roleAccessData;
     }
   }
   else{
     var roleAccessData = [];
-    res.status(200).send(roleAccessData)
+    req.responseData = roleAccessData;
   }
+  next();
 
 };

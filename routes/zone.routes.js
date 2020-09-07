@@ -3,6 +3,7 @@ var router = express.Router();
 var zones = require('../controllers/zone.controller');
 var users = require('../controllers/user.controller');
 var sendResponse = require('../functions/sendResponse');
+var sendResponse = require('../functions/sendResponse');
 
 router.post("/", users.loginRequired,
 	zones.create,
@@ -27,6 +28,5 @@ router.get('/get/findZonesBySearchQuery', users.loginRequired,
 	zones.findZonesBySearchQuery,
 	sendResponse.sendFindResponse
 	);
-
 
 module.exports = router;
