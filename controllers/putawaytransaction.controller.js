@@ -128,7 +128,7 @@ exports.findPutawayTransactionBySearchQuery = async (req, res,next) => {
   }
 
   locationWhereClause = new LikeQueryHelper()
-  .clause(currentLocation, "currentLocation")
+  .clause(currentLocation, "name")
   .toJSON();
 
   materialInwardWhereClause.QCStatus = {
