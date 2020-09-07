@@ -401,7 +401,7 @@ exports.countByQcStatus = async (req, res,next) => {
   var total = await MaterialInward.count({
     where:materialInwardWhereClause
   });
-  if (!totalData) {
+  if (!total) {
     return next(HTTPError(500, "Internal error has occurred, while retrieving count"));
   }
   let singleData = {
@@ -413,7 +413,7 @@ exports.countByQcStatus = async (req, res,next) => {
   var okData = await MaterialInward.count({
     where:materialInwardWhereClause
   });
-  if (!qcOkData) {
+  if (!okData) {
     return next(HTTPError(500, "Internal error has occurred, while retrieving count"));
   }
   singleData = {
@@ -425,7 +425,7 @@ exports.countByQcStatus = async (req, res,next) => {
   var pendingData = await MaterialInward.count({
     where:materialInwardWhereClause
   });
-  if (!qcPendingData) {
+  if (!pendingData) {
     return next(HTTPError(500, "Internal error has occurred, while retrieving count"));
   }
   singleData = {
@@ -437,7 +437,7 @@ exports.countByQcStatus = async (req, res,next) => {
   var rejectedData = await MaterialInward.count({
     where:materialInwardWhereClause
   });
-  if (!qcRejectedData) {
+  if (!rejectedData) {
     return next(HTTPError(500, "Internal error has occurred, while retrieving count"));
   }
   singleData = {
