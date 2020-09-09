@@ -382,7 +382,10 @@ exports.getPicklistPickingMaterialLists = async (req, res ,next) => {
 exports.postPicklistPickingMaterialLists = async (req, res,next) => {
 
   console.log(req.body.materials.length);
+  var partNumbersList = [];
   for(var i=0;i<req.body.materials.length;i++){
+
+     partNumbersList.push(req.body.materials[i].partNumber);
       let violatedData;
       if(req.body.materials[i]["isViolated"]){
         violatedData = req.body.materials[i];
@@ -449,6 +452,9 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
     where:{
       'QCStatus':1,
       'materialStatus': "Available",
+      'partNumber':{
+        [Op.in]:partNumbersList
+      },
       'status':true,
       'siteId': {
         [Op.like]: checkString
@@ -463,7 +469,7 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
     }],
     having: Sequelize.where(Sequelize.literal('SUM(eachPackQuantity * 1)'), '<=', 10)
   })
-  .then(data => {
+  .then(async data => {
     var selfSignedConfig = {
       host: 'smtp.zoho.com',
       port: 465,
@@ -474,7 +480,11 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
             }
           };
           var transporter = nodemailer.createTransport(selfSignedConfig);
-
+          var picklistData = await Picklist.findByPk(req.params.picklistId);
+          var picklistNumber;
+          if(picklistData){
+            picklistNumber = picklistData["picklistName"]
+          }
           var result ="Hi Sir, <br/>";
           result = result + "Writing just to let you know that inventory for below part numbers is low.";
           result += "<br/>";
@@ -484,6 +494,7 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
           result += "<th>Part Number</td>";
           result += "<th>Part Description</td>";
           result += "<th>Quantity</td>";
+          result += "<th>Last Picklist Number</td>";
           console.log("data",data.length)          
           for(var i=0;i<data.length;i++){
             console.log(data[i]["dataValues"])
@@ -492,6 +503,7 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
             result += "<td><b>"+data[i]["dataValues"]["partnumber"]["partNumber"]+"</b></td>";
             result += "<td><b>"+data[i]["dataValues"]["partnumber"]["description"]+"</b></td>";
             result += "<td style=text-align:right><b>"+data[i]["dataValues"]["totalQuantity"]+"</b></td>";
+            result += "<td><b>"+picklistNumber+"</b></td>";
             result += "</tr>";
           }
           result += "</table>";

@@ -24,8 +24,8 @@ exports.findAll = async (req, res, next) => {
     order: [
     ['id', 'DESC'],
     ],
-    offset:newOffset,
-    limit:newLimit 
+    offset:offset,
+    limit:limit 
   })
   
   if (!getData) {
