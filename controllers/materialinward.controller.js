@@ -784,7 +784,7 @@ exports.updateWithBarcode = async (req, res,next) => {
   netWeightOfPacks = netWeightOfPacks * eachPackQty;
 
   let totalCapacity;
-  if(req.body.shelfId != null && req.body.shelfId != undefined){
+  if(req.body.shelfId != null && req.body.shelfId != undefined && netWeightOfPacks){
     let prevCapacityOfLocation = 0;
     var locationData = await Shelf.findAll({
       where: {
@@ -825,9 +825,12 @@ exports.updateWithBarcode = async (req, res,next) => {
         }
         var putawayData = await PutawayTransaction.create(putwayTransaction);
       }
-    }
-    if(isMaterialInwardUpdated){
-      res.status(200).send({message:"MaterialInward was updated successfully"})
+      if(isMaterialInwardUpdated){
+        res.status(200).send({message:"MaterialInward was updated successfully"})
+      }
+      else{
+        res.status(500).send({message:"Internal server error occurred while updating material inward"})
+      }
     }
     else{
       res.status(500).send({message:"Internal server error occurred while updating material inward"})

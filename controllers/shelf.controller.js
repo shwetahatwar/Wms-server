@@ -352,7 +352,9 @@ exports.excessCountOfShelfs = async (req, res,next) => {
   if(totalLoadedCapacity[0]){
     totalLoadedCapacity = totalLoadedCapacity[0]["totalLoadedCapacity"];
   }
-
+  if(totalLoadedCapacity){
+    totalLoadedCapacity = 0;
+  }
   totalCount = {
     totalLocations : total,
     totalCapacity : totalCapacity, 
