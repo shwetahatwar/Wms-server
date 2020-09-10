@@ -146,7 +146,6 @@ exports.findProjectsBySearchQuery = async (req, res,next) => {
   .toJSON();
 
   whereClause.status = true;
-
   if(siteId){
     whereClause.siteId = siteId
   }
@@ -200,8 +199,6 @@ exports.countOfProjects =async (req, res,next) => {
   var totalCount = {
     totalParts : total 
   }
-
   req.responseData = totalCount;
   next();
-  
 };

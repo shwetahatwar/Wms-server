@@ -2,6 +2,8 @@ var express = require('express');
 var router = express.Router();
 var users = require('../controllers/user.controller');
 var sendResponse = require('../functions/sendResponse');
+var roles = require('../controllers/role.controller');
+var usersiterelations = require('../controllers/usersiterelation.controller');
 
 router.post("/sign_in", users.getUser,
   users.matchPassword,
@@ -9,8 +11,11 @@ router.post("/sign_in", users.getUser,
   sendResponse.sendFindResponse
   );
 
-router.post("/",users.loginRequired,
+router.post("/",
+  roles.getAll,
+  users.loginRequired,
   users.create,
+  usersiterelations.create,
   sendResponse.sendCreateResponse);
 
 router.get("/",users.loginRequired,

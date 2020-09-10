@@ -58,3 +58,35 @@ exports.getMaterialPacksWithLocation = async(partnumber,siteId,barcodeSerial) =>
 
 	return materialPacks;
 };
+
+exports.materialInwardsCountForAudit = async(body,site,countOrData) =>{
+	var {partNumber , siteId , auditId} = body;
+	var whereClause = {};
+	if(partNumber){
+		whereClause.partNumber = partNumber;
+	}
+	if(siteId){
+		whereClause.siteId = siteId;
+	}
+	if(site){
+		whereClause.siteId = site;
+	}
+	whereClause.status = true;
+	whereClause.QCStatus = {
+		[Op.ne]:2
+	}
+
+	var materialInwardsData;
+	if(countOrData == "count"){
+		materialInwardsData = await MaterialInward.count({
+			where:whereClause
+		});
+	}
+	else{
+		materialInwardsData = await MaterialInward.findAll({
+			where:whereClause
+		});
+	}
+	console.log("materialInwardsData",materialInwardsData)
+	return materialInwardsData;
+};

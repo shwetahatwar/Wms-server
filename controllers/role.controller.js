@@ -41,6 +41,10 @@ exports.getAll = async (req, res, next) =>{
   
   var { name, status } = req.query;
 
+  if(req.body.role){
+    name = req.body.role;
+  }
+  
   var whereClause = new WhereBuilder()
   .clause('name', name)
   .clause('status', status).toJSON();

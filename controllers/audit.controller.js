@@ -4,58 +4,21 @@ const AuditItems = db.audititems;
 const Op = db.Sequelize.Op;
 const MaterialInward = db.materialinwards;
 var HTTPError = require('http-errors');
+var materialInwardQuantity = require('../functions/materialInwardQuantity');
+const serialNumberFinder = require('../functions/serialNumberFinder');
 
 // Create and Save a new Audit
 exports.create = async (req, res,next) => {
   var auditId;
-  var auditNumber;
-  var latestAudit = await Audit.findOne({
-    order: [
-    ['id', 'DESC'],
-    ]
-  });
-
-
-  var {partNumber , siteId , auditId} = req.body;
-  var whereClause = {};
-  if(partNumber){
-    whereClause.partNumber = partNumber;
-  }
-  if(siteId){
-    whereClause.siteId = siteId;
-  }
-  if(req.site){
-    whereClause.siteId =  req.site;
-  }
-  whereClause.status = true;
-  whereClause.QCStatus = {
-      [Op.ne]:2
-  }
-  console.log("whereClause",whereClause);
-  var materialInwardsData = await MaterialInward.count({
-    where:whereClause
-  });
+  var materialInwardsData = await materialInwardQuantity.materialInwardsCountForAudit(req.body,req.site,"count");
 
   if(materialInwardsData > 0){
-    if(latestAudit){
-      latestAudit = latestAudit.toJSON();
-      auditNumber = latestAudit["number"];
-      auditNumber = auditNumber.substring(auditNumber.length - 5, auditNumber.length);
-      auditNumber = (parseInt(auditNumber) + 1).toString();
-      var str = '' + auditNumber;
-      while (str.length < 5) {
-        str = '0' + str;
-      }
-      auditNumber = "A" + str;
-    }
-    else{
-      auditNumber = "A11111";
-    }
-
+    var auditNumber = await serialNumberFinder.latestAuditData();    
     var site = req.site;
     if(req.siteId){
       site = req.siteId
     }
+
     const audit = {
       number: auditNumber,
       start: 0,
@@ -82,16 +45,14 @@ exports.create = async (req, res,next) => {
         return next(HTTPError(500,"Internal error has occurred, while creating the Audit."))
       }
     }
-
     auditData = auditData.toJSON();
     req.auditData = auditData;
     next();  
-    }
-    else{
-      return next(HTTPError(500, "Audit not created due to stock not available"))
-    } 
-  };
-
+  }
+  else{
+    return next(HTTPError(500, "Audit not created due to stock not available"))
+  } 
+};
 
 exports.getAll = async (req, res, next) =>{
   if(req.site){
@@ -129,7 +90,6 @@ exports.getAll = async (req, res, next) =>{
 };
 
 exports.update = async (req, res, next) => {
-  
   const { id } = req.params;
   var { status , auditStatus , start , end} = req.body;
   
@@ -146,7 +106,6 @@ exports.update = async (req, res, next) => {
         id: id
       }
     });
-
     if (!updatedAudit) {
       return next(HTTPError(500, "Audit not updated"))
     }
@@ -165,7 +124,6 @@ exports.update = async (req, res, next) => {
 };
 
 exports.getById = async (req, res, next) => {
-
   const { id } = req.params;
 
   var audit = await Audit.findByPk(id);
@@ -185,11 +143,9 @@ exports.countOfAudits = async (req, res,next) => {
   var whereClause = {};
 
   whereClause.status = true;
-
   if(req.site){
     whereClause.siteId = req.site;
   }
-
   whereClause.auditStatus = "New";
   newAudit = await Audit.count({
     where :whereClause,
@@ -212,7 +168,6 @@ exports.countOfAudits = async (req, res,next) => {
   }
   req.responseData = totalCount; 
   next();
-  // res.send(totalCount);
 };
 
 //search query
@@ -224,7 +179,6 @@ exports.findAuditsBySearchQuery = async (req, res,next) => {
 
   limit = (limit) ? parseInt(limit) : 100;
   offset = (offset) ? parseInt(offset) : 0;
-
   number = (number) ? number:'';
 
   if(!auditStatus || auditStatus=="All"){
@@ -239,7 +193,6 @@ exports.findAuditsBySearchQuery = async (req, res,next) => {
   if(status){
     whereClause.status = status;
   }
-
   if(siteId){
     whereClause.siteId = siteId
   }
@@ -272,6 +225,5 @@ exports.findAuditsBySearchQuery = async (req, res,next) => {
   responseData.push(countArray);
   req.responseData = responseData;
   next();
-  // res.status(200).send(responseData);
 };
 

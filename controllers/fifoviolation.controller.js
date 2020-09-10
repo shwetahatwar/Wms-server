@@ -147,6 +147,5 @@ exports.getCount= async (req, res, next) => {
     totalCount : total 
   }
   req.responseData = totalCount;
-
   next();
 };

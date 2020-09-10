@@ -5,28 +5,12 @@ const Op = db.Sequelize.Op;
 const MaterialInward = db.materialinwards;
 var HTTPError = require('http-errors');
 const WhereBuilder = require('../helpers/WhereBuilder');
+var materialInwardQuantity = require('../functions/materialInwardQuantity');
 
 // Create and Save a new Audit items
 exports.create = async (req, res,next) => {
 	var {partNumber , siteId , auditId} = req.body;
-	var whereClause = {};
-	if(partNumber){
-		whereClause.partNumber = partNumber;
-	}
-	if(siteId){
-		whereClause.siteId = siteId;
-	}
-  if(req.site){
-    whereClause.siteId =  req.site;
-  }
-  whereClause.QCStatus = {
-    [Op.ne]:2
-  }
-  whereClause.QCStatus = 1;
-
-  var materialInwardsData = await MaterialInward.findAll({
-    where:whereClause
-  });
+	var materialInwardsData = await materialInwardQuantity.materialInwardsCountForAudit(req.body,req.site,"data");
 
   if(!auditId){
     if(req.auditData){
@@ -90,7 +74,6 @@ exports.getAll = async (req, res, next) =>{
 };
 
 exports.update = async (req, res, next) => {
-
   const { id } = req.params;
   var { status , itemStatus } = req.body;
   
@@ -124,7 +107,6 @@ exports.update = async (req, res, next) => {
 };
 
 exports.getById = async (req, res, next) => {
-
   const { id } = req.params;
 
   var audit = await AuditItems.findByPk(id);
@@ -145,7 +127,6 @@ exports.countOfAuditItems = async (req, res,next) => {
   var whereClause = {};
 
   whereClause.status = true;
-
   if(req.query.auditId){
     whereClause.auditId = req.query.auditId
   }
@@ -178,7 +159,6 @@ exports.countOfAuditItems = async (req, res,next) => {
   }
   req.responseData = totalCount;
   next();
-  // res.send(totalCount);
 };
 
 exports.updateWithSerialNumber = async (req, res, next) => {
@@ -223,5 +203,5 @@ exports.updateWithSerialNumber = async (req, res, next) => {
   else{
     return next(HTTPError(500, "Audit item not updated"))
   }
-  
+ 
 };

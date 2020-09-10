@@ -154,11 +154,6 @@ exports.getPicklistbyUser = async (req,res,next) =>{
   if(req.site){
     whereClause.siteId = req.site;
   }
-  // else{
-  //   whereClause.siteId = {
-  //     [Op.like]:'%'+req.site+'%'
-  //   };
-  // }
 
   var picklistArray=[];
   PicklistPickerRelation.findAll({

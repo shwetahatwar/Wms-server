@@ -102,7 +102,7 @@ exports.issueToProduction = async (req, res,next) => {
     let updatePicklistMaterialData = {
       'isMaterialIssuedToProduction':true
     }
-    console.log("picklistId",el["picklistId"])
+
     var picklistMaterialUpdated = await PicklistPickingMaterialList.update(updatePicklistMaterialData,{
       where: {
         picklistId: el["picklistId"],
@@ -123,7 +123,7 @@ exports.issueToProduction = async (req, res,next) => {
   }
 
   req.issueToProductionData = issueToProductionData;
-  // res.send(issueToProductionData);
+  req.responseData = issueToProductionData;
   next();
 };
 
@@ -171,7 +171,6 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
   partNumber = (partNumber) ? partNumber:'';
   barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
   transactionType = (transactionType) ? transactionType:'';
-
   project = (project) ? project:'';
 
   projectsWhereClause = new LikeQueryHelper()

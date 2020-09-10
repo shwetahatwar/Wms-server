@@ -4,6 +4,7 @@ const Shelf = db.shelfs;
 const Rack = db.racks;
 const Zone = db.zones;
 const Picklist = db.picklists;
+const Audit = db.audits;
 
 exports.getLastSerialNumber = async (req, res, next) => {
   var materialInward = await MaterialInward.findOne({
@@ -20,19 +21,19 @@ exports.getLastSerialNumber = async (req, res, next) => {
 
 exports.getLatestSerialNumber = async () => {
   var materialInward = "";
-	var materialInward = await MaterialInward.findOne({
-		order: [
-		['id', 'DESC'],
-		]
-	});
+  var materialInward = await MaterialInward.findOne({
+    order: [
+    ['id', 'DESC'],
+    ]
+  });
   
   if (!materialInward)
     return materialInward
-	return materialInward.toJSON();
+  return materialInward.toJSON();
 };
 
 exports.getShelfSerialNumber = async (rackId) => {
- var shelfResponse;
+  var shelfResponse;
   shelfResponse = await Shelf.findOne({
     where: { 
       rackId: rackId
@@ -78,4 +79,30 @@ exports.getLatestPicklistSerialNumber = async () => {
   }
 
   return serialNumber;
+};
+
+exports.latestAuditData = async() => {
+  var latestAudit = await Audit.findOne({
+    order: [
+    ['id', 'DESC'],
+    ]
+  });
+
+  var auditNumber;
+  if(latestAudit){
+    latestAudit = latestAudit.toJSON();
+    auditNumber = latestAudit["number"];
+    auditNumber = auditNumber.substring(auditNumber.length - 5, auditNumber.length);
+    auditNumber = (parseInt(auditNumber) + 1).toString();
+    var str = '' + auditNumber;
+    while (str.length < 5) {
+      str = '0' + str;
+    }
+    auditNumber = "A" + str;
+  }
+  else{
+    auditNumber = "A11111";
+  }
+
+  return auditNumber;
 };

@@ -23,14 +23,11 @@ exports.materialInventoryTransactions=async (req, res,next) => {
 
   var transactionsList = await InventoryTransaction.bulkCreate(TransactMaterial);
   transactionsList = transactionsList.map ( el => { return el.get({ plain: true }) } );
-  
   next();
-}
-
+};
 
 // Retrieve all Inventory Transaction from the database.
 exports.findAll =async (req, res,next) => {
-  // var materialinwardsWhereClause = {};
   materialinwardsWhereClause = new LikeQueryHelper()
   .clause(req.site, "siteId")
   .toJSON();

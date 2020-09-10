@@ -17,15 +17,11 @@ var HTTPError = require('http-errors');
 
 exports.materialInwardBulkUpload = async (req, res, next) => {
 
-  // if (!req.materialInward) {
-  //   return res.status(500).send("No Material");
-  // }
   var serialNumberId = null;
   if(req.materialInward) {
     serialNumberId = req.materialInward["barcodeSerial"]
   }
   var materialInward = await serialNumberHelper.getSerialNumbers(req.body,req.partNumber["partNumber"],req.materialInward,req.user.username,serialNumberId);
-  console.log("materialInwardConsole", materialInward);
   materialInward = await MaterialInward.bulkCreate(materialInward["materialInward"]);
   req.materialInwardBulkUpload = materialInward.map ( el => { return el.get({ plain: true }) } );
   req.responseData = req.materialInwardBulkUpload;
@@ -44,7 +40,7 @@ exports.bulkUpload = async (req,res,next)  =>{
   req.materialInwardBulkUploadResponse = [];
   var outputArray = await partNumberArray.map(async el => {
     if (el["matched"]) {
-      
+
       var latestMaterial = await serialNumberFinder.getLatestSerialNumber();
       if (!serialNumberId) {
         serialNumberId = latestMaterial["barcodeSerial"]
@@ -56,8 +52,6 @@ exports.bulkUpload = async (req,res,next)  =>{
       for(var j=0;j<materialInward.length;j++){
         req.materialInwardBulkUploadResponse.push(materialInward[j]["dataValues"])
       }
-
-      // var putawayTransactionList = await createTransaction.createPutawayTransaction(materialInward,req.user.username);
       var inventoryTransactionList = await createTransaction.createInventoryTransaction(materialInward,req.user.username);
 
     }
@@ -69,113 +63,7 @@ exports.bulkUpload = async (req,res,next)  =>{
   console.log("materialInwardBulkUploadResponse 67",req.materialInwardBulkUploadResponse)
   req.responseData = req.materialInwardBulkUploadResponse;
   next();
-}
-
-//   for(var a=0;a<req.body.length;a++){
-//     const partNumbersId = req.body[a]["partNumberId"];
-//     var materialInwardIds;  
-//     if(req.body[a]["matched"]){
-//       for(var i=0; i < req.body[a]["noOfPacks"]; i++){
-//         console.log(req.body[a]["noOfPacks"]);
-//         var serialNumberId;
-//         await MaterialInward.findAll({
-//           limit:1,
-//           offset:0,
-//           order: [
-//           ['id', 'DESC'],
-//           ],
-//         })
-//         .then(data => {
-//           if(data[0] != null || data[0] != undefined){
-//             serialNumberId = data[0]["dataValues"]["barcodeSerial"];
-//             serialNumberId = (parseInt(serialNumberId) + 1).toString();
-//             serialNumberId = '' + serialNumberId;
-//             if(serialNumberId.toString().length > 10){
-//               serialNumberId = serialNumberId.substring(1);
-//             }
-//           }
-//           else{
-//             serialNumberId ="1111111111";
-//           }
-//         })
-//         .catch(err=>{
-//           serialNumberId ="1111111111";
-//         });
-//         if(!req.body.siteId){
-//           if(req.site){
-//             req.body.siteId = req.site
-//           }
-//           else{
-//             req.body.siteId = req.siteId
-//           }
-//         }
-//         const materialinward = {
-//           partNumberId: req.body[a]["partNumberId"],
-//           batchNumber: req.body[a]["batchNumber"],
-//           barcodeSerial: serialNumberId,
-//           partNumber:req.body[a]["partNumber"],
-//           eachPackQuantity: req.body[a]["eachPackQuantity"],
-//           invoiceReferenceNumber: req.body[a]["invoice"],
-//           inwardDate: Date.now(),
-//           QCStatus: 0,
-//           status:1,        
-//           QCRemarks: "NA",
-//           siteId : req.body.siteId,
-//           materialStatus : "NA",
-//           createdBy:req.user.username,
-//           updatedBy:req.user.username
-//         };
-
-//     // Save MaterialInward in the database
-//     await MaterialInward.create(materialinward)
-//     .then(async data => {
-//       dataArray.push(data);
-//       materialInwardIds = data["id"];
-//       const putwayTransaction = {
-//         transactionTimestamp: Date.now(),
-//         performedBy:req.user.username,
-//         materialInwardId:materialInwardIds,
-//         currentLocationId :req.body[a]["shelfId"], 
-//         createdBy:req.user.username,
-//         updatedBy:req.user.username
-//       }
-//       await PutawayTransaction.create(putwayTransaction)
-//       .then(data => {
-//       })
-//       .catch(err => {
-//         console.log(err);
-//       });
-
-//     // MaterialInward transaction entry in the database
-//     const inventoryTransact = {
-//       transactionTimestamp: Date.now(),
-//       performedBy:req.user.username,
-//       transactionType:"Inward",
-//       materialInwardId:materialInwardIds,
-//       batchNumber: req.body[a]["batchNumber"],
-//       createdBy:req.user.username,
-//       updatedBy:req.user.username
-//     }
-//     await InventoryTransaction.create(inventoryTransact)
-//     .then(data => {
-//       console.log("data on line 94");
-//     })
-//     .catch(err => {
-//       console.log(err);
-//     });
-
-//   }).catch(err => {
-//     res.status(500).send({
-//       message:
-//       err.message || "Some error occurred while creating the MaterialInward."
-//     });
-//   });
-// }
-// }
-// // }
-// res.send(dataArray);
-
-// };
+};
 
 // Retrieve all Inventory Transaction from the database.
 exports.findAll =async (req, res,next) => {
@@ -223,8 +111,7 @@ exports.findAll =async (req, res,next) => {
 
     req.materialInwardsList = materialinwards.map ( el => { return el.get({ plain: true }) } );
     req.responseData = req.materialInwardsList;
-    next();
-    
+    next();  
   };
 
 // Find a single Inventory Transaction with an id
@@ -563,19 +450,7 @@ exports.findMaterialInwardsBySearchQuery = async (req, res,next) => {
     materialInwardWhereClause.siteId = req.site;
   }
 
-  materialInwardWhereClause.status = true;
-
-  // if(barcodeSerial){
-  //   materialInwardWhereClause.barcodeSerial = {
-  //     [Op.like]:'%'+barcodeSerial+'%'
-  //   };
-  // }
-  // if(partNumber){
-  //   materialInwardWhereClause.partNumber = {
-  //     [Op.like]:'%'+partNumber+'%'
-  //   };
-  // }
-  
+  materialInwardWhereClause.status = true; 
   if(!QCStatus){
     materialInwardWhereClause.QCStatus = {
       [Op.ne]:2
@@ -859,8 +734,7 @@ exports.inventoryData = async (req, res,next) => {
       attributes: ['description','partNumber']
     }],
     having: Sequelize.where(Sequelize.literal('SUM(eachPackQuantity * 1)'), '<=', 10)
-    // having: Sequelize.where(Sequelize.fn('COUNT', Sequelize.col('partNumberId')), '<=', 10)
-  });
+   });
 
   if(!data){
     return next(HTTPError(500, "Error occurred while retrieving inventory stock"));
@@ -1108,7 +982,7 @@ exports.findRecentTransactions = async (req, res,next) => {
 };
 
 exports.findPartNumbersForPicklist = async (req,res,next) => {
-var {offset , limit , partNumber , description } = req.query
+  var {offset , limit , partNumber , description } = req.query
   var materialInwardWhereClause = {};
   if(req.site){
     materialInwardWhereClause.siteId = req.site;
@@ -1362,7 +1236,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res,next) => {
 exports.updateQcStatusHHT = async (req, res,next) => {
   var notUpdatedList = [];
   for(var i=0;i<req.body.length;i++){
-   await MaterialInward.update(req.body[i], {
+    await MaterialInward.update(req.body[i], {
       where: { 
         barcodeSerial: req.body[i]["barcodeSerial"] 
       }
@@ -1379,7 +1253,7 @@ exports.updateQcStatusHHT = async (req, res,next) => {
           createdBy:req.user.username,
           updatedBy:req.user.username,
         };
-       await QCTransaction.create(statusChange)
+        await QCTransaction.create(statusChange)
       }
       else{
         notUpdatedList.push(req.body[i]);
@@ -1388,7 +1262,6 @@ exports.updateQcStatusHHT = async (req, res,next) => {
       notUpdatedList.push(req.body[i]);
     });
   }
-  console.log(req.body.length,notUpdatedList.length)
   if(req.body.length == notUpdatedList.length){
     res.status(500).send({
       message: "Error updating QC status "

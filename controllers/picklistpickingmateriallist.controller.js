@@ -42,7 +42,6 @@ exports.create = async (req, res,next) => {
   }
 
   next();
-  
 };
 
 //Get Picklist Picking Material List

@@ -8,6 +8,10 @@ router.get("/", users.loginRequired,
 	usersiterelations.findAll,
 	sendResponse.sendFindResponse);
 
+router.post("/", users.loginRequired,
+	usersiterelations.create,
+	sendResponse.sendCreateResponse);
+
 router.get("/:id", users.loginRequired,
 	usersiterelations.findOne,
 	sendResponse.sendFindResponse);

@@ -5,6 +5,26 @@ const Site = db.sites;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
 
+exports.create = async (req,res,next) =>{
+  var {userId ,site} = req.body;
+
+  if(req.userData){
+    userId = req.userData["id"]
+  }
+  
+  var userSiteRelation = await UserSiteRelation.create({
+    userId : userId,
+    siteId : site,
+    createdBy:req.user.username,
+    updatedBy:req.user.username
+  });
+
+  if (!userSiteRelation) {
+    return next(HTTPError(500, "User Site Relation not created"))
+  }
+  next();
+};
+
 exports.findAll = async (req, res, next) => {
   var {offset,limit,userId,siteId} = req.query;
 

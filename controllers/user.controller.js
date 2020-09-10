@@ -16,17 +16,12 @@ exports.create = async (req, res, next) => {
     return next(HTTPError(500, "User not created, invalid username"))
   }
 
-  var foundRole = await Role.findOne({
-    where: {
-      name: role
-    }
-  });
-
-  if (!foundRole) {
+  var foundRole;
+  if (!req.roleList[0]) {
     return next(HTTPError(500, "User not created, inappropriate role"))
   }
 
-  foundRole = foundRole.toJSON();
+  foundRole = req.roleList[0];
 
   try{
     var user = await User.create({
@@ -43,20 +38,9 @@ exports.create = async (req, res, next) => {
     if (!user) {
       return next(HTTPError(500, "User not created"))
     }
-
     user = user.toJSON();
-    req.user = user;
-
-    var userSiteRelation = await UserSiteRelation.create({
-      userId : user["id"],
-      siteId : site,
-      createdBy:req.user.username,
-      updatedBy:req.user.username
-    });
-    
-    if (!userSiteRelation) {
-      return next(HTTPError(500, "User Site Relation not created"))
-    }
+    req.userData = user;
+    next();
   }
   catch (err) {
     console.log(err)
@@ -67,7 +51,6 @@ exports.create = async (req, res, next) => {
       return next(HTTPError(500,"Internal error has occurred, while creating the user."))
     }     
   }
-
   next();
 };
 

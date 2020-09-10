@@ -6,6 +6,7 @@ const Site = db.sites;
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
 const serialNumberFinder = require('../functions/serialNumberFinder');
+const shelfSerialNumber = require('../functions/shelfSerialNumber');
 
 //Get All Shelfs
 exports.getAll =async (req,res,next) =>{
@@ -100,7 +101,7 @@ exports.create = async (req, res, next) => {
   zoneName=rackData["zone"]["name"];
   rackName=rackData["name"];
 
-  serialNumber = await generateSerialNumber(shelfData,rackId,zoneId,siteId,vertical); 
+  serialNumber = await shelfSerialNumber.generateSerialNumber(shelfData,rackId,zoneId,siteId,vertical); 
   const shelf = {
     name: "SH-"+serialNumber+"",
     status:true,
@@ -327,9 +328,6 @@ exports.excessCountOfShelfs = async (req, res,next) => {
   total = await db.sequelize.query(query, { type: db.sequelize.QueryTypes.SELECT});
   var totalCount;
   if(total[0]){
-    // totalCount = {
-    //   totalLocations : total[0]["total"] 
-    // }
     total = total[0]["total"];
   }
 
@@ -418,7 +416,6 @@ exports.BulkUpload = async (req, res,next) => {
           for(var c = 0;c<req.body.locations[a]["column"];c++){
             verticalData = verticalData+1;
             let verticalBarcode = "0" +verticalData;
-            console.log("Line 415",rackId,siteId,zoneId,verticalData,verticalBarcode,req.body.siteName,req.body.zoneName,rackName)
             await createShelf(req.body.locations[a]["weight"],req.body.locations[a]["volume"],responseDataArray,rackId,siteId,zoneId,verticalBarcode,req.body.siteName,req.body.zoneName,rackName,req.user.username)
           }
           verticalData=0;
@@ -446,102 +443,12 @@ exports.BulkUpload = async (req, res,next) => {
   }
 };
 
-async function generateSerialNumber(shelfData,rackId,zoneId,siteId,vertical){
-  let serialNumber;
-  if(shelfData){
-    serialNumber = shelfData["barcodeSerial"];
-    zoneId = shelfData["rack"]["zoneId"];
-    siteId = shelfData["rack"]["zone"]["siteId"];
-    serialNumber = serialNumber.substring(10,13);
-    serialNumber = (parseInt(serialNumber) + 1).toString();
-    var str = serialNumber;
-    if(str.length == 1) {
-      str = '00' + str;
-    }
-    else if(str.length == 2) {
-      str = '0' + str;
-    }
-
-    if(siteId.toString().length < 2) {
-      serialNumber = '0' + siteId;
-    }
-    else{
-      serialNumber = siteId;
-    }
-    if(zoneId.toString().length < 2) {
-      serialNumber = serialNumber + "-" + '0' + zoneId;
-    }
-    else{
-      serialNumber = serialNumber + "-" + zoneId;
-    }
-    if(rackId.toString().length == 1) {
-      serialNumber = serialNumber + "-" + '00' + rackId;
-    }
-    else if(rackId.toString().length == 2) {
-      serialNumber = serialNumber + "-" +'0' + rackId;
-    }
-    else{
-      serialNumber = serialNumber + "-" + rackId;
-    }
-    serialNumber = serialNumber + "-" + str + "-" + vertical;
-
-  }
-  else{
-    if(!zoneId || !siteId){
-      var rackData = await Rack.findOne({
-        where: { 
-          id: rackId,
-        },
-        include: [{
-          model: Zone
-        }],
-      });
-
-      if(!rackData){
-        return next(HTTPError(500, "Shelf not created,invalid rack"))
-      }
-
-      if(rackData){
-        rackData = rackData.toJSON();
-        zoneId = rackData["zoneId"];
-        siteId = rackData["zone"]["siteId"]
-      }
-    }
-
-    if(siteId.toString().length < 2) {
-      serialNumber = '0' + siteId;
-    }
-    else{
-      serialNumber = siteId;
-    }
-    if(zoneId.toString().length < 2) {
-      serialNumber = serialNumber + "-" + '0' + zoneId;
-    }
-    else{
-      serialNumber = serialNumber + "-" + zoneId;
-    }
-    if(rackId.toString().length == 1) {
-      serialNumber = serialNumber + "-" + '00' + rackId;
-    }
-    else if(rackId.toString().length == 2) {
-      serialNumber =serialNumber +"-" +  '0' + rackId;
-    }
-    else{
-      serialNumber = serialNumber + "-" + rackId;
-    }
-    serialNumber = serialNumber + "-" + "001" + "-" + vertical;
-
-  }
-  console.log("serialNumber",serialNumber);
-  return serialNumber
-}
-
 async function createShelf(weight,volume,responseDataArray,rackId,siteId,zoneId,verticalBarcode,siteName,zoneName,rackName,username,req,res){
   var serialNumber;
 
   var shelfData = await serialNumberFinder.getShelfSerialNumber(rackId);
   
-  serialNumber = await generateSerialNumber(shelfData,rackId,zoneId,siteId,verticalBarcode);   
+  serialNumber = await shelfSerialNumber.generateSerialNumber(shelfData,rackId,zoneId,siteId,verticalBarcode);   
   const shelf = {
     name: "SH-"+serialNumber+"",
     status:true,
@@ -573,8 +480,4 @@ async function createShelf(weight,volume,responseDataArray,rackId,siteId,zoneId,
     }
   }
   responseDataArray.push(shelfCreated);
-}
-
-exports.sendFindResponse = async (req, res, next) => {
-  res.status(200).send(req.shelfsList);
 };
