@@ -16,9 +16,10 @@ router.get("/:id", users.loginRequired,
 	picklistmateriallists.findOne,
 	sendResponse.sendFindResponse);
 
-router.get("/get/findByPicklist", users.loginRequired,
-	picklistmateriallists.getPicklistMaterialListByPicklistId,
-	sendResponse.sendFindResponse);
+router.put('/:id', users.loginRequired,
+	picklistmateriallists.update,
+	sendResponse.sendCreateResponse
+	);
 
 router.get("/get/findPicklistItemsBySearchQuery",
 	users.loginRequired,

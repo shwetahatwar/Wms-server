@@ -169,6 +169,9 @@ exports.countOfRacks = async (req, res,next) => {
   var whereClause = {};
 
   whereClause.status = true;
+  if(req.query.zoneId){
+    whereClause.zoneId = req.query.zoneId
+  }
 
   if(req.site){
     zoneWhereClause.siteId = req.site;
@@ -194,52 +197,10 @@ exports.countOfRacks = async (req, res,next) => {
     return next(HTTPError(500, "Internal error has occurred, while calculating the rack count"))
   } 
 
-  total = data;
   var totalCount = {
     totalRacks : total 
   }
   req.responseData= totalCount;
-  next();
-};
-
-// get count of all Racks by Zone 
-exports.countOfRacksByZoneId = async (req, res,next) => {
-  var total = 0;
-  var { zoneId } = req.query;
-  var zoneWhereClause = {};
-  var whereClause={};
-  whereClause.zoneId = zoneId;
-  if(req.site){
-    zoneWhereClause.siteId = req.site;
-  }
-  else{
-    zoneWhereClause.siteId = {
-      [Op.like]:'%'+req.site+'%'
-    };
-  }
-
-  var total = await Rack.count({
-    where :whereClause,
-    include:[
-    {
-      model:Zone,
-      required:true,
-      where:zoneWhereClause,
-      include:[{
-        model:Site,
-      }]
-    }
-    ]
-  });
-
-  if (!total) {
-    return next(HTTPError(500, "Internal error has occurred, while calculating the rack count"))
-  }
-  
-  var totalCount = {
-    totalRacks : total 
-  }
-  req.responseData = totalCount;
   next();
 };
 
@@ -255,22 +216,8 @@ exports.findRacksBySearchQuery = async(req, res,next) => {
 
   zoneWhereClause = new LikeQueryHelper()
   .clause(zone, "name")
+  .clause(req.site, "siteId")
   .toJSON();
-
-  if(req.site){
-    zoneWhereClause.siteId = req.site;
-  }
-  else{
-    zoneWhereClause.siteId = {
-      [Op.like]:'%'+req.site+'%'
-    };
-  }
-
-  if(zone){
-    zoneWhereClause.name = {
-      [Op.like]:'%'+zone+'%'
-    };
-  }
 
   whereClause = new LikeQueryHelper()
   .clause(name, "name")

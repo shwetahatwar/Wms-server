@@ -125,7 +125,7 @@ exports.getById =async (req,res,next) => {
   next();
 }
 
-exports.getPartNumber=async (req,res,next) => {
+exports.getPartNumber = async (req,res,next) => {
   var {partNumberId} = req.body;
 
   var partNumber = await PartNumber.findByPk(partNumberId);
@@ -164,7 +164,7 @@ exports.findPartNumbersBySearchQuery = async (req, res,next) => {
     limit:limit
   });
 
-  if(!data){
+  if(data[0]){
     return next(HTTPError(500, "No data found"))
   }
 

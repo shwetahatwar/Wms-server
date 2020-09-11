@@ -170,11 +170,9 @@ exports.getPicklistbyUser = async (req,res,next) =>{
           var updatedAt = picklistData[0]["dataValues"]["updatedAt"];
           if(picklistData[0]["dataValues"]["picklistStatus"] != "Completed"){
             picklistArray.push(picklistData[0]["dataValues"]);  
-            console.log("Line 182",picklistArray);
           }
           else if(picklistData[0]["dataValues"]["picklistStatus"] == "Completed" && updatedAt.toString().includes(newDateTimeNow)){
             picklistArray.push(picklistData[0]["dataValues"]);  
-            console.log("Line 185",picklistArray);
           }
         }
       })

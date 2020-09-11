@@ -69,15 +69,14 @@ exports.getAll = async (req, res, next) =>{
   .clause('siteId', siteId)
   .clause('auditStatus', auditStatus)
   .clause('status', status).toJSON();
-
   var getAllAudits = await Audit.findAll({
     where:whereClause,
     order: [
     ['auditStatus','DESC'],
     ['id', 'DESC'],
     ],
-    offset:offset,
-    limit:limit
+    limit:limit,
+    offset:offset
   });
   
   if (!getAllAudits) {
@@ -206,7 +205,7 @@ exports.findAuditsBySearchQuery = async (req, res,next) => {
     limit:limit
   });
 
-  if(!data){
+  if(!data[0]){
     return next(HTTPError(500, "No data found"))
   }
 

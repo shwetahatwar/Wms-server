@@ -32,7 +32,7 @@ router.get('/get/findRacksBySearchQuery', users.loginRequired,
 	sendResponse.sendFindResponse);
 
 router.get('/count/zone/countOfRacksByZoneId', users.loginRequired,
-	racks.countOfRacksByZoneId,
+	racks.countOfRacks,
 	sendResponse.sendFindResponse);
 
 module.exports = router;

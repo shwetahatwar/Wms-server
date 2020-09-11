@@ -424,10 +424,7 @@ exports.BulkUpload = async (req, res,next) => {
       })
       .catch(err => {
         console.log(err);
-        res.status(500).send({
-          message:
-          err["errors"][0]["message"] || "Some error occurred while creating the Rack."
-        });
+        return next(HTTPError(500, err["errors"][0]["message"] || "Some error occurred while creating the Shelfs."));  
       });
     }
     next();
@@ -436,10 +433,7 @@ exports.BulkUpload = async (req, res,next) => {
     // });
   }
   else{
-    res.status(500).send({
-      message:
-      err.message || "Zone & Site Not found."
-    });
+    return next(HTTPError(500, "Zone & Site Not found."));
   }
 };
 

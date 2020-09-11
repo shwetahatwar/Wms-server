@@ -14,7 +14,6 @@ router.post("/", users.loginRequired,
   partnumbers.getPartNumber,	
   serialNumberFinder.getLastSerialNumber,
   materialinwards.materialInwardBulkUpload,
-  // putawaytransactions.putawayTransaction,
   inventorytransactions.materialInventoryTransactions,
   sendResponse.sendFindResponse
   );
@@ -66,7 +65,7 @@ router.get('/get/inventory/getinventoryStock',
 
 router.get('/get/transfer/findMaterialInwardsBySearchQuery',
   users.loginRequired,
-  materialinwards.findMaterialInwardsForTransferOut,
+  materialinwards.findMaterialInwardsBySearchQuery,
   sendResponse.sendFindResponse);
 
 router.get('/get/getinventorycount', 
@@ -75,16 +74,17 @@ router.get('/get/getinventorycount',
 
 router.get("/get/getCountByQcStatusHHT", 
   users.loginRequired,
-  materialinwards.countByQcStatusHHT);
+  materialinwards.countByQcStatusHHT,
+  sendResponse.sendFindResponse);
 
 router.get("/get/getCountByPending", 
   users.loginRequired,
-  materialinwards.getCountByPending,
+  materialinwards.countByQcStatus,
   sendResponse.sendFindResponse);
 
 router.get('/get/findPendingMaterialInwardsBySearchQuery',
   users.loginRequired,
-  materialinwards.findPendingMaterialInwardsBySearchQuery,
+  materialinwards.findMaterialInwardsBySearchQuery,
   sendResponse.sendFindResponse);
 
 router.get('/get/dashboardCountForPendingPutaway', 
@@ -104,7 +104,7 @@ router.get('/get/RecentTransactions/getRecentTransactions',
 
 router.get('/stock/get/findMaterialInwardsBySearchQuery',
   users.loginRequired,
-  materialinwards.findMaterialInwardsBySearchQueryStock,
+  materialinwards.findMaterialInwardsBySearchQuery,
   sendResponse.sendFindResponse);
 
 router.post('/post/bulkupload', users.loginRequired,

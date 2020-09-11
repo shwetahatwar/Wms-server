@@ -5,14 +5,12 @@ const Role = db.roles;
 const Access = db.access;
 
 // Create and Save a new RoleAccessRelation
-exports.create =async (req, res) => {
+exports.create =async (req, res,next) => {
   console.log(req.body);
   
   // Validate request
   if (!req.body.roleId) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
+    return next(HTTPError(400, "Content can not be empty!"));
     return;
   }
 
@@ -43,15 +41,10 @@ exports.create =async (req, res) => {
 
           await RoleAccessRelation.create(accessData)
           .then(data => {
-            console.log("Data on 44",data);
             responseData.push(data);
           })
           .catch(err => {
-            console.log("error on 48",err)
-            res.status(500).send({
-              message:
-              err["errors"][0]["message"] || "Some error occurred while creating the RoleAccessRelation."
-            });
+           return next(HTTPError(500, err["errors"][0]["message"] || "Some error occurred while creating the RoleAccessRelation."));
           });
         }
         else{
@@ -85,20 +78,15 @@ exports.create =async (req, res) => {
         }
       })
       .catch(err => {
-        res.status(500).send({
-          message:
-          err["errors"][0]["message"] || "Some error occurred while creating the RoleAccessRelation."
-        });
+        return next(HTTPError(500, err["errors"][0]["message"] || "Some error occurred while creating the RoleAccessRelation."));          
       })
     })
     .catch(err => {
-      res.status(500).send({
-        message:
-        err.message || "Some error occurred while creating RoleAccessRelation."
-      });
+      return next(HTTPError(500, err["errors"][0]["message"] || "Some error occurred while creating the RoleAccessRelation."));
     });
   }
   req.responseData = responseData;
+  next();
 };
 
 //Get All RoleAccessRelation
@@ -209,5 +197,4 @@ exports.validateAccessUrl = async (req,res,next) =>{
     req.responseData = roleAccessData;
   }
   next();
-
 };

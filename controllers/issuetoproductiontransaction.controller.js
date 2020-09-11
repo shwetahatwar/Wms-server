@@ -215,8 +215,7 @@ exports.findTransactionsBySearchQuery = async (req, res,next) => {
         limit:limit,
         offset:offset
       });
-
-  if (!issueToProductionTransactions) {
+  if (!issueToProductionTransactions[0]) {
     return next(HTTPError(400, "Issue To Production transactions not found"));
   }
   var responseData = [];

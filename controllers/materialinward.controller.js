@@ -60,7 +60,6 @@ exports.bulkUpload = async (req,res,next)  =>{
     return next(HTTPError(400, "Material not inwarded"));
   }
 
-  console.log("materialInwardBulkUploadResponse 67",req.materialInwardBulkUploadResponse)
   req.responseData = req.materialInwardBulkUploadResponse;
   next();
 };
@@ -153,7 +152,6 @@ exports.update = async (req, res,next) => {
           id: id
         }
       });
-      console.log("updatedMaterialInward",updatedMaterialInward)
       if (!updatedMaterialInward) {
         return next(HTTPError(500, "Material Inward not updated"))
       }
@@ -170,13 +168,8 @@ exports.update = async (req, res,next) => {
     next();
   };
 
-  exports.sendCreateResponse = async (req, res, next) => {
-    res.status(200).send({message: "success"});
-  };
-
-//Update QC status & transaction of the same *currently not in use
-exports.updateQcStatus = (req, res) => {
-  console.log(req.body);
+//Update QC status & transaction of the same
+exports.updateQcStatus = (req, res,next) => {
   MaterialInward.update(req.body, {
     where: { id: req.params.id }
   })
@@ -191,79 +184,21 @@ exports.updateQcStatus = (req, res) => {
         createdBy:req.user.username,
         updatedBy:req.user.username,
       };
-        // Save Transaction of QC in the database
-        QCTransaction.create(statusChange)
-        .then(data => {
-          res.send(data);
-        })
-        .catch(err => {
-          res.status(500).send({
-            message:
-            err.message || "Some error occurred while creating the QCTransaction."
-          });
-        });
+      QCTransaction.create(statusChange)
+      .then(data => {
+        res.send(data);
+      })
+      .catch(err => {
+        return next(HTTPError(500,"Internal error has occurred, while creating transaction."))
+      });
       } 
       else {
-        res.send({
-          message: `Cannot update QC Status with id=${req.body.id}. Maybe Material was not found or req.body is empty!`
-        });
+        return next(HTTPError(500,`Cannot update QC Status with id=${req.body.id}. Maybe Material was not found or req.body is empty!`))
       }
-    })
-  .catch(err => {
-    res.status(500).send({
-      message: "Error updating QC status with id=" + req.body.id
+    }).catch(err => {
+      return next(HTTPError(500,"Internal error has occurred, while updating QCStatus."))       
     });
-  });
 }; 
-
-
-exports.getCountByPending = async (req, res,next) => {
-  var countTable=[];
-  var materialInwardWhereClause = {};
-  if(req.site){
-    materialInwardWhereClause.siteId = req.site;
-  }
-  materialInwardWhereClause.status=true;
-  materialInwardWhereClause.materialStatus="NA"
-  
-  var totalData = await MaterialInward.count({
-    where:materialInwardWhereClause
-  });
-  let singleData = {
-    'total': totalData
-  };
-  countTable.push(singleData);
-
-  materialInwardWhereClause.QCStatus =1;
-  var qcOkData = await MaterialInward.count({
-    where:materialInwardWhereClause
-  });
-  singleData = {
-    'ok':qcOkData
-  };
-  countTable.push(singleData);
-  
-  materialInwardWhereClause.QCStatus =0;
-  var qcPendingData = await MaterialInward.count({
-    where:materialInwardWhereClause
-  });
-  singleData = {
-    'pending':qcPendingData
-  };
-  countTable.push(singleData);
-
-  materialInwardWhereClause.QCStatus = 2;
-  var qcRejectedData = await MaterialInward.count({
-    where:materialInwardWhereClause
-  });
-  singleData = {
-    'rejected':qcRejectedData
-  };
-  countTable.push(singleData);
-
-  req.responseData =countTable;
-  next();
-};
 
 // get count by QC
 exports.countByQcStatus = async (req, res,next) => {
@@ -273,6 +208,9 @@ exports.countByQcStatus = async (req, res,next) => {
     materialInwardWhereClause.siteId = req.site;
   }
   materialInwardWhereClause.status=true;
+  if(req.query.materialStatus){
+    materialInwardWhereClause.materialStatus=req.query.materialStatus
+  }
   var total = await MaterialInward.count({
     where:materialInwardWhereClause
   });
@@ -357,83 +295,9 @@ exports.countByQcStatusHHT = async (req, res,next) => {
   });
 };
 
-exports.findPendingMaterialInwardsBySearchQuery= async (req, res) => {
-  var {offset , limit ,barcodeSerial , partNumber , description , QCStatus} = req.query
-  
-  partNumber = (partNumber) ? partNumber:'';
-  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
-  description = (description) ? description:'';
-
-  materialInwardWhereClause = new LikeQueryHelper()
-  .clause(barcodeSerial, "barcodeSerial")
-  .clause(partNumber, "partNumber")
-  .toJSON();
-
-  if(req.site){
-    materialInwardWhereClause.siteId = req.site;
-  }
-
-  limit = (limit) ? parseInt(limit) : 100;
-  offset = (offset) ? parseInt(offset) : 0;
-
-  materialInwardWhereClause.status = true;
-
-  partNumberWhereClause = new LikeQueryHelper()
-  .clause(description, "description")
-  .toJSON();
-
-  if(QCStatus){
-    materialInwardWhereClause.QCStatus = QCStatus
-  }
-
-  materialInwardWhereClause.materialStatus="NA";
-
-  var data =await MaterialInward.findAll({ 
-    where: materialInwardWhereClause,
-    include: [{
-      model: PartNumber,
-      required:true,
-      where: partNumberWhereClause,
-    },
-    {
-      model: Shelf
-    }],
-    order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
-  });
-  if (!data) {
-    return next(HTTPError(500, "Searched data not found"));
-  }
-  var countArray =[];
-  var responseData =[];
-  responseData.push(data);
-  var total = 0;
-  total =  await MaterialInward.count({ 
-    where: materialInwardWhereClause,
-    include: [{
-      model: PartNumber,
-      required:true,
-      where: partNumberWhereClause,
-    },
-    ]
-  });
-
-  var totalMaterials = {
-    totalCount : total
-  }
-  countArray.push(totalMaterials);
-  responseData.push(countArray);
-
-  req.responseData = responseData;
-  next();
-};
-
 //get data by search query
 exports.findMaterialInwardsBySearchQuery = async (req, res,next) => {
-  var {offset , limit ,barcodeSerial , partNumber , QCStatus} = req.query
+  var {offset , limit ,barcodeSerial , partNumber , description , QCStatus , materialStatus} = req.query
   
   limit = (limit) ? parseInt(limit) : 100;
   offset = (offset) ? parseInt(offset) : 0;
@@ -492,11 +356,25 @@ exports.findMaterialInwardsBySearchQuery = async (req, res,next) => {
     next();
   }
   else {
-    materialInwardWhereClause.QCStatus = QCStatus;
+    if(QCStatus != "All"){
+      materialInwardWhereClause.QCStatus = QCStatus; 
+    }
+    if(materialStatus){
+      materialInwardWhereClause.materialStatus = materialStatus
+    }
+    var partNumberWhereClause ={};
+    if(description){
+      partNumberWhereClause = new LikeQueryHelper()
+      .clause(description, "description")
+      .toJSON();
+    }
+
     var data = await MaterialInward.findAll({ 
       where: materialInwardWhereClause,
       include: [{
-        model: PartNumber
+        model: PartNumber,
+        required:true,
+        where: partNumberWhereClause,
       },
       {
         model: Shelf
@@ -516,67 +394,12 @@ exports.findMaterialInwardsBySearchQuery = async (req, res,next) => {
 
     var total = 0;
     total = await MaterialInward.count({ 
-      where: materialInwardWhereClause
-    });
-
-    var totalMaterials = {
-      totalCount : total
-    }
-    countArray.push(totalMaterials);
-    responseData.push(countArray);
-
-    req.responseData = responseData;
-    next();
-  }
-};
-
-exports.findMaterialInwardsBySearchQueryStock = async (req, res,next) => {
-  var {offset , limit ,barcodeSerial , partNumber , QCStatus} = req.query
-  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
-  partNumber = (partNumber) ? partNumber:'';
-
-  materialInwardWhereClause = new LikeQueryHelper()
-  .clause(barcodeSerial, "barcodeSerial")
-  .clause(partNumber, "partNumber")
-  .toJSON();
-
-  if(req.site){
-    materialInwardWhereClause.siteId = req.site;
-  }
-
-  limit = (limit) ? parseInt(limit) : 100;
-  offset = (offset) ? parseInt(offset) : 0;
-
-  materialInwardWhereClause.status = true;
-  materialInwardWhereClause.materialStatus = {
-    [Op.or]: ["Available", "NA"]
-  };
-
-  if(req.query.QCStatus != "All"){
-    materialInwardWhereClause.QCStatus = QCStatus;
-    var data = await MaterialInward.findAll({ 
       where: materialInwardWhereClause,
       include: [{
-        model: PartNumber
-      },
-      {
-        model: Shelf
-      }],
-      order: [
-      ['id', 'DESC'],
-      ],
-      offset:offset,
-      limit:limit
-    });
-    if (!data) {
-      return next(HTTPError(500, "Searched data not found"));
-    }
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
-    var total = 0;
-    total = await MaterialInward.count({ 
-      where: materialInwardWhereClause,
+        model: PartNumber,
+        required:true,
+        where: partNumberWhereClause,
+      }]
     });
 
     var totalMaterials = {
@@ -584,44 +407,11 @@ exports.findMaterialInwardsBySearchQueryStock = async (req, res,next) => {
     }
     countArray.push(totalMaterials);
     responseData.push(countArray);
-
+    console.log("data",data.length)
     req.responseData = responseData;
     next();
   }
-  else{
-    var data = await MaterialInward.findAll({ 
-      where: materialInwardWhereClause,
-      include: [{
-        model: PartNumber
-      },
-      {
-        model: Shelf
-      }],
-      order: [
-      ['id', 'DESC'],
-      ],
-      offset:offset,
-      limit:limit
-    });
-
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
-
-    var total = 0;
-    total = await MaterialInward.count({ 
-      where: materialInwardWhereClause,
-    });
-
-    var totalMaterials = {
-      totalCount : total
-    }
-    countArray.push(totalMaterials);
-    responseData.push(countArray);
-
-    req.responseData = responseData;
-    next();
-  }
+  next();
 };
 
 // Update a MaterialInward by the Barcode Serial in the request
@@ -744,7 +534,6 @@ exports.inventoryData = async (req, res,next) => {
   next();
 };
 
-
 //get inventory Stock 
 exports.inventoryStockData = async (req, res,next) => {
   var {offset , limit , partNumber , description } = req.query
@@ -758,118 +547,38 @@ exports.inventoryStockData = async (req, res,next) => {
 
   partNumber = (partNumber) ? partNumber:'';
   description = (description) ? description:'';
+  var partNumberWhereClause={};
 
-  partNumberWhereClause = new LikeQueryHelper()
-  .clause(partNumber, "partNumber")
-  .clause(description, "description")
-  .toJSON();
+  if(partNumber || description){
+    partNumberWhereClause = new LikeQueryHelper()
+    .clause(partNumber, "partNumber")
+    .clause(description, "description")
+    .toJSON();
+  }
 
   materialInwardWhereClause.QCStatus = 1;
   materialInwardWhereClause.materialStatus = "Available";
   materialInwardWhereClause.status = true;
 
-  if(partNumber || description){
-    var data = await MaterialInward.findAll({
-      where:materialInwardWhereClause,
-      group: [ 'partNumberId' ],
-      attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
-      [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
-      include: [{
-        model: PartNumber,
-        where:partNumberWhereClause,
-        attributes: ['description','partNumber']
-      }],
-      limit:limit,
-      offset:offset
-    });
-    if(!data){
-      return next(HTTPError(500, "Inventory data not found"));
-    }
-
-    req.responseData = data;
-    next();
-  }
-  else{
-    var data =  await MaterialInward.findAll({
-      where:materialInwardWhereClause,
-      group: [ 'partNumberId' ],
-      attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
-      [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
-      include: [{
-        model: PartNumber,
-        attributes: ['description','partNumber']
-      }],
-      limit:limit,
-      offset:offset
-    });
-
-    if(!data){
-      return next(HTTPError(500, "Inventory data not found"));
-    }
-
-    req.responseData = data;
-    next();
-  }
-};
-
-//get data by search query for transfer Out
-exports.findMaterialInwardsForTransferOut = async (req, res,next) => {
-  var {offset , limit ,barcodeSerial ,materialStatus , partNumber , QCStatus} = req.query
-  partNumber = (partNumber) ? partNumber:'';
-  barcodeSerial = (barcodeSerial) ? barcodeSerial:'';
-
-  materialInwardWhereClause = new LikeQueryHelper()
-  .clause(barcodeSerial, "barcodeSerial")
-  .clause(partNumber, "partNumber")
-  .toJSON();
-
-  if(req.site){
-    materialInwardWhereClause.siteId = req.site;
-  }
-
-  limit = (limit) ? parseInt(limit) : 100;
-  offset = (offset) ? parseInt(offset) : 0;
-  materialInwardWhereClause.status = true;
-  
-  if(QCStatus){
-    materialInwardWhereClause.QCStatus = QCStatus
-  }
-  if(materialStatus){
-    materialInwardWhereClause.materialStatus = materialStatus
-  }
-  var data = await MaterialInward.findAll({ 
-    where: materialInwardWhereClause,
+  var data = await MaterialInward.findAll({
+    where:materialInwardWhereClause,
+    group: [ 'partNumberId' ],
+    attributes: ['partNumberId', [Sequelize.fn('count', Sequelize.col('partNumberId')), 'count'],
+    [Sequelize.literal('SUM(eachPackQuantity * 1)'), 'totalQuantity']],
     include: [{
-      model: PartNumber
-    },
-    {
-      model: Shelf
+      model: PartNumber,
+      where:partNumberWhereClause,
+      attributes: ['description','partNumber']
     }],
-    order: [
-    ['id', 'DESC'],
-    ],
-    offset:offset,
-    limit:limit
+    limit:limit,
+    offset:offset
   });
   if(!data){
-    return next(HTTPError(500, "Searhed data not found"));
+    return next(HTTPError(500, "Inventory data not found"));
   }
-  var countArray =[];
-  var responseData =[];
-  responseData.push(data);
-  var total = 0;
-  total = await MaterialInward.count({ 
-    where: materialInwardWhereClause,
-  });
-  var totalMaterials = {
-    totalCount : total
-  }
-  countArray.push(totalMaterials);
-  responseData.push(countArray);
 
-  req.responseData =responseData;
+  req.responseData = data;
   next();
-
 };
 
 exports.inventoryDataCount = async (req, res,next) => {
@@ -1035,7 +744,6 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res,next) => {
   offset = (offset) ? parseInt(offset) : 0;
 
   let responseData = [];
-
   await InventoryTransaction.findAll({
     include: [{model: MaterialInward,
       required:true,
@@ -1061,10 +769,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res,next) => {
     }
   })
   .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving InventoryTransaction."
-    });
+    return next(HTTPError(500, "Some error occurred while retrieving InventoryTransaction."));
   });
 
   await PutawayTransaction.findAll({
@@ -1092,10 +797,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res,next) => {
     }
   })
   .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving InventoryTransaction."
-    });
+    return next(HTTPError(500, "Some error occurred while retrieving InventoryTransaction."));
   });
 
   await QCTransaction.findAll({
@@ -1123,10 +825,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res,next) => {
     }
   })
   .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving InventoryTransaction."
-    });
+    return next(HTTPError(500, "Some error occurred while retrieving InventoryTransaction."));
   });
 
   await IssueToProductionTransaction.findAll({
@@ -1154,10 +853,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res,next) => {
     }
   })
   .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving InventoryTransaction."
-    });
+    return next(HTTPError(500, "Some error occurred while retrieving InventoryTransaction."));
   });
 
   await StockTransaction.findAll({
@@ -1185,10 +881,7 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res,next) => {
     }
   })
   .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving InventoryTransaction."
-    });
+    return next(HTTPError(500, "Some error occurred while retrieving InventoryTransaction."));
   });
 
   await Picklist.findAll({
@@ -1217,55 +910,44 @@ exports.findRecentTransactionsWithoutMaterialId =async (req, res,next) => {
     }
   })
   .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving InventoryTransaction."
-    });
+    return next(HTTPError(500, "Some error occurred while retrieving InventoryTransaction."));
   });
 
   responseData.sort(function(a,b){
     return new Date(b.transactionTimestamp) - new Date(a.transactionTimestamp)
   })
-
   responseData = responseData.slice(0,50);
   req.responseData = responseData;
   next();
 };  
 
-
 exports.updateQcStatusHHT = async (req, res,next) => {
   var notUpdatedList = [];
-  for(var i=0;i<req.body.length;i++){
-    await MaterialInward.update(req.body[i], {
+  var updatedQCData = req.body.map(async el => {
+    var materialData = await MaterialInward.update(el, {
       where: { 
-        barcodeSerial: req.body[i]["barcodeSerial"] 
+        barcodeSerial: el["barcodeSerial"] 
       }
-    })
-    .then(async num => {
-      console.log(num)
-      if (num == 1) {
-        const statusChange = {
-          transactionTimestamp :Date.now(), 
-          materialInwardId: req.body[i]["id"],
-          prevQCStatus:req.body[i]["prevQCStatus"],
-          currentQCStatus:req.body[i]["QCStatus"],
-          performedBy:req.user.username,
-          createdBy:req.user.username,
-          updatedBy:req.user.username,
-        };
-        await QCTransaction.create(statusChange)
-      }
-      else{
-        notUpdatedList.push(req.body[i]);
-      }
-    }).catch(err => {
-      notUpdatedList.push(req.body[i]);
     });
-  }
+
+    if(materialData == 1){
+      const statusChange = {
+        transactionTimestamp :Date.now(), 
+        materialInwardId: el["id"],
+        prevQCStatus: el["prevQCStatus"],
+        currentQCStatus: el["QCStatus"],
+        performedBy: req.user.username,
+        createdBy: req.user.username,
+        updatedBy: req.user.username,
+      };
+      await QCTransaction.create(statusChange)
+    }
+    else{
+      notUpdatedList.push(el);
+    }
+  });
   if(req.body.length == notUpdatedList.length){
-    res.status(500).send({
-      message: "Error updating QC status "
-    });
+    return next(HTTPError(500, "Some error occurred while Updating QC Status."));
   }
   else{
     next();

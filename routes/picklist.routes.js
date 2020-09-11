@@ -3,6 +3,8 @@ var router = express.Router();
 var picklists = require('../controllers/picklist.controller');
 var users = require('../controllers/user.controller');
 var sendResponse = require('../functions/sendResponse');
+var picklistmateriallists = require('../controllers/picklistmateriallist.controller');
+var picklistpickingmateriallists = require('../controllers/picklistpickingmateriallist.controller');
 
 router.post("/", users.loginRequired,
 	picklists.create,
@@ -28,6 +30,7 @@ router.post("/post/picklistsmaterialcount",
 router.get("/:picklistId/picklistmaterials",
 	users.loginRequired,
 	picklists.getPicklistMaterialLists,
+	picklistmateriallists.findAll,
 	sendResponse.sendFindResponse
 	);
 
@@ -38,17 +41,20 @@ router.post("/:picklistId/picklistmaterials",
 
 router.get("/:picklistId/picklistmaterials/:id",
 	users.loginRequired,
-	picklists.getPicklistMaterialList,	 
+	picklists.getPicklistMaterialList,
+	picklistmateriallists.findOne,	 
 	sendResponse.sendFindResponse);
 
 router.put("/:picklistId/picklistmaterials/:id", 
 	users.loginRequired,
 	picklists.putPicklistMaterialList,
+	picklistmateriallists.update,
 	sendResponse.sendCreateResponse);
 
 router.get("/:picklistId/picklistpickedmaterials", 
 	users.loginRequired,
 	picklists.getPicklistPickingMaterialLists,
+	picklistpickingmateriallists.getAll,
 	sendResponse.sendFindResponse);
 
 router.post("/:picklistId/picklistpickedmaterials", 
@@ -58,6 +64,7 @@ router.post("/:picklistId/picklistpickedmaterials",
 router.get("/:picklistId/picklistpickedmaterials/:id", 
 	users.loginRequired,
 	picklists.getPicklistPickingMaterialList,
+	picklistpickingmateriallists.getById,
 	sendResponse.sendFindResponse);
 
 router.put("/:picklistId/picklistpickedmaterials/:id", 

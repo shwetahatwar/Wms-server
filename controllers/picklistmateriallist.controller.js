@@ -33,7 +33,6 @@ exports.create = async (req, res,next) => {
   }
 
   req.picklistMaterial = picklistMaterial.toJSON();
-
   next();  
 };
 
@@ -90,7 +89,7 @@ exports.update = async (req, res,next) => {
   const id = req.params.id;
   var { picklistId , purchaseOrderNumber , batchNumber , location , numberOfPacks , partNumber , partDescription } = req.body;
 
-  var whereClause = new WhereBuilder()
+  var updateClause = new WhereBuilder()
   .clause('picklistId', picklistId)
   .clause('purchaseOrderNumber', purchaseOrderNumber)
   .clause('location', location)
@@ -100,7 +99,7 @@ exports.update = async (req, res,next) => {
   .clause('partDescription', partDescription)
   .clause('batchNumber', batchNumber).toJSON();
 
-  var picklistMaterial = await PicklistMaterialList.update(whereClause, {
+  var picklistMaterial = await PicklistMaterialList.update(updateClause, {
     where: { id: id }
   });
 
@@ -109,32 +108,6 @@ exports.update = async (req, res,next) => {
   }
 
   req.picklistMaterial = picklistMaterial;
-  next();
-};
-
-//Get Picklist Material List with Picklist Id
-exports.getPicklistMaterialListByPicklistId = async(req, res,next) => {
-  var { picklistId } = req.query;
-  var whereClause = {};
-  if(picklistId){
-    whereClause.picklistId = picklistId;
-  }
-  var getAllPicklistData =await PicklistMaterialList.findAll({
-    where: whereClause,
-    include: [{
-      model: Picklist
-    }],
-    order: [
-    ['id', 'DESC'],
-    ] 
-  });
-
-  if (!getAllPicklistData) {
-    return next(HTTPError(400, "Picklist Materials not found"));
-  }
-  
-  req.picklistsMaterialLists = getAllPicklistData.map ( el => { return el.get({ plain: true }) } );
-
   next();
 };
 

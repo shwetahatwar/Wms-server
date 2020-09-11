@@ -274,23 +274,12 @@ exports.update = async(req, res,next) => {
 
 //Get Picklist Material List
 exports.getPicklistMaterialLists = async (req, res,next) => {  
-  var picklistMaterials = await PicklistMaterialList.findAll({ 
-    where: req.params
-  });
-
-  if (!picklistMaterials) {
-    return next(HTTPError(400, "Picklist materials not found"));
-  }
-  
-  req.picklistMaterialsList = picklistMaterials.map ( el => { return el.get({ plain: true }) } );
-  req.responseData = req.picklistMaterialsList;
+  req.picklistId=req.params;
   next();
 };
 
 //Create Picklist Material List
 exports.postPicklistMaterialLists = async (req, res) => {
-  console.log(req.body);
-  // Validate request
   if (!req.body.picklistId) {
     return next(HTTPError(500,"Content can not be empty!"))
   } 
@@ -314,76 +303,27 @@ exports.postPicklistMaterialLists = async (req, res) => {
 
 //Get Picklist Material List
 exports.getPicklistMaterialList = async(req, res,next) => {
-
-  var picklistMaterials = await PicklistMaterialList.findOne({ 
-    where: req.params
-  })
-
-  if (!picklistMaterials) {
-    return next(HTTPError(400, "Picklist materials not found"));
-  }
-  
-  req.picklistMaterialsList = picklistMaterials
-  req.responseData = req.picklistMaterialsList;
   next();
 };
 
 //Update Picklist Material List
 exports.putPicklistMaterialList = async(req, res,next) => {
-  const id = req.params.id;
-
-  var { purchaseOrderNumber, batchNumber , location , numberOfPacks,partNumber,partDescription } = req.body;
-  
-  whereClause = new WhereBuilder()
-  .clause('purchaseOrderNumber', purchaseOrderNumber)
-  .clause('batchNumber', batchNumber)
-  .clause('numberOfPacks', numberOfPacks)
-  .clause('partNumber', partNumber)
-  .clause('partDescription', partDescription)
-  .clause('updatedBy', req.user.username) 
-  .clause('location', location).toJSON();
-
-  try{
-    var updatedPicklistMaterial = await PicklistMaterialList.update(whereClause, {
-      where: req.params
-    });
-  }
-  catch (err) {
-    if(err["errors"]){
-      return next(HTTPError(500,err["errors"][0]["message"]))
-    }
-    else{
-      return next(HTTPError(500,"Internal error has occurred, while updating the PicklistMaterialList."))
-    }
-  }
   next();
 };
 
 //Picking 
 //Get Picklist Picking Material List
 exports.getPicklistPickingMaterialLists = async (req, res ,next) => {
-
-  var picklistPickingMaterials = await PicklistPickingMaterialList.findAll({ 
-    where: req.params
-  });
-
-  if (!picklistPickingMaterials) {
-    return next(HTTPError(400, "Picklist picking materials not found"));
-  }
-
-  req.picklistPickingMaterialsList = picklistPickingMaterials.map ( el => { return el.get({ plain: true }) } );
-  req.responseData = req.picklistPickingMaterialsList;
+  req.picklistId=req.params;
   next();
 };
 
 //Create Picklist Picking Material List
 exports.postPicklistPickingMaterialLists = async (req, res,next) => {
-
-  console.log(req.body.materials.length);
   var partNumbersList = [];
-  for(var i=0;i<req.body.materials.length;i++){
 
-     partNumbersList.push(req.body.materials[i].partNumber);
+  for(var i=0;i<req.body.materials.length;i++){
+      partNumbersList.push(req.body.materials[i].partNumber);
       let violatedData;
       if(req.body.materials[i]["isViolated"]){
         violatedData = req.body.materials[i];
@@ -418,7 +358,6 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
       let updatedData = {
         "eachPackQuantity":eachPackQuantity
       }
-      console.log("updatedData",updatedData)
       await MaterialInward.update(updatedData, {
         where: {
           barcodeSerial:req.body.materials[i].serialNumber
@@ -436,10 +375,7 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
       });
     })
     .catch(err => {
-      res.status(500).send({
-        message:
-        err.message || "Some error occurred while creating the Picklist Picking Material List."
-      });
+      return next(HTTPError(500, "Some error occurred while creating the Picklist Picking Material List."))
     });
   }
   let checkString = '%'+req.site+'%'
@@ -493,9 +429,7 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
           result += "<th>Part Description</td>";
           result += "<th>Quantity</td>";
           result += "<th>Last Picklist Number</td>";
-          console.log("data",data.length)          
           for(var i=0;i<data.length;i++){
-            console.log(data[i]["dataValues"])
             result += "<tr>";
             result += "<td>"+(i+1)+"</td>";
             result += "<td><b>"+data[i]["dataValues"]["partnumber"]["partNumber"]+"</b></td>";
@@ -508,7 +442,6 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
           result += "<br/><br/>";
           result +="Have a great day!";
 
-          console.log(result);
           if(data.length!=0){
             var mailOptions = {
               from: "servicedesk@briot.in", // sender address (who sends)
@@ -526,10 +459,9 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
           }
         })
   .catch(err => {
-    console.log("Error",err)
 
   });
-  //updated picklist
+
   var updatedPicklist = {
     picklistStatus: "Completed",
     updatedBy:req.user.username
@@ -541,16 +473,14 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
   })
   .then(async num => {
     if (num == 1) {
-      console.log("Picklist updated",req.params.picklistId);
     } 
     else {
     }
   })
   .catch(err => {
-    res.status(500).send({
-      message: "Error updating Picklist with id=" + id
-    });
+    return next(HTTPError(500,"Error updating Picklist with id=" + id))
   });
+
   let updatedData={
     "status":false
   }
@@ -565,10 +495,9 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
     }
   })
   .catch(err => {
-    res.status(500).send({
-      message: "Error updating Material Stock"
-    });
+    return next(HTTPError(500,"Error updating Material Stock"))
   });
+
   res.status(200).send({
     message:
     "Completed Successfully."
@@ -578,17 +507,6 @@ exports.postPicklistPickingMaterialLists = async (req, res,next) => {
 
 //Get Picklist Picking Material List
 exports.getPicklistPickingMaterialList = async (req, res,next) => {
-
-  var picklistPickingMaterial = await PicklistPickingMaterialList.findAll({ 
-    where: req.params
-  });
-
-  if (!picklistPickingMaterial) {
-    return next(HTTPError(400, "Picklist picking materials not found"));
-  }
-
-  req.picklistPickingMaterialsList = picklistPickingMaterial;
-  req.responseData = picklistPickingMaterial;
   next();
 };
 
@@ -674,10 +592,7 @@ exports.getPicklistCountDashboard = async (req, res,next) => {
     next();
   })
   .catch(function(err){
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving count."
-    });
+     return next(HTTPError(500,"Some error occurred while retrieving count."))
   });
 };
 
@@ -757,19 +672,16 @@ var total =0;
   });
 
   whereClause.picklistStatus="In Progress"
-
   inProgress = await Picklist.count({
     where:whereClause
   });
 
   whereClause.picklistStatus="Pending"
-
   pending = await Picklist.count({
     where:whereClause
   });
   
   whereClause.picklistStatus="Completed";
-
   completed = await Picklist.count({
     where:whereClause
   });
