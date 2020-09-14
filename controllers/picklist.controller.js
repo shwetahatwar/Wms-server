@@ -598,7 +598,7 @@ exports.getPicklistCountDashboard = async (req, res,next) => {
 
 //get by picklist name
 exports.findPicklistByName = async (req, res,next) => {
-  var { createdAtStart , createdAtEnd , offset , limit , picklistName} = req.query;
+  var { createdAtStart , createdAtEnd , picklistStatus, offset , limit , picklistName} = req.query;
   var whereClause = {};
   limit = (limit) ? parseInt(limit) : 100;
   offset = (offset) ? parseInt(offset) : 0;
@@ -616,6 +616,9 @@ exports.findPicklistByName = async (req, res,next) => {
     whereClause.picklistName = {
       [Op.like]:'%'+picklistName+'%'
     };
+  }
+  if(picklistStatus){
+    whereClause.picklistStatus = picklistStatus
   }
 
   if(req.site){
