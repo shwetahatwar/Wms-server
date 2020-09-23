@@ -96,7 +96,11 @@ exports.getUser = async (req, res, next) => {
       },
       include: [{
         model: Role, as: 'role'
-      }]
+      },
+      {
+        model: Site, as: 'site'
+      }
+      ]
     });
 
     if (!user) {
@@ -142,10 +146,12 @@ exports.sign_in = async (req, res, next) => {
       siteId:user.siteId,
       employeeId: user.employeeId,
       roleId:user["role"]["id"],
-      role:user["role"]["name"]
+      role:user["role"]["name"],
+      site:user["site"]["name"]
     };
 
     req.userList = response;
+    req.responseData=response;
     req.user = response;
     if(!response){
       return next(HTTPError(500, "User not found"));
