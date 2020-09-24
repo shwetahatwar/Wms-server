@@ -3,6 +3,7 @@ const Zone = db.zones;
 const Rack = db.racks;
 const Shelf = db.shelfs;
 const Site = db.sites;
+const Sequelize = require("sequelize");
 const Op = db.Sequelize.Op;
 var HTTPError = require('http-errors');
 const serialNumberFinder = require('../functions/serialNumberFinder');
@@ -11,7 +12,7 @@ const shelfSerialNumber = require('../functions/shelfSerialNumber');
 //Get All Shelfs
 exports.getAll =async (req,res,next) =>{
 
-  var {description,rackId,barcodeSerial,name,status,limit,offset} = req.query;
+  var {description,rackId,barcodeSerial,name,status,limit,offset,isExcess} = req.query;
 
   limit = (limit) ? parseInt(limit) : 100;
   offset = (offset) ? parseInt(offset) : 0;
@@ -32,10 +33,14 @@ exports.getAll =async (req,res,next) =>{
       [Op.like]:'%'+req.site+'%'
     };
   }
-
+  if(isExcess){
+    whereClause.loadedCapacity= {
+      [Op.gt]: Sequelize.col('capacity') 
+    }
+  }
   var getAllShelves;
   getAllShelves = await Shelf.findAll({
-    where:req.query,
+    where:whereClause,
     include:[
     {
       model : Rack,
@@ -193,7 +198,7 @@ exports.getById = async (req,res,next) => {
 
 exports.findShelfsBySearchQuery = async(req, res,next) => {
 
-  var { name, zone , rack , site , status , offset , limit } = req.query;
+  var { name, zone , rack , site , status , offset , limit,isExcess } = req.query;
 
   limit = (limit) ? parseInt(limit) : 100;
   offset = (offset) ? parseInt(offset) : 0;
@@ -229,7 +234,11 @@ exports.findShelfsBySearchQuery = async(req, res,next) => {
       [Op.like]:'%'+req.site+'%'
     };
   }
-
+  if(isExcess){
+    whereClause.loadedCapacity= {
+      [Op.gt]: Sequelize.col('capacity') 
+    }
+  }
   var data = await Shelf.findAll({ 
     where: whereClause,
     include: [{model: Rack,
