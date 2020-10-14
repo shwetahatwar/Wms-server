@@ -102,6 +102,11 @@ exports.getAll = async(req,res,next) =>{
   var getAllRoleAccessRelations;
   getAllRoleAccessRelations = await RoleAccessRelation.findAll({
     where:whereClause,
+    include:[{
+      model:Role
+    },
+    {model:Access}
+    ],
     order: [
     ['id', 'DESC'],
     ],

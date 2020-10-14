@@ -39,7 +39,6 @@ module.exports = (sequelize, DataTypes) => {
       type:DataTypes.STRING,
       allowNull:true
     }
-    
   }),
 
   Access = sequelize.define("access", {
