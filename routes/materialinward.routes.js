@@ -111,6 +111,11 @@ router.post('/post/bulkupload', users.loginRequired,
   materialinwards.bulkUpload,
   sendResponse.sendFindResponse);
 
+router.get("/get/inventorystockcount", 
+  users.loginRequired,
+  materialinwards.getInventoryStockcount);
+
+
 router.get('/partnumbers/get/findforpicklist',
   users.loginRequired,
   materialinwards.findPartNumbersForPicklist,
