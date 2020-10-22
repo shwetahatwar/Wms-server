@@ -3,209 +3,215 @@ const User = db.users;
 const Op = db.Sequelize.Op;
 var jwt = require('jsonwebtoken');
 const Role = db.roles;
-var bcrypt = require('bcrypt-nodejs');
-var bbPromise = require('bluebird');
+const Site = db.sites;
+const UserSiteRelation = db.usersiterelations;
+const userConfig = require('../config/user.config');
+var HTTPError = require('http-errors');
+const WhereBuilder = require('../helpers/WhereBuilder');
 
-// Create and Save a new User
-exports.create = async (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.username) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+exports.create = async (req, res, next) => {
+  const { username, password, role, site, employeeId } = req.body;
+
+  if (!username) {
+    return next(HTTPError(500, "User not created, invalid username"))
   }
 
-  var roleId;
-  await Role.findAll({
-    where: {
-      name:req.body.role
-    }
-  })
-  .then(data => {
-    roleId = data[0]["dataValues"]["id"];
-  })
-  .catch(err => {
-    return res.status(401).json({ message: 'Invalid Role' });
-  })
+  var foundRole;
+  if (!req.roleList[0]) {
+    return next(HTTPError(500, "User not created, inappropriate role"))
+  }
 
-  // Create a User
-  const user = {
-    username: req.body.username,
-    password: req.body.password,
-    status: "1",
-    roleId: roleId,
-    employeeId:req.body.employeeId,
-    createdBy:req.user.username,
-    updatedBy:req.user.username
-  };
+  foundRole = req.roleList[0];
 
-  // Save User in the database
-  await User.create(user)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      console.log("Error",err["errors"][0]["message"]);
-      res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the User."
-      });
+  try{
+    var user = await User.create({
+      username: username,
+      password: password,
+      status: "1",
+      roleId: foundRole["id"],
+      siteId: site,
+      employeeId: employeeId,
+      createdBy: req.user.username,
+      updatedBy: req.user.username
     });
-};
 
-exports.sign_in = (req, res) => {
-  User.scope('withPassword').findOne({
-    where: {
-      username: req.body.username,
-    },
-    include: [{
-      model: Role
-    }],
-  }).then((user) => {
-    if(user.status == false){
-      return res.status(401).json({ message: 'Authentication failed. Invalid user or password.' });
+    if (!user) {
+      return next(HTTPError(500, "User not created"))
     }
-
-    if (!user || !user.comparePassword(req.body.password)) {
-      return res.status(401).json({ message: 'Authentication failed. Invalid user or password.' });
+    user = user.toJSON();
+    req.userData = user;
+    next();
+  }
+  catch (err) {
+    console.log(err)
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
     }
-
-    return res.json(
-      { token: jwt.sign({ username: user.username }, 'THISISLONGSTRINGKEY'),
-      username: user.username,
-      userId:user.id,
-      employeeId: user.employeeId,
-      roleId:user["role"]["id"],
-      role:user["role"]["name"]
-    })
-  })
-  .catch((err) => {
-    console.log('err', err);
-    if (err) {
-      return res.status(401).json({ message: 'Error while authenticating.' });
-    }
-  });
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while creating the user."))
+    }     
+  }
+  next();
 };
 
 // Retrieve all Users from the database.
-exports.findAll = (req, res) => {
+exports.findAll = async (req, res, next) => {
+  var { name, siteId } = req.query;
 
-  User.findAll({ 
-    where: req.query,
-    include: [{
+  var whereClause = new WhereBuilder()
+    .clause('name', name)
+    .clause('siteId',siteId).toJSON();
+
+  var list = await User.findAll({ 
+    where: whereClause,
+    include: [
+    {
       model: Role
+    },
+    {
+      model: Site
     }],
-     order: [
-        ['id', 'DESC'],
-        ],
-     })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving users."
-      });
-    });
+    order: [
+      ['id', 'DESC'],
+    ],
+  });
+
+  if (!list) {
+    return next(HTTPError(400, "User not found"));
+  }
+  
+  req.userList = list.map ( el => { return el.get({ plain: true }) } );
+  req.responseData = req.userList;
+  next();
 };
 
-// Find a single User with an id
-exports.findOne = (req, res) => {
-  const id = req.params.id;
+exports.getUser = async (req, res, next) => {
+  var { username } = req.body;
+  var user = null;
 
-  User.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving User with id=" + id
-      });
-    });
-};
-
-// Update a User by the id in the request
-exports.update = (req, res) => {
-  const id = req.params.id;
-
-  User.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "User was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`
-        });
+  if (username) {
+    user = await User.scope('withPassword').findOne({
+      where: {
+        username: username
+      },
+      include: [{
+        model: Role, as: 'role'
+      },
+      {
+        model: Site, as: 'site'
       }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error updating User with id=" + id
-      });
+      ]
     });
+
+    if (!user) {
+      return next(HTTPError(404, "User not found"));
+    }
+
+    req.signinuser = user.toJSON();
+  }
+
+  if (req.signinuser) {
+    req.username = req.signinuser.username;
+    next();
+  } else {
+    next(HTTPError(404, "User not found"));
+  }
+}
+
+exports.matchPassword = async (req, res, next) => {
+  var { password } = req.body;
+
+  if (!password) {
+    return next(HTTPError(400, "Password required"))
+  }
+
+  console.log(password);
+  const passwordMatched = await User.comparePassword(password, req.signinuser.password);
+
+  if (!passwordMatched) {
+    return next(HTTPError(400, "Password mismatched"))
+  }
+
+  next();
+}
+
+exports.sign_in = async (req, res, next) => {
+  if (req.signinuser) {
+    var user = req.signinuser;
+    var jwtToken = jwt.sign({ username: user.username }, userConfig.SECRET)
+    var response = { 
+      token: jwtToken,
+      username: user.username,
+      userId:user.id,
+      siteId:user.siteId,
+      employeeId: user.employeeId,
+      roleId:user["role"]["id"],
+      role:user["role"]["name"],
+      site:user["site"]["name"]
+    };
+
+    req.userList = response;
+    req.responseData=response;
+    req.user = response;
+    if(!response){
+      return next(HTTPError(500, "User not found"));
+    }
+    next();
+  }
+  else {
+    return next(HTTPError(500, "User not found"));
+  }
 };
 
-// Delete a User with the specified id in the request
-exports.delete = (req, res) => {
-  const id = req.params.id;
+exports.findOne = async (req, res, next) => {
+  const { id } = req.params;
 
-  User.destroy({
-    where: { id: id }
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "User was deleted successfully!"
-        });
-      } else {
-        res.send({
-          message: `Cannot delete User with id=${id}. Maybe User was not found!`
-        });
+  var foundUser = await User.findByPk(id);
+  if (!foundUser) {
+    return next(HTTPError(500, "User not found"))
+  }
+  req.userList = foundUser;
+  req.responseData = req.userList;
+  next();
+};
+
+exports.update = async (req, res, next) => {
+  const { id } = req.params;
+  var { username, password, role, site, employeeId } = req.body;
+
+  if (password) {
+    password = await User.encryptPassword(password);
+  }
+  // console.log(password);
+  updateClause = new WhereBuilder()
+    .clause('username', username)
+    .clause('password', password)
+    .clause('roleId', role)
+    .clause('updatedBy', req.user.username) 
+    .clause('siteId', site).toJSON();
+
+    try{
+      var updatedUser = await User.update(updateClause,{
+        where: {
+          id: id
+        }
+      });
+
+      if (!updatedUser) {
+        return next(HTTPError(500, "User not updated"))
       }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Could not delete User with id=" + id
-      });
-    });
-};
+    }
+    catch (err) {
+      if(err["errors"]){
+        return next(HTTPError(500,err["errors"][0]["message"]))
+      }
+      else{
+        return next(HTTPError(500,"Internal error has occurred, while updating the user."))
+      }     
+    }
 
-// Delete all Users from the database.
-exports.deleteAll = (req, res) => {
-  User.destroy({
-    where: {},
-    truncate: false
-  })
-    .then(nums => {
-      res.send({ message: `${nums} Users were deleted successfully!` });
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while removing all users."
-      });
-    });
-};
-
-// Find all published Users
-exports.findAllPublished = (req, res) => {
-  User.findAll({ where: { published: true } })
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving users."
-      });
-    });
+  req.updatedUser = updatedUser;
+  next();
 };
 
 exports.loginRequired = (req,res,next) => {
@@ -215,44 +221,4 @@ exports.loginRequired = (req,res,next) => {
   } else {
     return res.status(401).json({ message: 'Unauthorized user!' });
   }
-};
-
-exports.reset_pass = (req, res) => {
-  console.log("Inside reset Pass");
-  var resetPassword = req.query.password;
-  
-  var passwordReset = new bbPromise(function(resolve, reject) {
-    bcrypt.genSalt(5, function(err, salt) {
-      if (err) { reject(err); return; }
-
-      bcrypt.hash(resetPassword, salt, null, function(err, hash) {
-        if (err) { reject(err); return; }
-        var hashGenerated = hash;
-        var json = {
-          "password":hashGenerated
-        };
-        console.log("json",json);
-        console.log("resetPassword",hashGenerated);
-        User.update(json, {
-          where: req.params
-        })
-        .then(num => {
-          if (num == 1) {
-            res.send({
-              message: "User was updated successfully."
-            });
-          } else {
-            res.send({
-              message: `Cannot update User with id=${id}. Maybe User was not found or req.body is empty!`
-            });
-          }
-        })
-        .catch(err => {
-          res.status(500).send({
-            message: "Error updating User with id=" + id
-          });
-        });
-      });
-    });
-  });
 };

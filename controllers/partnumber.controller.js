@@ -1,242 +1,207 @@
 const db = require("../models");
 const PartNumber = db.partnumbers;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
 // Create and Save a new PartNumber
-exports.create = (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.partNumber) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+exports.create =async (req, res,next) => {
+  var {partNumber,description,UOM,netWeight,netVolume} = req.body;
+  
+  if (!partNumber || !description) {
+    return next(HTTPError(500, "Part Number not created,partNumber or description field is empty"))
   }
 
-  const partNumber = {
-    partNumber: req.body.partNumber,
-    description: req.body.description,
-    UOM: req.body.UOM,
-    status:true,
-    createdBy:req.user.username,
-    updatedBy:req.user.username
-  };
-
-  
-  PartNumber.create(partNumber)
-    .then(data => {
-      res.send(data);
+  var partNumber;
+  try {
+    partNumber = await PartNumber.create({
+      partNumber: partNumber,
+      description: description,
+      UOM: UOM,
+      netWeight: netWeight,
+      netVolume: netVolume,
+      status:true,
+      createdBy:req.user.username,
+      updatedBy:req.user.username
     })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the PartNumber."
-      });
-    });
+    if (!partNumber) {
+      return next(HTTPError(500, "Part Number not created"))
+    }
+  }
+  catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while creating the part number."))
+    }
+  }
+
+  partNumber = partNumber.toJSON();
+  req.partNumber = partNumber;
+
+  next();
 };
 
 //Get All PartNumbers
-exports.getAll = (req,res) =>{
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  console.log("Line 51", req.query);
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
-  PartNumber.findAll({
-    where:req.query,
+exports.getAll =async (req,res,next) =>{
+  var {partNumber,description,UOM,status,offset,limit} = req.query;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
+
+  var whereClause = new WhereBuilder()
+  .clause('partNumber', partNumber)
+  .clause('description', description)
+  .clause('UOM', UOM)
+  .clause('status', status).toJSON();
+
+  var getAllParts;
+  getAllParts = await PartNumber.findAll({
+    where:whereClause,
     order: [
     ['id', 'DESC'],
     ],
     offset:offset,
     limit:limit
-  })
-  .then(data => {
-    res.send(data);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving PartNumbers."
-    });
   });
+
+  if (!getAllParts) {
+    return next(HTTPError(400, "Part Numbers not found"));
+  }
+  
+  req.partsList = getAllParts.map ( el => { return el.get({ plain: true }) } );
+  req.responseData = req.partsList ;
+  next();
 };
 
 //Update PartNumber by Id
-exports.update = (req, res) => {
+exports.update = async (req, res,next) => {
   const id = req.params.id;
+  var { partNumber, description , status , UOM , netWeight , netVolume } = req.body;
+  
+  updateClause = new WhereBuilder()
+  .clause('partNumber', partNumber)
+  .clause('description', description)
+  .clause('UOM', UOM)
+  .clause('netWeight', netWeight)
+  .clause('netVolume', netVolume)
+  .clause('updatedBy', req.user.username) 
+  .clause('status', status).toJSON();
 
-  PartNumber.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "PartNumber was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update PartNumber with id=${id}. Maybe PartNumber was not found or req.body is empty!`
-        });
+  var updatedPart;
+  try {
+    updatedPart = await PartNumber.update(updateClause,{
+      where: {
+        id: id
       }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error updating PartNumber with id=" + id
-      });
     });
+
+    if (!updatedPart) {
+      return next(HTTPError(500, "Part Number not updated"))
+    }
+  }
+  catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while updating the part number."))
+    }
+  }
+
+  req.updatedPart = updatedPart;
+  next();
+  
 };
 
 //Get PartNumber by Id
-exports.getById = (req,res) => {
+exports.getById =async (req,res,next) => {
   const id = req.params.id;
-
-  PartNumber.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving PartNumber with id=" + id
-      });
-    });
+  var partNumber = await PartNumber.findByPk(id);
+  if (!partNumber) {
+    return next(HTTPError(500, "Part Number not found"))
+  }
+  req.partsList = partNumber;
+  req.responseData = req.partsList ;
+  next();
 }
 
+exports.getPartNumber = async (req,res,next) => {
+  var {partNumberId} = req.body;
+
+  var partNumber = await PartNumber.findByPk(partNumberId);
+  if (!partNumber) {
+    return next(HTTPError(500, "Part Number not found"))
+  }
+  req.partNumber = partNumber;
+  next();
+};
+
 //search query
-exports.findPartNumbersBySearchQuery = (req, res) => {
-  var queryString = req.query;
-  var offset = 0;
-  var limit = 100;
-  if(req.query.offset != null || req.query.offset != undefined){
-    offset = parseInt(req.query.offset)
-  }
-  if(req.query.limit != null || req.query.limit != undefined){
-    limit = parseInt(req.query.limit)
-  }
-  delete queryString['offset'];
-  delete queryString['limit'];
+exports.findPartNumbersBySearchQuery = async (req, res,next) => {
 
-  var partNumber ='';
-  var UOM ='';
-  var description ='';
+  var {partNumber,UOM,description,status,offset,limit} = req.query;
+  limit = (limit) ? parseInt(limit) : 100;
+  offset = (offset) ? parseInt(offset) : 0;
 
-  if(req.query.partNumber != undefined){
-    partNumber = req.query.partNumber;
-  }
-  if(req.query.description != undefined){
-    description = req.query.description;
-  }
-  if(req.query.UOM != undefined){
-    UOM = req.query.UOM;
-  }
+  partNumber = (partNumber) ? partNumber:'';
+  description = (description) ? description:'';
+  UOM = (UOM) ? UOM:'';
 
-  PartNumber.findAll({ 
-    where: {
-      status:1,
-      partNumber: {
-        [Op.or]: {
-          [Op.like]: '%'+partNumber+'%',
-          [Op.eq]: ''+partNumber+''
-        }
-      },
-      description: {
-        [Op.or]: {
-          [Op.like]: '%'+description+'%',
-          [Op.eq]: ''+description+''
-        }
-      },
-      UOM: {
-        [Op.or]: {
-          [Op.like]: '%'+UOM+'%',
-          [Op.eq]: ''+UOM+''
-        }
-      }
-    },
+   whereClause = new LikeQueryHelper()
+  .clause(partNumber, "partNumber")
+  .clause(description, "description")
+  .clause(UOM, "UOM")
+  .toJSON();
+
+  whereClause.status = true;
+  
+  var data = await PartNumber.findAll({ 
+    where: whereClause,
     order: [
     ['id', 'DESC'],
     ],
     offset:offset,
     limit:limit
-  })
-  .then(async data => {
-    var countArray =[];
-    var responseData =[];
-    responseData.push(data);
-
-    var total = 0;
-    await PartNumber.count({ 
-      where: {
-        status:1,
-        partNumber: {
-          [Op.or]: {
-            [Op.like]: '%'+partNumber+'%',
-            [Op.eq]: ''+partNumber+''
-          }
-        },
-        description: {
-          [Op.or]: {
-            [Op.like]: '%'+description+'%',
-            [Op.eq]: ''+description+''
-          }
-        },
-        UOM: {
-          [Op.or]: {
-            [Op.like]: '%'+UOM+'%',
-            [Op.eq]: ''+UOM+''
-          }
-        }
-      },
-    })
-    .then(data => {
-      total = data;
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-        err.message || "Some error occurred while retrieving PartNumbers."
-      });
-    });
-    var totalParts = {
-      totalCount : total
-    }
-    countArray.push(totalParts);
-    responseData.push(countArray);
-    res.send(responseData);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving PartNumbers."
-    });
   });
+
+  if(data[0]){
+    return next(HTTPError(500, "No data found"))
+  }
+
+  var responseData =[];
+  responseData.push(data);
+
+  var total = await PartNumber.count({ 
+    where: whereClause
+  });
+
+  var countArray=[];
+  var totalParts = {
+    totalCount : total
+  }
+  countArray.push(totalParts);
+  responseData.push(countArray);
+
+  req.responseData = responseData;
+  next();
 };
+
 
 // get count of all part numbers whose status =1 
-exports.countOfPartNumbers = (req, res) => {
-  var total = 0
-  PartNumber.count({
-    where :
-    {
-      status :1
-    }
+exports.countOfPartNumbers = async (req, res,next) => {
+  var whereClause = {};
+  whereClause.status = true;
+  var total = await PartNumber.count({
+    where :whereClause
   })
-  .then(data => {
-    total = data;
-    var totalCount = {
-      totalParts : total 
-    }
-     res.send(totalCount);
-  })
-  .catch(err => {
-    res.status(500).send({
-      message:
-      err.message || "Some error occurred while retrieving Parts count."
-    });
-  });
-};
+
+  if(!total){
+    return next(HTTPError(500, "Internal error has occurred, while getting count of parts"))
+  }
+
+  var totalCount = {
+    totalParts : total 
+  }
+  req.responseData =totalCount;
+  next();
+}

@@ -12,15 +12,27 @@ module.exports = (sequelize, DataTypes) => {
     },
     siteId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'sites', 
-          key: 'id',
-       }
     },
     barcodeSerial:{
       type: DataTypes.STRING,
       allowNull:false,
       unique: true
+    },
+    capacity: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
+    loadedCapacity: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
+     volume: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
+    loadedVolume: {
+      type: DataTypes.FLOAT,
+      allowNull: true
     },
     status:{
       type:DataTypes.BOOLEAN,

@@ -1,3 +1,6 @@
+//NOT IN USE
+
+
 const db = require("../models");
 const Location = db.locations;
 const Site = db.sites;
@@ -21,10 +24,15 @@ exports.create = async (req, res) => {
     }
   })
   .then(data => {
-    siteId = data[0]["dataValues"]["id"];
+    if(data.length !=0){
+      siteId = data[0]["dataValues"]["id"];
+    }
+    else{
+       return res.status(401).json({ message: 'Site Not found' });
+    }
   })
   .catch(err => {
-    return res.status(401).json({ message: 'Invalid Site' });
+    return res.status(401).json({ message: 'Site Not found' });
   })
 
   var serialNumberId;
@@ -59,6 +67,8 @@ exports.create = async (req, res) => {
     barcodeSerial: serialNumberId, 
     siteId:siteId,
     status:true,
+    capacity: req.body.capacity,
+    loadedCapacity: 0,
     createdBy:req.user.username,
     updatedBy:req.user.username
   };

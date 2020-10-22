@@ -1,91 +1,110 @@
 const db = require("../models");
 const Role = db.roles;
 const Op = db.Sequelize.Op;
+var HTTPError = require('http-errors');
 
-// Create and Save a new Role
-exports.create = (req, res) => {
-  console.log(req.body);
-  // Validate request
-  if (!req.body.name) {
-    res.status(400).send({
-      message: "Content can not be empty!"
-    });
-    return;
+// Create and Save a new access
+exports.create = async (req, res, next) => {
+  var { name} = req.body;
+  
+  if (!name) {
+    return next(HTTPError(500, "Role not created,name field is empty"))
   }
 
-  const role = {
-    name: req.body.name,
-    status:true,
-    createdBy:req.user.username,
-    updatedBy:req.user.username
-  };
+  try {
+    var role = await Role.create({
+      name: name,
+      status:true,
+      createdBy:req.user.username,
+      updatedBy:req.user.username
+    })
+    if (!role) {
+      return next(HTTPError(500, "Role not created"))
+    }
+  } 
+  catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while creating the role."))
+    }
+  }
 
+  role = role.toJSON();
+  req.role = role;
+
+  next();
+};
+
+exports.getAll = async (req, res, next) =>{
   
-  Role.create(role)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err["errors"][0]["message"] || "Some error occurred while creating the role."
-      });
-    });
+  var { name, status } = req.query;
+
+  if(req.body.role){
+    name = req.body.role;
+  }
+  
+  var whereClause = new WhereBuilder()
+  .clause('name', name)
+  .clause('status', status).toJSON();
+
+  var getAllRole = await Role.findAll({
+    where:whereClause
+  });
+  
+  if (!getAllRole) {
+    return next(HTTPError(400, "Role not found"));
+  }
+  
+  req.roleList = getAllRole.map ( el => { return el.get({ plain: true }) } );
+  req.responseData = req.roleList;
+  next();
 };
 
-//Get All Roles
-exports.getAll = (req,res) =>{
-  console.log("Line 37 IN");
-  Role.findAll({
-    where:req.query
-  })
-  .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving Roles."
-      });
-    });
-};
+exports.update = async (req, res, next) => {
+  
+  const { id } = req.params;
+  var { name, status } = req.body;
+  
+  updateClause = new WhereBuilder()
+  .clause('name', name)
+  .clause('updatedBy', req.user.username) 
+  .clause('status', status).toJSON();
 
-//Update Roles by Id
-exports.update = (req, res) => {
-  const id = req.params.id;
-
-  Role.update(req.body, {
-    where: req.params
-  })
-    .then(num => {
-      if (num == 1) {
-        res.send({
-          message: "Role was updated successfully."
-        });
-      } else {
-        res.send({
-          message: `Cannot update Role with id=${id}. Maybe Role was not found or req.body is empty!`
-        });
+  try {
+    var updatedRole = await Role.update(updateClause,{
+      where: {
+        id: id
       }
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error updating Role with id=" + id
-      });
     });
+
+    if (!updatedRole) {
+      return next(HTTPError(500, "Role not updated"))
+    }
+  }
+  catch (err) {
+    if(err["errors"]){
+      return next(HTTPError(500,err["errors"][0]["message"]))
+    }
+    else{
+      return next(HTTPError(500,"Internal error has occurred, while updating the role."))
+    }
+  }
+
+  req.updatedRole = updatedRole;
+  next();
 };
 
-//Get Role by Id
-exports.getById = (req,res) => {
-  const id = req.params.id;
+exports.getById = async (req, res, next) => {
 
-  Role.findByPk(id)
-    .then(data => {
-      res.send(data);
-    })
-    .catch(err => {
-      res.status(500).send({
-        message: "Error retrieving Role with id=" + id
-      });
-    });
+  const { id } = req.params;
+
+  var foundRole = await Role.findByPk(id);
+  if (!foundRole) {
+    return next(HTTPError(500, "Role not found"))
+  }
+  req.roleList = foundRole;
+  req.responseData = req.roleList;
+  next();
 }

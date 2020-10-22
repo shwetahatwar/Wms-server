@@ -10,6 +10,7 @@
   "author": "BRiOT Technologies Pvt. Ltd.",
   "license": "ISC",
   "dependencies": {
+    "@sendgrid/mail": "^7.2.1",
     "app-root-path": "^3.0.0",
     "bcrypt-nodejs": "^0.0.3",
     "bluebird": "^3.7.2",
@@ -18,8 +19,10 @@
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "morgan": "^1.9.1",
+    "mysql2": "^2.1.0",
+    "nodemailer": "^6.4.8",
     "sequelize": "^5.21.5",
     "winston": "^3.2.1",
-    "mysql2": "^2.1.0"
+    "xlsx": "^0.15.6"
   }
 }

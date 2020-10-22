@@ -3,7 +3,7 @@ var bcrypt = require('bcrypt-nodejs');
 var bbPromise = require('bluebird');
 
 module.exports = (sequelize, DataTypes) => {
-  const User = sequelize.define('User', {
+  const User = sequelize.define('user', {
     username: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -19,10 +19,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     roleId:{
       type: DataTypes.INTEGER,
-      references: {
-          model: 'roles', 
-          key: 'id',
-       }
+      allowNull:true
+    },
+    siteId:{
+      type: DataTypes.INTEGER,
+      allowNull:true
     },
     employeeId:{
       type:DataTypes.STRING,
@@ -95,15 +96,59 @@ module.exports = (sequelize, DataTypes) => {
       allowNull:true
     }
     
+  }),
+
+  Site = sequelize.define("site", {
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    status:{
+      type:DataTypes.BOOLEAN,
+      allowNull:false
+    },
+    createdBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    },
+    updatedBy:{
+      type:DataTypes.STRING,
+      allowNull:true
+    }
+    
   });
 
+  User.belongsTo(Site, {foreignKey: 'siteId',onDelete: 'CASCADE'});
   User.belongsTo(Role, {foreignKey: 'roleId',onDelete: 'CASCADE'});
 
   User.associate = function(models) {
   };
 
-  User.prototype.comparePassword = function(password) {
-    return bcrypt.compareSync(password, this.password);
+  User.comparePassword = function(reqpass, password) {
+    return new bbPromise((resolve, reject) => {
+      bcrypt.compare(reqpass, password, function(err, res) {
+        if(err) {
+          reject(err);
+        } else {
+          resolve(res);
+        }
+      });
+    })
+  };
+
+  User.encryptPassword = function (password) {
+    return new bbPromise(function(resolve, reject) {
+      bcrypt.genSalt(5, function(err, salt) {
+        if (err) { reject(err); return; }
+
+        bcrypt.hash(password, salt, null, function(err, hash) {
+          if (err) { reject(err); return; }
+          password = hash;
+          resolve(password);
+        });
+      });
+    });
   }
 
   return User;

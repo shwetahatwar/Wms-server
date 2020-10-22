@@ -35,23 +35,27 @@ module.exports = (sequelize, DataTypes) => {
   MaterialInward = sequelize.define("materialinward", {
     partNumberId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: 'partnumbers', 
-        key: 'id',
-      }
+      // references: {
+      //   model: 'partnumbers', 
+      //   key: 'id',
+      // }
     },
-    locationId: {
+    shelfId: {
       type: DataTypes.INTEGER,
-      references: {
-        model: 'locations', 
-        key: 'id',
-      },
+      // references: {
+      //   model: 'locations', 
+      //   key: 'id',
+      // },
       allowNull:true,
     },
     barcodeSerial:{
       type: DataTypes.STRING,
       allowNull:false,
       unique: true
+    },
+    partNumber: {
+      type: DataTypes.STRING,
+      allowNull:false
     },
     eachPackQuantity:{
       type: DataTypes.INTEGER,
@@ -77,9 +81,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull:false
     },
+    QCRemarks:{
+      type: DataTypes.STRING
+    },
     materialStatus:{
-      type: DataTypes.BOOLEAN,
+      type: DataTypes.STRING,
       allowNull:false
+    },
+    siteId:{
+      type: DataTypes.INTEGER,
     },
     createdBy:{
       type: DataTypes.STRING,

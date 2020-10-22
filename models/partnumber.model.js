@@ -14,6 +14,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
+    netWeight: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
+    netVolume: {
+      type: DataTypes.FLOAT,
+      allowNull: true
+    },
     status:{
       type:DataTypes.BOOLEAN,
       allowNull:false
